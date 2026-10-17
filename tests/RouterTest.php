@@ -6,7 +6,7 @@ test('Router: locale prefixes, named params, query strings and decoding', functi
     same(200, $route['status']); same('fr-CA', $route['locale']); same(['slug' => '中文'], $route['params']);
     same('en:test', $router->dispatch('GET', '/en/posts/test'));
     same(200, $router->match('HEAD', '/en/posts/test')['status']);
-    foreach (['/off/posts/test', '/posts/test', '/en/posts/a%2fb', '/en/posts/a%00b', '/en/posts/test/extra'] as $uri) {
+    foreach (['/off/posts/test', '/posts/test', '/en/posts/a%2fb', '/en/posts/a%00b', '/en/posts/test/extra', '/en/posts/%0d%0a/', '/en/posts/%5c/'] as $uri) {
         same(404, $router->match('GET', $uri)['status']);
     }
 });

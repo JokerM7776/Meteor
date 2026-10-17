@@ -5,6 +5,9 @@ namespace Core;
 final class Router
 {
     private array $routes = [];
+    private $notFound = null;
+
+    public function onNotFound(callable $handler): void { $this->notFound = $handler; }
 
     /** Pass I18n::enabledLocales($isAdmin); each entry is a locale code. */
     public function __construct(private array $enabledLocales = []) {}
@@ -24,11 +27,19 @@ final class Router
             return ['status' => 404];
         }
         $path = rawurldecode($path);
+        if (preg_match('/[\x00-\x20\x7f\\\\]/', $path)) { return ['status' => 404]; }
         $locale = null;
         $localizedPath = $path;
         if (preg_match('~^/([^/]+)(/.*)?$~u', $path, $prefix) && in_array($prefix[1], $this->enabledLocales, true)) {
             $locale = $prefix[1];
             $localizedPath = $prefix[2] ?? '/';
+        }
+        if ($locale !== null && in_array(strtoupper($method), ['GET', 'HEAD'], true)) {
+            $canonical = '/' . rawurlencode($locale) . ($localizedPath === '/' ? '/' : rtrim($localizedPath, '/'));
+            if ($path !== rawurldecode($canonical)) {
+                $query = parse_url($uri, PHP_URL_QUERY);
+                return ['status' => 301, 'location' => $canonical . ($query !== null ? '?' . $query : ''), 'locale' => $locale];
+            }
         }
         $allowed = [];
         foreach ($this->routes as [$verb, $pattern, $handler, $localized]) {
@@ -56,6 +67,8 @@ final class Router
         $route = $this->match($method, $uri);
         if ($route['status'] !== 200) {
             http_response_code($route['status']);
+            if (isset($route['location'])) { header('Location: ' . $route['location'], true, 301); return ''; }
+            if ($route['status'] === 404 && $this->notFound) { return ($this->notFound)($uri); }
             if (isset($route['allow'])) {
                 header('Allow: ' . implode(', ', $route['allow']));
             }

@@ -16,19 +16,7 @@ header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Content-Type: text/html; charset=UTF-8');
 try {
     $app = require dirname(__DIR__) . '/bootstrap.php';
-    $router->add('GET', '~^/$~', static function () use ($i18n, $db): string {
-        $match = $db->one('SELECT value FROM settings WHERE `key` = ? AND locale IS NULL', ['match_browser_language']);
-        $locale = ($match['value'] ?? '0') === '1' ? $i18n->negotiate($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '') : $i18n->defaultLocale();
-        header('Vary: Accept-Language');
-        header('Location: /' . rawurlencode($locale) . '/', true, 302);
-        return '';
-    });
-    $router->add('GET', '~^/$~', static function (array $params, string $locale) use ($i18n, $view, $isAdmin): string {
-        $i18n->setLocale($locale, $isAdmin);
-        if ($isAdmin) { header('Cache-Control: private, no-store'); }
-        if ($i18n->registry()[$locale]['status'] === 'preview') { header('X-Robots-Tag: noindex, nofollow'); }
-        return $view->render('public/home', ['i18n' => $i18n], 'layouts/public');
-    }, true);
+    require dirname(__DIR__) . '/app/routes.php';
     $body = $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);
     if ($_SERVER['REQUEST_METHOD'] !== 'HEAD') { echo $body; }
 } catch (Throwable $error) {

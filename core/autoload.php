@@ -11,3 +11,10 @@ spl_autoload_register(static function (string $class): void {
     }
 });
 require_once __DIR__ . '/helpers.php';
+
+spl_autoload_register(static function (string $class): void {
+    if (preg_match('/^App\\\\[A-Za-z0-9\\\\]+$/D', $class)) {
+        $file = dirname(__DIR__) . '/app/' . str_replace('\\', '/', substr($class, 4)) . '.php';
+        if (is_file($file)) { require_once $file; }
+    }
+});

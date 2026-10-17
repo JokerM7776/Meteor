@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/core/autoload.php';
+ob_start();
 $tests = [];
 function test(string $name, callable $body): void { $GLOBALS['tests'][$name] = $body; }
 function same(mixed $expected, mixed $actual): void {

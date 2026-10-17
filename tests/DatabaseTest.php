@@ -50,9 +50,14 @@ test('Database: unique keys, checks, optional global settings and cascades', fun
 test('Database: MySQL statement and column parity with loaded SQLite schema', function () {
     $db = database(); $mysql = [];
     foreach (schemaStatements('mysql') as $statement) {
-        if (preg_match('/^CREATE TABLE (\w+) \((.*)\) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin$/sD', $statement, $m)) {
+        if (preg_match('/^CREATE TABLE (\w+) \((.*)\) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$/sD', $statement, $m)) {
             preg_match_all('/^    `?(\w+)`?\s+(?:INTEGER|BIGINT|VARCHAR|CHAR|DATETIME|TEXT|LONGTEXT)\b/m', $m[2], $columns);
             $mysql[$m[1]] = $columns[1];
+            preg_match_all('/^    (`?\w+`?) (?:VARCHAR|CHAR)\(\d+\)([^\n]*)/m', $m[2], $textColumns, PREG_SET_ORDER);
+            foreach ($textColumns as $column) {
+                $binary = in_array(trim($column[1], '`'), ['code', 'locale', 'base_locale', 'locale_scope', 'slug', 'key', 'credential_hash'], true);
+                same($binary, str_contains($column[2], 'COLLATE utf8mb4_bin'));
+            }
             ok(!preg_match('/\bENUM\b/i', $statement));
         } else { ok((bool) preg_match('/^CREATE INDEX \w+ ON \w+ \([\w, ]+\)$/D', $statement), 'Unrecognized MySQL statement'); }
     }

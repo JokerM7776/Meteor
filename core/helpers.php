@@ -13,7 +13,7 @@ function __(string $key, array $params = []): string
 
 function url(string $path = ''): string
 {
-    return rtrim($GLOBALS['config']['app_url'], '/') . '/' . ltrim($path, '/');
+    return '/' . ltrim($path, '/');
 }
 
 function redirect(string $path, int $status = 302): never
@@ -30,4 +30,15 @@ function slugify(string $text): string
     $text = mb_strtolower($text, 'UTF-8');
     $text = preg_replace('/[^\p{L}\p{N}\p{M}]+/u', '-', $text) ?? '';
     return trim($text, '-') ?: 'section';
+}
+
+function absolute_url(string $path): string
+{
+    return rtrim($GLOBALS['config']['app_url'], '/') . url($path);
+}
+
+function localized_date(string $date, string $pattern = 'dd MMM yyyy'): string
+{
+    $formatter = new IntlDateFormatter($GLOBALS['i18n']->locale(), IntlDateFormatter::NONE, IntlDateFormatter::NONE, 'UTC', null, $pattern);
+    return $formatter->format(new DateTimeImmutable($date, new DateTimeZone('UTC')));
 }

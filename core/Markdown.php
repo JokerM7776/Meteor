@@ -33,7 +33,7 @@ final class Markdown
                 while ($i < $count && !preg_match($closing, $lines[$i])) { $code[] = $lines[$i++]; }
                 if ($i < $count) { $i++; }
                 $class = $m[2] === '' ? '' : ' class="language-' . \e(strtolower($m[2])) . '"';
-                $html .= '<pre><code' . $class . '>' . \e(implode("\n", $code)) . "</code></pre>\n";
+                $html .= '<pre><code' . $class . '>' . Highlighter::highlight(implode("\n", $code), strtolower($m[2])) . "</code></pre>\n";
             } elseif (preg_match('/^ {0,3}(#{1,6})\s+(.+?)\s*#*\s*$/u', $line, $m)) {
                 $level = strlen($m[1]);
                 $inline = $this->inline($m[2]);
@@ -111,9 +111,11 @@ final class Markdown
                 $image = $m[2][0] === '!';
                 if (!$this->safeUrl($m[4][0], $image)) { $html .= \e($m[0][0]); }
                 else {
+                    $href = $m[4][0];
+                    if (parse_url($href, PHP_URL_SCHEME) === null && !str_starts_with($href, '#')) { $href = \url($href); }
                     $title = $m[5][0] === null ? '' : ' title="' . \e($m[5][0]) . '"';
-                    $html .= $image ? '<img src="' . \e($m[4][0]) . '" alt="' . \e($m[3][0]) . '"' . $title . ' loading="lazy">'
-                        : '<a href="' . \e($m[4][0]) . '"' . $title . '>' . \e($m[3][0]) . '</a>';
+                    $html .= $image ? '<img src="' . \e($href) . '" alt="' . \e($m[3][0]) . '"' . $title . ' loading="lazy">'
+                        : '<a href="' . \e($href) . '"' . $title . '>' . \e($m[3][0]) . '</a>';
                 }
             } else {
                 $bold = $m[6][0] ?? $m[7][0];

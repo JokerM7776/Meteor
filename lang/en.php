@@ -2,12 +2,13 @@
 declare(strict_types=1);
 
 return [
+    'skip_content' => 'Skip to content', 'pagination' => 'Pagination', 'breadcrumb' => 'Breadcrumb', 'more_posts' => 'More posts',
     'site_name' => 'Meteor', 'home' => 'Home', 'posts' => 'Posts', 'tags' => 'Tags',
     'about' => 'About', 'rss' => 'RSS', 'sitemap' => 'Sitemap', 'archive' => 'Archive',
     'menu' => 'Menu', 'language' => 'Language', 'read_more' => 'Read more',
     'read_archive' => 'Read the archive', 'browse_archive' => 'Browse the archive',
     'home_heading' => 'Notes that load before you blink.',
-    'home_intro' => 'A small, server-rendered blog. No scripts, nothing to wait for.',
+    'home_intro' => 'Meteor is a small, server-rendered blog. Every page is plain HTML and CSS — no scripts, no trackers, nothing to wait for.',
     'placeholder' => 'Meteor is ready. Posts are coming soon.',
     'footer_description' => 'Server-rendered HTML and CSS. Zero JavaScript on public pages.',
     'read_in' => 'Read in', 'feeds' => 'Feeds', 'site' => 'Site',

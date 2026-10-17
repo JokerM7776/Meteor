@@ -2,7 +2,7 @@
 test('Markdown: headings, paragraphs, emphasis, inline code, links and images', function () {
     $parser = new Core\Markdown();
     $result = $parser->compile("# One\n## Two\n### Three\n#### Four\n##### Five\n###### Six\n\nA **bold** and *italic* with __strong__ and _emphasis_.\nSecond line.\n\n`<b>literal</b>` [Link](https://example.test/a \"Title\") ![Alt](images/photo.jpg)");
-    foreach (['<h1 id="one">One</h1>', '<h6 id="six">Six</h6>', '<strong>bold</strong>', '<em>italic</em>', '<strong>strong</strong>', '<em>emphasis</em>', '<code>&lt;b&gt;literal&lt;/b&gt;</code>', '<a href="https://example.test/a" title="Title">Link</a>', '<img src="images/photo.jpg" alt="Alt" loading="lazy">', "Second line.</p>"] as $part) { contains($part, $result['html']); }
+    foreach (['<h1 id="one">One</h1>', '<h6 id="six">Six</h6>', '<strong>bold</strong>', '<em>italic</em>', '<strong>strong</strong>', '<em>emphasis</em>', '<code>&lt;b&gt;literal&lt;/b&gt;</code>', '<a href="https://example.test/a" title="Title">Link</a>', '<img src="/images/photo.jpg" alt="Alt" loading="lazy">', "Second line.</p>"] as $part) { contains($part, $result['html']); }
     same(2, substr_count($result['html'], '<p>'));
 });
 test('Markdown: unordered/ordered nesting, quotes, rules and escaped fences', function () {
@@ -44,4 +44,31 @@ test('Markdown: reading time counts words and CJK without markup or URL inflatio
     same(2, $parser->compile(str_repeat('中', 401))['reading_minutes']);
     same(2, $parser->compile(str_repeat('word ', 220) . str_repeat('中', 400))['reading_minutes']);
     same(1, $parser->compile('[one](https://example.test/' . str_repeat('many/', 500) . ')')['reading_minutes']);
+});
+test('Markdown: fenced highlighter preserves escaped source across all six languages', function () {
+    $samples = [
+        'php' => '<?php // comment' . "\n" . '$value = "<script>"; if (true) { echo $value; }',
+        'js' => '// comment' . "\n" . 'const text = "<script>"; return text;',
+        'css' => '/* comment */ body { color: "red"; --accent: orange; }',
+        'html' => '<!-- comment --><div class="test">Hello & goodbye</div>',
+        'sql' => "-- comment\nSELECT title FROM posts WHERE locale = 'en';",
+        'bash' => '# comment' . "\n" . 'echo "$HOME"',
+    ];
+    foreach ($samples as $language => $code) {
+        $html = (new Core\Markdown())->compile("```$language\n$code\n```")['html'];
+        contains('syntax-comment', $html); contains('syntax-keyword', $html); contains('syntax-string', $html);
+        same($code, html_entity_decode(strip_tags(trim($html)), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        ok(!str_contains($html, '<script>'));
+    }
+    $html = Core\Highlighter::highlight('$value = "if $ignored // string"; // return', 'php');
+    same(1, substr_count($html, 'syntax-variable')); same(1, substr_count($html, 'syntax-string')); same(0, substr_count($html, 'syntax-keyword'));
+    same('&lt;b&gt;unknown&lt;/b&gt;', Core\Highlighter::highlight('<b>unknown</b>', 'unknown'));
+});
+test('Markdown: escaped quotes stay inside a single highlighted string', function () {
+    $code = '$text = "say \\"hello\\" if $ignored";';
+    $html = Core\Highlighter::highlight($code, 'php');
+    same(1, substr_count($html, 'syntax-string'));
+    same(1, substr_count($html, 'syntax-variable'));
+    same(0, substr_count($html, 'syntax-keyword'));
+    same($code, html_entity_decode(strip_tags($html), ENT_QUOTES, 'UTF-8'));
 });
