@@ -19,7 +19,7 @@ final class Csrf
         return is_string($token) && isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
     }
 
-    /** Supply the form value or JSON body's csrf_token explicitly. */
+    /** Supply the form value or X-CSRF-Token header explicitly. */
     public static function requireValid(mixed $token): void
     {
         if (!self::verify($token)) {

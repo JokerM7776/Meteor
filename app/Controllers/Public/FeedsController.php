@@ -5,7 +5,7 @@ use Core\I18n;
 
 final class FeedsController
 {
-    public function __construct(private SiteController $site, private I18n $i18n) {}
+    public function __construct(private SiteController $site, private I18n $i18n, private bool $admin = false) {}
     private function xml(string $text): string { return htmlspecialchars($text, ENT_QUOTES | ENT_XML1 | ENT_SUBSTITUTE, 'UTF-8'); }
     public function rss(string $locale): string
     {
@@ -55,7 +55,7 @@ final class FeedsController
         $css = $this->site->settings->get('custom_css');
         $etag = '"' . hash('sha256', $css) . '"';
         header('Content-Type: text/css; charset=UTF-8');
-        header('Cache-Control: public, max-age=300');
+        header('Cache-Control: ' . ($this->admin ? 'private, no-store' : 'public, max-age=300'));
         header('ETag: ' . $etag);
         if (($_SERVER['HTTP_IF_NONE_MATCH'] ?? '') === $etag) { http_response_code(304); return ''; }
         return $css;

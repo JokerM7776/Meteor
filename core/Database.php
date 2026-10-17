@@ -23,11 +23,16 @@ final class Database
         }
         $dsn = $this->driver === 'sqlite' ? 'sqlite:' . $config['path']
             : "mysql:host={$config['host']};port={$config['port']};dbname={$config['name']};charset=utf8mb4";
-        $this->pdo = new PDO($dsn, $config['user'] ?? null, $config['password'] ?? null, [
+        $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
-        ]);
+        ];
+        if ($this->driver === 'mysql') {
+            // rowCount() must count matched rows like SQLite, not only changed ones (optimistic updates rely on it).
+            $options[\Pdo\Mysql::ATTR_FOUND_ROWS] = true;
+        }
+        $this->pdo = new PDO($dsn, $config['user'] ?? null, $config['password'] ?? null, $options);
         if ($this->driver === 'sqlite') {
             $this->pdo->exec('PRAGMA foreign_keys = ON');
             $this->pdo->exec('PRAGMA journal_mode = WAL');
@@ -35,6 +40,13 @@ final class Database
         } else {
             $this->pdo->exec("SET time_zone = '+00:00'");
         }
+    }
+
+    public function hasColumn(string $table, string $column): bool
+    {
+        $identifier = $this->identifier($table);
+        $rows = $this->driver === 'sqlite' ? $this->all("PRAGMA table_info($identifier)") : $this->all("SHOW COLUMNS FROM $identifier");
+        return in_array($column, array_column($rows, $this->driver === 'sqlite' ? 'name' : 'Field'), true);
     }
 
     public function driver(): string { return $this->driver; }

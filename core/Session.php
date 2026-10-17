@@ -14,6 +14,7 @@ final class Session
         session_name($name);
         session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'secure' => $secure,
             'httponly' => true, 'samesite' => 'Lax']);
+        session_cache_limiter('');
         if (!session_start()) {
             throw new \RuntimeException('Could not start session.');
         }

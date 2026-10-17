@@ -36,7 +36,7 @@ try {
     if ($db->driver() === 'sqlite') { $db->transaction($create); } else { $create(); }
     $db->transaction(static function () use ($db, $user, $password): void {
         $db->query('INSERT INTO locales (code, name, native_name, status, is_default, sort_order, direction) VALUES (?, ?, ?, ?, ?, ?, ?)', ['en', 'English', 'English', 'live', 1, 0, 'ltr']);
-        $db->query('INSERT INTO users (username, password_hash) VALUES (?, ?)', [$user, password_hash($password, PASSWORD_DEFAULT)]);
+        $db->query('INSERT INTO users (username, password_hash) VALUES (?, ?)', [mb_strtolower($user), password_hash($password, PASSWORD_DEFAULT)]);
     });
     fwrite(STDOUT, "Meteor installed with English and the first admin.\n");
 } catch (Throwable $error) {

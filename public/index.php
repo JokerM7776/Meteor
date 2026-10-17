@@ -10,12 +10,24 @@ if (PHP_SAPI === 'cli-server') {
         return false;
     }
 }
-header("Content-Security-Policy: default-src 'self'; script-src 'none'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https:; base-uri 'self'; form-action 'self'; frame-ancestors 'none'");
+$adminRequest = preg_match('~^/admin(?:/|$)~', rawurldecode((string) parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH))) === 1;
+$scriptPolicy = $adminRequest ? "'self'" : "'none'";
+header("Content-Security-Policy: default-src 'self'; script-src $scriptPolicy; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https:; base-uri 'self'; form-action 'self'; frame-ancestors 'none'");
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Content-Type: text/html; charset=UTF-8');
+if ($adminRequest) {
+    header('Cache-Control: no-store');
+    header('X-Robots-Tag: noindex, nofollow');
+}
 try {
     $app = require dirname(__DIR__) . '/bootstrap.php';
+    header('Cache-Control: ' . ($adminRequest ? 'no-store' : ($isAdmin ? 'private, no-store' : 'public, max-age=300')));
+    if ($adminRequest) { header('X-Robots-Tag: noindex, nofollow'); }
+    else { header('Vary: Cookie', false); }
+    if ($adminRequest && !$isAdmin && !in_array(rawurldecode((string) parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)), ['/admin/login', '/admin/passkey/login/options', '/admin/passkey/login/verify'], true)) {
+        header('Location: /admin/login', true, 302); exit;
+    }
     require dirname(__DIR__) . '/app/routes.php';
     $body = $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);
     if ($_SERVER['REQUEST_METHOD'] !== 'HEAD') { echo $body; }

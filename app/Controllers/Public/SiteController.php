@@ -39,6 +39,7 @@ final class SiteController
         return $this->view->render('public/' . $template, $data + [
             'i18n' => $this->i18n, 'settings' => $this->settings, 'view' => $this->view,
             'locale' => $locale, 'registry' => $this->i18n->registry(), 'preview' => $preview,
+            'navPages' => array_filter($this->pages->published($locale), fn ($p) => (bool) $p['show_in_nav']),
             'live' => $this->i18n->enabledLocales(), 'switcher' => $switcher,
             'alternates' => $preview || $status !== 200 ? [] : $alternates,
             'canonical' => $status === 200 ? '/' . $locale . $suffix : null,
