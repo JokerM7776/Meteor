@@ -1,0 +1,8 @@
+@import "tailwindcss";
+@source "../views";
+@theme {
+  --font-display: "Source Sans 3", "Noto Sans SC", system-ui, sans-serif;
+  --font-serif: "Source Serif 4", "Noto Serif SC", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --color-meteor: var(--color-orange-500);
+}

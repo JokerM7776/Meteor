@@ -1,0 +1,7 @@
+Options -Indexes -MultiViews
+DirectoryIndex index.php
+RewriteEngine On
+# Uploaded content must never execute as PHP.
+RewriteRule ^uploads/.*\.(php[0-9]?|phtml|phar)$ - [F,NC]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [QSA,L]

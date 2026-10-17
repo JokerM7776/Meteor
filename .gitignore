@@ -1,0 +1,22 @@
+# Secrets and local configuration (templates live in config/.env.example)
+.env
+.env.*
+!config/.env.example
+
+# Runtime data: databases, logs, locks, backups, update staging
+/storage/*
+!/storage/.gitkeep
+*.log
+
+# User uploads
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# Build output and tooling
+/dist/
+/.codex-runs/
+
+# Editor and OS files
+.DS_Store
+.vscode/
+.idea/

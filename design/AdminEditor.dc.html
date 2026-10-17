@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Meteor Admin — Translate post</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f1f5f9}
+a{color:#c2410c}a:hover{color:#9a3412}
+</style>
+</helmet>
+<div style="min-height: 1100px; background: #f1f5f9; color: #0f172a; font-family: 'Source Sans 3', 'Noto Sans SC', system-ui, sans-serif; display: flex; flex-direction: column">
+
+<header style="background: #ffffff; border-bottom: 1px solid #e2e8f0">
+<div style="padding: 12px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px">
+<div style="display: flex; align-items: center; gap: 16px; min-width: 0">
+<a href="/admin/posts" style="display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px 0 8px; border-radius: 8px; color: #334155; font-size: 14px; font-weight: 500; text-decoration: none"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.75" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>Posts</a>
+<div style="display: flex; flex-direction: column; min-width: 0">
+<span style="font-size: 17px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">A 150-line Markdown parser, line by line</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #475569">/{lang}/posts/markdown-parser-150-lines</span>
+</div>
+</div>
+
+<nav aria-label="Translation" style="display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 10px; background: #f1f5f9">
+<a href="/admin/editor?post=5&amp;locale=en" style="display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 7px; color: #334155; font-size: 14px; font-weight: 500; text-decoration: none">EN<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #475569">base</span></a>
+<a href="/admin/editor?post=5&amp;locale=zh" aria-current="page" style="display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 7px; background: #ffffff; color: #0f172a; font-size: 14px; font-weight: 600; text-decoration: none; box-shadow: 0 1px 2px rgba(15,23,42,0.08)">ZH<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; padding: 1px 6px; border-radius: 4px; background: #fef3c7; color: #78350f">draft</span></a>
+<a href="/admin/editor?post=5&amp;locale=ms&amp;from=en" style="display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 7px; color: #475569; font-size: 14px; font-weight: 500; text-decoration: none"><svg width="12" height="12" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 3v8M3 7h8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"></path></svg>MS</a>
+</nav>
+
+<div style="display: flex; align-items: center; gap: 8px">
+<button type="submit" form="translation" name="status" value="draft" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Save draft</button>
+<button type="submit" form="translation" name="status" value="published" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: #c2410c; color: #ffffff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Publish 中文</button>
+</div>
+</div>
+</header>
+
+<details style="background: #ffffff; border-bottom: 1px solid #e2e8f0">
+<summary style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; min-height: 48px; padding: 0 24px; cursor: pointer; font-size: 14px; color: #334155; list-style: none">
+<span style="font-weight: 600; color: #0f172a">Shared across all languages</span>
+<span>Category: <strong style="font-weight: 600">Engineering</strong></span>
+<span>Cover: <strong style="font-weight: 600">none</strong></span>
+<span>Visibility: <strong style="font-weight: 600">Published</strong></span>
+<span style="margin-left: auto; color: #c2410c; font-weight: 500">Edit</span>
+</summary>
+</details>
+
+<main style="flex: 1; padding: 20px 24px 24px; display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch">
+
+<section aria-labelledby="src-title" style="flex: 1 1 560px; min-width: 0; display: flex; flex-direction: column; border: 1px solid #e2e8f0; border-radius: 14px; background: #f8fafc; overflow: hidden">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px 12px 20px; border-bottom: 1px solid #e2e8f0; background: #ffffff">
+<h2 id="src-title" style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 3px 7px; border-radius: 5px; background: #0f172a; color: #ffffff">EN</span>
+Original · read only
+</h2>
+<div style="display: flex; gap: 2px; padding: 3px; border-radius: 8px; background: #f1f5f9; font-size: 13px">
+<span style="display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: 6px; background: #ffffff; font-weight: 600; box-shadow: 0 1px 2px rgba(15,23,42,0.08)">Markdown</span>
+<a href="/admin/editor?post=5&amp;locale=zh&amp;ref=preview" style="display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: 6px; color: #475569; text-decoration: none">Preview</a>
+</div>
+</div>
+<div style="padding: 20px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.05em">Title</span>
+<p style="margin: 0; font-size: 17px; font-weight: 600">A 150-line Markdown parser, line by line</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.05em">Summary</span>
+<p style="margin: 0; font-size: 15px; line-height: 1.5; color: #334155">Headings, emphasis, links, lists and fenced code — plus the table of contents, extracted in the same pass.</p>
+</div>
+<pre style="margin: 0; padding: 16px; border-radius: 10px; background: #ffffff; border: 1px solid #e2e8f0; font-family: 'JetBrains Mono', monospace; font-size: 13.5px; line-height: 1.75; color: #1e293b; white-space: pre-wrap; min-height: 560px; box-sizing: border-box"><span style="color: #c2410c">## Why write your own</span>
+
+Composer packages are excellent, but this blog
+needs a small slice of Markdown, and I want to
+read every line that touches my content.
+
+<span style="color: #c2410c">## The block pass</span>
+
+The parser splits the text on blank lines and
+looks at the first characters of each block:
+<span style="color: #475569">`#`</span> for headings, <span style="color: #475569">`-`</span> for lists, three backticks
+for code.
+
+<span style="color: #c2410c">### Headings become anchors</span>
+
+Each <span style="color: #475569">`##`</span> and <span style="color: #475569">`###`</span> gets an id made from its
+text, and is pushed onto the TOC list at the
+same time.
+
+<span style="color: #c2410c">## The inline pass</span>
+
+Bold, italic, inline code and links are four
+regular expressions, run in that order.</pre>
+</div>
+</section>
+
+<form id="translation" action="/admin/editor?post=5&amp;locale=zh" method="post" lang="zh" style="flex: 1 1 560px; min-width: 0; display: flex; flex-direction: column; border: 2px solid #0f172a; border-radius: 14px; background: #ffffff; overflow: hidden">
+<input type="hidden" name="csrf_token" value="[CSRF TOKEN]">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px 12px 20px; border-bottom: 1px solid #e2e8f0">
+<h2 style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 3px 7px; border-radius: 5px; background: #fef3c7; color: #78350f">ZH</span>
+<span lang="en">Translation · 简体中文</span>
+</h2>
+<span lang="en" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #475569">Draft saved 10:42</span>
+</div>
+<div style="padding: 20px; display: flex; flex-direction: column; gap: 16px; flex: 1">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="t-title" lang="en" style="font-size: 12px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.05em">Title</label>
+<input id="t-title" name="title" type="text" value="逐行解读一个 150 行的 Markdown 解析器" style="height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid #cbd5e1; font: inherit; font-size: 17px; font-weight: 600; color: #0f172a; box-sizing: border-box">
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="t-summary" lang="en" style="font-size: 12px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.05em">Summary · also the meta description</label>
+<textarea id="t-summary" name="summary" rows="2" style="padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font: inherit; font-size: 15px; line-height: 1.5; color: #334155; resize: vertical; box-sizing: border-box">标题、强调、链接、列表和代码块——以及在同一遍处理中提取的目录。</textarea>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; flex: 1">
+<label for="t-body" lang="en" style="font-size: 12px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.05em">Markdown</label>
+<textarea id="t-body" name="content_md" style="flex: 1; min-height: 560px; padding: 16px; border-radius: 10px; border: 1px solid #cbd5e1; font-family: 'JetBrains Mono', 'Noto Sans SC', monospace; font-size: 13.5px; line-height: 1.75; color: #1e293b; resize: vertical; box-sizing: border-box">## 为什么要自己写
+
+Composer 上的包都很好，但这个博客只需要
+Markdown 的一小部分，而且我想读懂每一行
+处理我内容的代码。
+
+## 块级处理
+
+解析器按空行切分文本，并查看每个块的
+开头字符：`#` 表示标题，`-` 表示列表，
+三个反引号表示代码块。
+
+### </textarea>
+</div>
+</div>
+<div lang="en" style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; padding: 12px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc; font-size: 13px; color: #475569">
+<span>2 of 4 sections translated</span>
+<span>HTML and table of contents are compiled when you save</span>
+</div>
+</form>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
