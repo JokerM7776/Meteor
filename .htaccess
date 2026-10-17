@@ -1,0 +1,20 @@
+# Lets the unzipped meteor/ folder itself be the document root (shared hosting).
+# Every request is mapped into public/, so nothing outside it can be fetched.
+# Pointing the document root straight at public/ is still the preferred setup.
+Options -Indexes -MultiViews
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Without mod_rewrite only index.php (a setup help page) is reachable.
+<IfModule !mod_rewrite.c>
+    <IfModule mod_authz_core.c>
+        Require all denied
+        <FilesMatch "^(index\.php)?$">
+            Require all granted
+        </FilesMatch>
+    </IfModule>
+</IfModule>

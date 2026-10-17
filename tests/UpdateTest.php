@@ -66,19 +66,33 @@ test('Packaging: CLI zip structure, manifest hashes, runtime and secret exclusio
     try {
         file_put_contents($root . '/public/uploads/private.txt', 'upload');
         file_put_contents($root . '/storage/private.txt', 'private');
-        file_put_contents($root . '/config/.env.private', 'secret');
+        file_put_contents($root . '/config/.env.private', 'secret'); file_put_contents($root . '/app/.DS_Store', 'finder');
         $process = proc_open([PHP_BINARY, $root . '/bin/package.php'], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
         fclose($pipes[0]); $out = stream_get_contents($pipes[1]); $error = stream_get_contents($pipes[2]); fclose($pipes[1]); fclose($pipes[2]); same(0, proc_close($process)); same('', $error);
         $path = trim($out); $zip = new ZipArchive(); same(true, $zip->open($path));
         $manifest = json_decode($zip->getFromName('meteor/manifest.json'), true);
         foreach ($manifest['files'] as $file => $hash) { same($hash, hash('sha256', $zip->getFromName('meteor/' . $file))); }
-        foreach (['.env', 'storage/private.txt', 'public/uploads/private.txt', 'config/.env.private', 'tests/run.php', '.github/workflows/release.yml', 'dist/meteor-0.1.0.zip'] as $file) { same(false, $zip->locateName('meteor/' . $file)); }
-        foreach (['bootstrap.php', 'config/config.php', 'config/.env.example', 'public/assets/style.css', 'storage/.gitkeep', 'public/uploads/.gitkeep'] as $file) { ok($zip->locateName('meteor/' . $file) !== false, $file); }
+        foreach (['.env', 'storage/private.txt', 'public/uploads/private.txt', 'config/.env.private', 'tests/run.php', '.github/workflows/release.yml', 'dist/meteor-0.1.0.zip', 'app/.DS_Store'] as $file) { same(false, $zip->locateName('meteor/' . $file)); }
+        foreach (['bootstrap.php', 'index.php', '.htaccess', 'public/.htaccess', 'public/index.php', 'views/setup.php', 'config/config.php', 'config/.env.example', 'public/assets/style.css', 'storage/.gitkeep', 'public/uploads/.gitkeep'] as $file) { ok($zip->locateName('meteor/' . $file) !== false, $file); }
         for ($i = 0; $i < $zip->numFiles; $i++) { ok(str_starts_with($zip->getNameIndex($i), 'meteor/')); }
         $zip->close(); contains(hash_file('sha256', $path), file_get_contents($path . '.sha256'));
         // A packaged tree is also an installable application.
         $fresh = $root . '/fresh'; mkdir($fresh); $zip->open($path); $zip->extractTo($fresh); $zip->close();
         [$headers] = fixtureRequest($fresh . '/meteor', '/'); contains('Location: /install', $headers);
+    } finally { ReleasePackage::removeTree($root); }
+});
+test('Unzipped folder as web root: rewrite into public/, setup help without rewrite or in a sub-folder', function () {
+    $root = appFixture(false);
+    try {
+        // Root .htaccess maps /x to public/x, so SCRIPT_NAME carries the /public prefix.
+        [$headers] = fixtureRequest($root, '/', 'GET', [], '', ['SCRIPT_NAME' => '/public/index.php']); contains('Location: /install', $headers);
+        [$headers, $html] = fixtureRequest($root, '/meteor/', 'GET', [], '', ['SCRIPT_NAME' => '/meteor/public/index.php']);
+        contains('Status: 503', $headers); contains('sub-folder (<code>/meteor</code>)', $html);
+        [$headers, $html] = fixtureRequest($root, '/', 'GET', [], '', ['SCRIPT_FILENAME' => $root . '/index.php', 'SCRIPT_NAME' => '/index.php']);
+        contains('Status: 503', $headers); contains("default-src 'none'", $headers); contains('AllowOverride All', $html); ok(!str_contains($html, '<script'));
+        $htaccess = file_get_contents($root . '/.htaccess');
+        contains('RewriteRule ^(.*)$ public/$1 [L]', $htaccess); contains('Require all denied', $htaccess);
+        ok(ReleasePackage::managed('.htaccess') && ReleasePackage::managed('index.php') && !ReleasePackage::managed('.env'));
     } finally { ReleasePackage::removeTree($root); }
 });
 test('Updater: apply, removed files, migrations, protected data, backup and restore', function () {

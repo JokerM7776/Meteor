@@ -31,8 +31,16 @@ Check PHP with `php -v` and `php -m`.
    [Releases](../../releases) page. Optionally verify it:
    `shasum -a 256 -c meteor-<version>.zip.sha256`
 2. Unzip it on your server. You get one `meteor/` folder.
-3. Point your web server's **document root at `meteor/public`** — never at `meteor/` itself
-   (see [Web server configuration](#5-web-server-configuration)).
+3. Point the domain's document root at that folder:
+   - **Best:** use **`meteor/public`** as the document root
+     (see [Web server configuration](#5-web-server-configuration)).
+   - **Shared hosting (Apache):** if you can't choose `public/`, use `meteor/` itself, or move
+     its contents (including the hidden `.htaccess`) into `public_html`. The root `.htaccess`
+     sends every request into `public/`, so nothing else can be downloaded. It needs
+     `mod_rewrite` and `AllowOverride All`; without them you get a setup help page instead.
+   - Meteor must be the root of a domain or subdomain, not a sub-folder such as
+     `example.com/meteor/`. A help page is shown if it is opened from a sub-folder.
+   - **Nginx** never reads `.htaccess`, so there the document root **must** be `meteor/public`.
 4. If you use MariaDB/MySQL, [create an empty database and user](#3-create-the-database).
 5. Open your site in a browser. You are taken to **`/install`**, which:
    - checks PHP requirements and folder permissions,
@@ -88,7 +96,9 @@ Environment variables set by the server override `.env`. **Never commit `.env`**
 
 ## 5. Web server configuration
 
-**Apache** — `public/.htaccess` is included (needs `AllowOverride All` and `mod_rewrite`):
+**Apache** — `public/.htaccess` is included (needs `AllowOverride All` and `mod_rewrite`). A root
+`.htaccess` is also included, so `DocumentRoot /var/www/meteor` works too when `public/` can't be
+chosen; the setup below is still preferred:
 
 ```apache
 <VirtualHost *:443>

@@ -21,8 +21,8 @@ final class ReleasePackage
         foreach (explode('/', $path) as $part) {
             if (str_starts_with(strtolower($part), '.env') && $path !== 'config/.env.example') { return false; }
         }
-        if (preg_match('~^(storage|public/uploads)(/|$)~i', $path)) { return false; }
-        return in_array($path, ['VERSION', 'README.md', 'README', 'LICENSE', 'LICENSE.md', 'bootstrap.php', 'manifest.json'], true)
+        if (preg_match('~^(storage|public/uploads)(/|$)~i', $path) || strcasecmp(basename($path), '.DS_Store') === 0) { return false; }
+        return in_array($path, ['VERSION', 'README.md', 'README', 'LICENSE', 'LICENSE.md', 'bootstrap.php', 'manifest.json', '.htaccess', 'index.php'], true)
             || preg_match('~^(app|bin|config|core|database|lang|public|src|views)/~', $path) === 1;
     }
     public static function build(string $root, string $destination): string
@@ -39,7 +39,7 @@ final class ReleasePackage
                 if ($file->isFile() && self::managed($path)) { $files[$path] = hash_file('sha256', $file->getPathname()); }
             }
         }
-        foreach (['bootstrap.php', 'VERSION', 'README.md', 'README', 'LICENSE', 'LICENSE.md'] as $path) {
+        foreach (['bootstrap.php', 'index.php', '.htaccess', 'VERSION', 'README.md', 'README', 'LICENSE', 'LICENSE.md'] as $path) {
             if (is_file($root . '/' . $path)) { $files[$path] = hash_file('sha256', $root . '/' . $path); }
         }
         $files['storage/.gitkeep'] = hash('sha256', '');
@@ -53,6 +53,8 @@ final class ReleasePackage
             else { $zip->addFile($root . '/' . $path, 'meteor/' . $path); }
         }
         $zip->addFromString('meteor/manifest.json', json_encode(['name' => 'meteor', 'version' => $version, 'min_php' => '8.2.0', 'built_at' => gmdate('c'), 'files' => $files], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+        // Generated entries would otherwise unzip world-writable (0666).
+        foreach (['meteor/manifest.json', 'meteor/storage/.gitkeep', 'meteor/public/uploads/.gitkeep'] as $name) { $zip->setExternalAttributesName($name, \ZipArchive::OPSYS_UNIX, 0100644 << 16); }
         if (!$zip->close()) { throw new \RuntimeException('Cannot finish release zip.'); }
         if (file_put_contents($zipPath . '.sha256', hash_file('sha256', $zipPath) . '  ' . basename($zipPath) . "\n") === false) { throw new \RuntimeException('Cannot write checksum.'); }
         return $zipPath;

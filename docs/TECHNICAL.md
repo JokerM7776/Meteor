@@ -119,10 +119,22 @@ passkey devices and a live MySQL server still require deployment smoke testing.
 
 Download both release assets, verify the zip against its SHA-256 sidecar, and unzip
 meteor-<version>.zip. It contains one meteor/ directory. Point Apache/Nginx's
-document root at **meteor/public**, never the project root. Apache uses the
-included .htaccess; Nginx needs `try_files $uri $uri/ /index.php?$query_string`
+document root at **meteor/public** where possible. Apache uses the included
+public/.htaccess; Nginx needs `try_files $uri $uri/ /index.php?$query_string`
 and a PHP handler for the entrypoint. Keep configuration, storage and backups
 outside the public document root.
+
+For shared hosting the unzipped meteor/ folder may itself be the Apache document
+root: the root .htaccess rewrites every path to public/<path>, so only public/ is
+reachable and public/.htaccess takes over from there. Without mod_rewrite it denies
+everything except the root index.php, which is never part of the app: it only
+renders views/setup.php, a static help page. Nginx ignores .htaccess, so
+the root index.php also tells Nginx users that files are exposed and the root must
+be public/. public/index.php shows the same page (variant `subfolder`) when
+SCRIPT_NAME shows it is mounted under a sub-path, because every URL is root-relative.
+The root index.php and .htaccess are managed release files, so updaters before this
+change reject the new zips ("Unsafe manifest path"); update those installs once by
+unzipping over them.
 
 Open the site to reach /install. The installer checks PHP >= 8.2, PDO and an
 available database driver, OpenSSL, mbstring, zip, curl and writable locations.

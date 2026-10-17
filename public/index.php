@@ -24,6 +24,13 @@ try {
     require_once dirname(__DIR__) . '/core/autoload.php';
     $root = dirname(__DIR__);
     $requestPath = rawurldecode((string) parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+    // Every URL is root-relative, so refuse to run under a sub-folder such as /meteor/public/index.php.
+    if (preg_match('~^(.*?)(?:/public)?/index\.php$~', (string) ($_SERVER['SCRIPT_NAME'] ?? ''), $match)
+        && $match[1] !== '' && str_starts_with($requestPath . '/', $match[1] . '/')) {
+        [$problem, $base] = ['subfolder', $match[1]];
+        require $root . '/views/setup.php';
+        exit;
+    }
     $installer = new Core\Installer($root);
     if (!$installer->installed() && !str_starts_with($requestPath, '/assets/')) {
         if ($requestPath !== '/install') { header('Location: /install', true, 302); exit; }
