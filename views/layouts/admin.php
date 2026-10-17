@@ -38,7 +38,7 @@
 <a href="/admin/posts" class="flex min-h-11 items-center gap-3 px-2 text-xl font-bold text-white">
 <?php require __DIR__ . '/../partials/mark.php'; ?> Meteor</a>
 <nav aria-label="Admin" class="flex flex-col gap-0.5 text-[15px]">
-<?php foreach (['posts' => 'Posts', 'pages' => 'Pages', 'taxonomy' => 'Categories & tags', 'languages' => 'Languages', 'settings' => 'Settings', 'security' => 'Security'] as $key => $label): $selected = $active === $key || ($active === 'matrix' && $key === (!empty($pageContent) ? 'pages' : 'posts')) || ($active === 'editor' && $key === (!empty($page) ? 'pages' : 'posts')); ?>
+<?php foreach (['posts' => 'Posts', 'pages' => 'Pages', 'taxonomy' => 'Categories & tags', 'languages' => 'Languages', 'settings' => 'Settings', 'security' => 'Security', 'updates' => 'Updates'] as $key => $label): $selected = $active === $key || ($active === 'matrix' && $key === (!empty($pageContent) ? 'pages' : 'posts')) || ($active === 'editor' && $key === (!empty($page) ? 'pages' : 'posts')); ?>
 <a href="/admin/<?= e($key) ?>" <?= $selected ? 'aria-current="page"' : '' ?> class="flex min-h-11 items-center gap-3 rounded-lg px-3 <?= $selected ? 'bg-slate-800 font-semibold text-white' : 'hover:bg-slate-800' ?>">
 <?php require __DIR__ . "/../admin/nav-icon.php"; ?>
 <?= e($label) ?>
@@ -46,6 +46,7 @@
 <?php endforeach ?>
 </nav>
 <div class="mt-auto border-t border-slate-800 pt-4 text-sm">
+<p class="px-3 font-mono text-xs">Meteor <?= e(\Core\Version::current()) ?></p>
 <a class="flex min-h-11 items-center px-3" href="/<?= e($i18n->defaultLocale()) ?>/">View site ↗</a>
 <form method="post" action="/admin/logout">
 <?= \Core\Csrf::field() ?>

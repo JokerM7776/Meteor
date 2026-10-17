@@ -30,7 +30,8 @@ final class Database
         ];
         if ($this->driver === 'mysql') {
             // rowCount() must count matched rows like SQLite, not only changed ones (optimistic updates rely on it).
-            $options[\Pdo\Mysql::ATTR_FOUND_ROWS] = true;
+            // Pdo\Mysql exists from PHP 8.4; the PDO::MYSQL_* constant is deprecated from 8.5.
+            $options[class_exists(\Pdo\Mysql::class) ? \Pdo\Mysql::ATTR_FOUND_ROWS : PDO::MYSQL_ATTR_FOUND_ROWS] = true;
         }
         $this->pdo = new PDO($dsn, $config['user'] ?? null, $config['password'] ?? null, $options);
         if ($this->driver === 'sqlite') {

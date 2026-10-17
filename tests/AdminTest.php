@@ -90,7 +90,7 @@ test('Admin: Phase 2 upgrade adds and backfills publication dates idempotently',
         (new App\Services\DemoSeeder($db))->run(false);
         foreach ([1, 2] as $attempt) {
             $process = proc_open([PHP_BINARY, dirname(__DIR__) . '/bin/migrate.php'], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, dirname(__DIR__), array_merge(getenv(), ['DB_DRIVER' => 'sqlite', 'DB_PATH' => $path]));
-            fclose($pipes[0]); $out = stream_get_contents($pipes[1]); $error = stream_get_contents($pipes[2]); fclose($pipes[1]); fclose($pipes[2]); same(0, proc_close($process)); same('', $error); contains('up to date', $out);
+            fclose($pipes[0]); $out = stream_get_contents($pipes[1]); $error = stream_get_contents($pipes[2]); fclose($pipes[1]); fclose($pipes[2]); same(0, proc_close($process)); same('', $error); contains('migrations applied', $out);
         }
         foreach (['post_translations', 'page_translations'] as $table) { ok($db->hasColumn($table, 'published_at')); same(null, $db->one("SELECT id FROM $table WHERE status = 'published' AND published_at IS NULL")); }
     } finally { unset($db); foreach ([$path, $path . '-wal', $path . '-shm'] as $file) { if (is_file($file)) { unlink($file); } } }

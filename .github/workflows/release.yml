@@ -1,0 +1,44 @@
+name: Release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: meteor-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: zip, curl, pdo_sqlite, mbstring, openssl
+          tools: none
+          coverage: none
+      - name: Install CGI test runner
+        run: sudo apt-get install -y php8.3-cgi
+      - name: Lint and test
+        run: |
+          find . -name '*.php' -not -path './design/*' -print0 | xargs -0 -n1 php -l
+          php tests/run.php
+      - name: Build CSS
+        run: |
+          curl --fail --location --proto '=https' --tlsv1.2 https://github.com/tailwindlabs/tailwindcss/releases/download/v4.3.3/tailwindcss-linux-x64 -o "$RUNNER_TEMP/tailwindcss"
+          chmod +x "$RUNNER_TEMP/tailwindcss"
+          export PATH="$RUNNER_TEMP:$PATH"
+          bin/build-css.sh
+      - name: Package
+        run: |
+          version="$(cut -d. -f1,2 VERSION).${{ github.run_number }}"
+          echo "$version" > VERSION
+          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
+          php bin/package.php
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v$RELEASE_VERSION" "dist/meteor-$RELEASE_VERSION.zip" "dist/meteor-$RELEASE_VERSION.zip.sha256" --target "$GITHUB_SHA" --title "Meteor $RELEASE_VERSION" --latest --generate-notes

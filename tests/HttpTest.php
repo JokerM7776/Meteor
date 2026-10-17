@@ -1,6 +1,6 @@
 <?php
 test('HTTP via CGI: CSP, content types, redirects, HEAD and cache validators', function () {
-    $root = dirname(__DIR__);
+    $root = appFixture();
     $path = $root . '/storage/test-http-' . bin2hex(random_bytes(6)) . '.sqlite';
     $db = new Core\Database(['driver' => 'sqlite', 'path' => $path]);
     foreach (schemaStatements('sqlite') as $statement) { $db->query($statement); }
@@ -52,6 +52,7 @@ test('HTTP via CGI: CSP, content types, redirects, HEAD and cache validators', f
         foreach (glob($sessionPath . '/*') as $file) { unlink($file); }
         rmdir($sessionPath);
         unset($db);
+        Core\ReleasePackage::removeTree($root);
         foreach ([$path, $path . '-wal', $path . '-shm'] as $file) { if (is_file($file)) { unlink($file); } }
     }
 });

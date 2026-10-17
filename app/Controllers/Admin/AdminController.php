@@ -43,6 +43,15 @@ final class AdminController
         }
         if ($path === '/admin/logout' && $post) { Session::logout(); return $this->go('/admin/login', 'Signed out.'); }
         if ($path === '/admin') { return $this->go('/admin/posts'); }
+        if ($path === '/admin/updates') {
+            $updates = new \App\Services\AdminUpdates($this->db, dirname(__DIR__, 3));
+            if ($post) {
+                try { $message = $updates->submit($user, $_POST, $_FILES); }
+                catch (\Throwable $e) { $message = $e->getMessage(); }
+                return $this->go('/admin/updates', $message);
+            }
+            return $this->render('updates', 'Updates', $updates->data());
+        }
         if ($path === '/admin/editor') { return $this->editor($post); }
         if (preg_match('~^/admin/(posts|pages)/(\d+)/delete$~D', $path, $m)) {
             if ($post) { (new ContentEditor($this->db))->delete($m[1] === 'pages', (int) $m[2]); return $this->go('/admin/' . $m[1], 'Deleted.'); }

@@ -1,6 +1,6 @@
 <?php
 test('Installer: SQLite WAL, English-only seed, password hash and safe rerun', function () {
-    $root = dirname(__DIR__);
+    $root = appFixture(false);
     $path = $root . '/storage/test-install-' . bin2hex(random_bytes(6)) . '.sqlite';
     $environment = array_merge(getenv(), ['DB_DRIVER' => 'sqlite', 'DB_PATH' => $path,
         'ADMIN_USER' => 'test-admin', 'ADMIN_PASS' => 'a-long-test-password']);
@@ -22,6 +22,7 @@ test('Installer: SQLite WAL, English-only seed, password hash and safe rerun', f
         same(1, count($db->all('SELECT * FROM users')));
         unset($db);
     } finally {
+        Core\ReleasePackage::removeTree($root);
         foreach ([$path, $path . '-wal', $path . '-shm'] as $file) { if (is_file($file)) { unlink($file); } }
     }
 });

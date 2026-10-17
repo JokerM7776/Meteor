@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/core/autoload.php';
+require_once __DIR__ . '/fixtures.php';
 ob_start();
 $tests = [];
 function test(string $name, callable $body): void { $GLOBALS['tests'][$name] = $body; }

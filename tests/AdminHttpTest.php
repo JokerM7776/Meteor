@@ -4,10 +4,10 @@ final class AdminHttpClient
     public Core\Database $db;
     public string $cookie = '';
     private string $directory;
-    private string $root;
+    public string $root;
     public function __construct()
     {
-        $this->root = dirname(__DIR__);
+        $this->root = appFixture();
         $this->directory = $this->root . '/storage/test-admin-' . bin2hex(random_bytes(6)); mkdir($this->directory, 0700);
         $this->db = new Core\Database(['driver' => 'sqlite', 'path' => $this->directory . '/db.sqlite']);
         foreach (schemaStatements('sqlite') as $statement) { $this->db->query($statement); }
@@ -21,7 +21,8 @@ final class AdminHttpClient
         if ($upload !== null) {
             $boundary = 'Meteor' . bin2hex(random_bytes(12)); $body = '';
             foreach ($data as $key => $value) { $body .= "--$boundary\r\nContent-Disposition: form-data; name=\"$key\"\r\n\r\n$value\r\n"; }
-            $body .= "--$boundary\r\nContent-Disposition: form-data; name=\"cover\"; filename=\"cover.png\"\r\nContent-Type: image/png\r\n\r\n" . $upload['bytes'] . "\r\n--$boundary--\r\n";
+            $field = $upload['field'] ?? 'cover'; $filename = $upload['filename'] ?? 'cover.png';
+            $body .= "--$boundary\r\nContent-Disposition: form-data; name=\"$field\"; filename=\"$filename\"\r\nContent-Type: application/octet-stream\r\n\r\n" . $upload['bytes'] . "\r\n--$boundary--\r\n";
             $contentType = 'multipart/form-data; boundary=' . $boundary;
         }
         $environment = array_merge(getenv(), ['DB_DRIVER' => 'sqlite', 'DB_PATH' => $this->directory . '/db.sqlite', 'APP_URL' => 'https://meteor.example', 'WEBAUTHN_RP_ID' => 'meteor.example',
@@ -44,7 +45,7 @@ final class AdminHttpClient
     {
         [, $html] = $this->request($uri); preg_match('/name="csrf-token" content="([^"]+)"/', $html, $m); ok(isset($m[1]), 'CSRF meta missing'); return $m[1];
     }
-    public function close(): void { foreach (glob($this->directory . '/*') as $file) { unlink($file); } rmdir($this->directory); }
+    public function close(): void { foreach (glob($this->directory . '/*') as $file) { unlink($file); } rmdir($this->directory); Core\ReleasePackage::removeTree($this->root); }
 }
 test('Admin HTTP: anonymous cache, guarded routes, login CSRF, rotation, rate limit and logout', function () {
     $c = new AdminHttpClient();
@@ -52,7 +53,7 @@ test('Admin HTTP: anonymous cache, guarded routes, login CSRF, rotation, rate li
         foreach (['/en/', '/en/posts', '/custom.css', '/sitemap.xml', '/ja/', '/missing'] as $path) {
             [$h] = $c->request($path); contains('Cache-Control: public, max-age=300', $h); ok(!str_contains($h, 'Set-Cookie:')); same('', $c->cookie);
         }
-        foreach (['/admin', '/admin/posts', '/admin/pages', '/admin/editor', '/admin/taxonomy', '/admin/languages', '/admin/settings', '/admin/security', '/admin/logout', '/admin/security/passkeys/options', '/admin/security/passkeys', '/admin/posts/1/delete', '/admin/unknown'] as $path) {
+        foreach (['/admin', '/admin/posts', '/admin/pages', '/admin/editor', '/admin/taxonomy', '/admin/languages', '/admin/settings', '/admin/security', '/admin/updates', '/admin/logout', '/admin/security/passkeys/options', '/admin/security/passkeys', '/admin/posts/1/delete', '/admin/unknown'] as $path) {
             foreach (['GET', 'POST', 'PUT'] as $method) { [$h] = $c->request($path, $method); contains('302 Found', $h); contains('Location: /admin/login', $h); contains("script-src 'self'", $h); contains('X-Robots-Tag: noindex, nofollow', $h); contains('Cache-Control: no-store', $h); }
         }
         $token = $c->token(); $before = $c->cookie;
@@ -64,6 +65,7 @@ test('Admin HTTP: anonymous cache, guarded routes, login CSRF, rotation, rate li
         [$h] = $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']); contains('303 See Other', $h); contains('Location: /admin/posts', $h); ok($before !== $c->cookie, 'Session must rotate');
         foreach (['/en/', '/ja/', '/custom.css', '/sitemap.xml'] as $path) { [$h] = $c->request($path); contains('Cache-Control: private, no-store', $h); }
         $token = $c->token('/admin/security');
+        [$h] = $c->request('/admin/updates', 'POST', ['action' => 'check']); contains('403 Forbidden', $h);
         [$h] = $c->request('/admin/security/passkeys/options', 'POST', [], true); contains('403 Forbidden', $h);
         [$h] = $c->request('/admin/editor', 'POST', ['title' => 'No token']); contains('403 Forbidden', $h);
         [$h] = $c->request('/admin/logout', 'POST', ['csrf_token' => $token]); contains('Location: /admin/login', $h);
@@ -134,13 +136,13 @@ test('Admin HTTP: MIME/size-checked cover uploads, replacement cleanup and delet
         $values = ['csrf_token' => $token, 'slug' => 'cover-test', 'title' => 'Cover', 'status' => 'draft'];
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6wWQAAAAASUVORK5CYII=');
         $c->request('/admin/editor', 'POST', $values, false, null, ['bytes' => $png]);
-        $path = $c->db->one('SELECT cover_image FROM posts')['cover_image']; $files[] = $path; ok(preg_match('~^/uploads/[a-f0-9]{32}\.png$~', $path) === 1); ok(is_file(dirname(__DIR__) . '/public' . $path));
+        $path = $c->db->one('SELECT cover_image FROM posts')['cover_image']; $files[] = $path; ok(preg_match('~^/uploads/[a-f0-9]{32}\.png$~', $path) === 1); ok(is_file($c->root . '/public' . $path));
         $c->request('/admin/editor?post=1', 'POST', $values, false, null, ['bytes' => $png]);
-        $newPath = $c->db->one('SELECT cover_image FROM posts')['cover_image']; $files[] = $newPath; ok($newPath !== $path); ok(!is_file(dirname(__DIR__) . '/public' . $path));
+        $newPath = $c->db->one('SELECT cover_image FROM posts')['cover_image']; $files[] = $newPath; ok($newPath !== $path); ok(!is_file($c->root . '/public' . $path));
         foreach (['<?php echo "bad";', $png . str_repeat('x', 5 * 1024 * 1024)] as $bytes) {
             [$h] = $c->request('/admin/editor?post=1', 'POST', $values, false, null, ['bytes' => $bytes]); contains('303 See Other', $h);
             same($newPath, $c->db->one('SELECT cover_image FROM posts')['cover_image']);
         }
-        $c->request('/admin/posts/1/delete', 'POST', ['csrf_token' => $token]); ok(!is_file(dirname(__DIR__) . '/public' . $newPath));
-    } finally { foreach ($files as $file) { $path = dirname(__DIR__) . '/public' . $file; if (is_file($path)) { unlink($path); } } $c->close(); }
+        $c->request('/admin/posts/1/delete', 'POST', ['csrf_token' => $token]); ok(!is_file($c->root . '/public' . $newPath));
+    } finally { foreach ($files as $file) { $path = $c->root . '/public' . $file; if (is_file($path)) { unlink($path); } } $c->close(); }
 });
