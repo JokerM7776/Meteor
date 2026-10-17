@@ -1,4 +1,5 @@
-Options -Indexes -MultiViews
+# mod_rewrite refuses to run in .htaccess unless symlink following is on (403 otherwise).
+Options -Indexes -MultiViews +SymLinksIfOwnerMatch
 DirectoryIndex index.php
 RewriteEngine On
 # Uploaded content must never execute as PHP.

@@ -1,7 +1,8 @@
 # Lets the unzipped meteor/ folder itself be the document root (shared hosting).
 # Every request is mapped into public/, so nothing outside it can be fetched.
 # Pointing the document root straight at public/ is still the preferred setup.
-Options -Indexes -MultiViews
+# mod_rewrite refuses to run in .htaccess unless symlink following is on (403 otherwise).
+Options -Indexes -MultiViews +SymLinksIfOwnerMatch
 DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
@@ -9,8 +10,10 @@ DirectoryIndex index.php
     RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
 
-# Without mod_rewrite only index.php (a setup help page) is reachable.
+# Without mod_rewrite only index.php (a setup help page) is reachable, and every other URL,
+# /install included, shows that page instead of a bare 403.
 <IfModule !mod_rewrite.c>
+    ErrorDocument 403 /index.php
     <IfModule mod_authz_core.c>
         Require all denied
         <FilesMatch "^(index\.php)?$">
