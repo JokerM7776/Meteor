@@ -18,7 +18,7 @@ A fast, multilingual blog in plain PHP. Public pages are server-rendered HTML an
 
 | | |
 |---|---|
-| PHP | **8.2 or newer** with `pdo`, `pdo_mysql` and/or `pdo_sqlite`, `openssl`, `mbstring`, `intl`, `fileinfo`, `zip`, `curl` |
+| PHP | **8.2 or newer** with `pdo`, `pdo_mysql` and/or `pdo_sqlite`, `openssl`, `mbstring`, `intl`, `fileinfo`, `zip`, `curl`; `gd` with WebP for image optimization (optional) |
 | Database | **MariaDB 10.5+ / MySQL 8.0.16+** (recommended) or **SQLite 3** |
 | Web server | Apache with `mod_rewrite`, or Nginx + PHP-FPM |
 | HTTPS | Required for passkeys on a real domain (`localhost` works without it) |
@@ -141,15 +141,22 @@ server {
 ```
 
 The PHP user needs write access to `storage/`, `public/uploads/`, `.env` (during install) and —
-for online updates — the application files. For cover images allow `upload_max_filesize = 8M`;
-for uploading update zips allow `upload_max_filesize = 50M` and `post_max_size = 55M`.
+for online updates — the application files. For photos allow `upload_max_filesize = 16M` and
+`post_max_size = 20M` (media uploads go up to 15 MB); for uploading update zips allow `upload_max_filesize = 50M` and `post_max_size = 55M`.
 
 ## 6. Using Meteor
 
-- **Admin:** `/admin` — Posts (translation matrix), Pages, Categories & tags, **Languages**,
+- **Admin:** `/admin` — Posts (translation matrix), Pages, **Media**, Categories & tags, **Languages**,
   **Header & footer**, Settings, **Security**, **Updates**.
 - **Add a language:** Admin → Languages → *Add a language*. It starts in **Preview**; translate,
   then click **Go live**. English is the default language.
+- **Writing:** the editor has a **Visual** mode with a toolbar (headings, bold, italic, links,
+  lists, quotes, code, images) and a **Markdown** mode that shows the `#`, `**`, `-` syntax. Both
+  edit the same text; the toolbar works in either mode.
+- **Media:** Admin → Media, or *Image* in the editor toolbar. Uploads get random file names, so
+  their addresses cannot be guessed. Give images a category, tags and alt text when uploading or
+  later; search and filter by them. Admin → Settings → *Optimization* (on by default) converts
+  uploads to WebP or AVIF, shrinks very large photos and removes camera data such as GPS location.
 - **Customize the site:** Admin → Settings — upload an icon and edit the title, tagline, home
   intro, footer text and copyright for every language in one table.
 - **Interface text and language files:** Admin → Settings → *Interface text* — every menu label,
@@ -169,13 +176,13 @@ for uploading update zips allow `upload_max_filesize = 50M` and `post_max_size =
 ## 7. Updating
 
 - **Online:** Admin → Updates → *Check for updates* → *Download and install*. Releases come from the
-  official repository, [github.com/JokerM7776/Meteor](https://github.com/JokerM7776/Meteor/releases);
-  the checksum is verified and your password is required.
+  official repository, [github.com/JokerM7776/Meteor](https://github.com/JokerM7776/Meteor/releases),
+  and the checksum is verified.
 - **Manual:** Admin → Updates → *Upload update zip*, or from the shell:
   `php bin/update.php /path/to/meteor-<version>.zip`
 
-Every update backs up the current code first (the last 5 backups can be restored from the same
-page), shows visitors a short maintenance page, runs database migrations, and **never touches
+Every update backs up the current code first (the last 5 backups are listed on the same page;
+restoring one asks for your password), shows visitors a short maintenance page, runs database migrations, and **never touches
 `.env`, `storage/` or `public/uploads/`**. Code restores do not undo database changes, so
 **back up your database before updating**.
 

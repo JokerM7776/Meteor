@@ -28,7 +28,7 @@ foreach (\App\Services\AdminSettings::TEXT as $key => $meta) {
 <?php require __DIR__ . '/settings-tabs.php'; ?>
 <form method="post" enctype="multipart/form-data" class="space-y-6">
 <?= \Core\Csrf::field() ?>
-<section class="panel max-w-3xl space-y-4">
+<section class="panel space-y-4">
 <h2 class="text-xl font-bold">Site icon · all languages</h2>
 <div class="flex flex-wrap items-start gap-5">
 <img src="<?= e($siteIcon ?: '/assets/favicon.svg') ?>" alt="Current site icon" width="48" height="48" class="size-12 rounded-md object-contain">
@@ -59,7 +59,7 @@ foreach (\App\Services\AdminSettings::TEXT as $key => $meta) {
 </table>
 </div>
 </section>
-<section class="panel max-w-4xl space-y-4">
+<section class="panel space-y-4">
 <h2 class="text-xl font-bold">Custom CSS · all languages</h2>
 <label class="field">Stylesheet<textarea name="custom_css" rows="12" class="font-mono text-sm"><?= e($old['custom_css'] ?? $db->one('SELECT value FROM settings WHERE `key` = ? AND locale_scope = ?', ['custom_css', ''])['value'] ?? '') ?></textarea>
 </label>

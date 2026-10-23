@@ -1,5 +1,5 @@
-<div class="max-w-6xl space-y-6">
-<header>
+<div class="space-y-6">
+<header class="max-w-3xl">
 <h1 class="text-[32px] font-bold tracking-tight">Languages</h1>
 <p class="text-slate-600 dark:text-slate-400">Choose what’s public, what’s in progress, and the order readers see.</p>
 </header>

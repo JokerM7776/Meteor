@@ -1,6 +1,7 @@
 <?php $iconPath = match ($key) {
     'posts' => 'M4 2.75h7l3 3v9.5H4z M11 2.75v3h3 M6.5 9h5 M6.5 12h5',
     'pages' => 'M3 3h12v12H3z M3 7h12',
+    'media' => 'M2.75 3.25h12.5v11.5H2.75z M2.75 12.25l3.75-3.75 3 3 2-2 3.75 3.75',
     'taxonomy' => 'M2.75 9.5V3h6.5l6 6-6.5 6.5z M5 6h2',
     'languages' => 'M1.75 9h14.5 M9 1.75c2 2.2 2.9 4.6 2.9 7.25S11 14.05 9 16.25 M9 1.75C7 3.95 6.1 6.35 6.1 9S7 14.05 9 16.25',
     'menus' => 'M2.75 3.25h12.5v11.5H2.75z M2.75 6.25h12.5 M2.75 11.75h12.5 M5 9h8',
@@ -11,6 +12,8 @@
 <path d="<?= e($iconPath) ?>" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
 <?php if ($key === 'languages'): ?>
 <circle cx="9" cy="9" r="7.25" fill="none" stroke="currentColor" stroke-width="1.5"/>
+<?php elseif ($key === 'media'): ?>
+<circle cx="11.75" cy="6.5" r="1.25" fill="none" stroke="currentColor" stroke-width="1.5"/>
 <?php elseif ($key === 'settings'): ?>
 <circle cx="9" cy="9" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
 <?php endif ?>

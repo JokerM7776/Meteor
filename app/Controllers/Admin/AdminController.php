@@ -31,8 +31,11 @@ final class AdminController
         $json = str_starts_with($path, '/admin/passkey/') || in_array($path, ['/admin/security/passkeys/options', '/admin/security/passkeys'], true);
         if ($post && !Csrf::verify($json ? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? null) : ($_POST['csrf_token'] ?? null))) {
             http_response_code(403);
-            if ($json) { header('Content-Type: application/json'); return json_encode(['error' => 'Invalid CSRF token.']); }
-            return $this->render('message', 'Request rejected', ['message' => 'Invalid CSRF token. Reload the form and try again.']);
+            // PHP drops the whole form, token included, when a request is larger than post_max_size.
+            $tooLarge = !$_POST && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > \Core\ImageOptimizer::bytes((string) ini_get('post_max_size'));
+            $message = $tooLarge ? 'The upload is larger than this server accepts (PHP post_max_size is ' . ini_get('post_max_size') . ').' : 'Invalid CSRF token. Reload the form and try again.';
+            if ($json || $path === '/admin/media/upload') { header('Content-Type: application/json'); return json_encode(['error' => $message]); }
+            return $this->render('message', 'Request rejected', ['message' => $message]);
         }
         if ($json) { return $this->passkey($path, $user, $post); }
         if ($path === '/admin/login') {
@@ -45,6 +48,22 @@ final class AdminController
         }
         if ($path === '/admin/logout' && $post) { Session::logout(); return $this->go('/admin/login', 'Signed out.'); }
         if ($path === '/admin') { return $this->go('/admin/posts'); }
+        if (str_starts_with($path, '/admin/media') || $path === '/admin/optimization') {
+            $media = new MediaController($this->db, $this->render(...), $this->go(...), dirname(__DIR__, 3) . '/public');
+            $result = $media->handle($path, $post);
+            if ($result !== null) { return $result; }
+        }
+        if ($path === '/admin/updates/restore' && !$post) {
+            $backup = (string) ($_GET['backup'] ?? '');
+            $found = array_filter((new \App\Services\AdminUpdates($this->db, dirname(__DIR__, 3)))->data()['backups'], fn ($b) => $b['name'] === $backup);
+            if (!$found) { http_response_code(404); return $this->render('message', 'Not found', ['message' => 'This backup no longer exists.']); }
+            return $this->render('updates-restore', 'Restore backup', ['backup' => reset($found)]);
+        }
+        if (preg_match('~^/admin/security/passkeys/(\d+)/remove$~D', $path, $m) && !$post) {
+            $key = $this->db->one('SELECT * FROM passkeys WHERE id = ? AND user_id = ?', [(int) $m[1], $user['id']]);
+            if (!$key) { http_response_code(404); return $this->render('message', 'Not found', ['message' => 'This passkey no longer exists.']); }
+            return $this->render('passkey-remove', 'Remove passkey', ['key' => $key, 'last' => (int) $this->db->one('SELECT COUNT(*) AS n FROM passkeys WHERE user_id = ?', [$user['id']])['n'] === 1]);
+        }
         if ($path === '/admin/updates') {
             $updates = new \App\Services\AdminUpdates($this->db, dirname(__DIR__, 3));
             if ($post) {

@@ -184,6 +184,28 @@ CREATE TABLE menu_item_labels (
     FOREIGN KEY (locale) REFERENCES locales(code) ON DELETE CASCADE
 );
 
+CREATE TABLE media (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_name VARCHAR(80) NOT NULL UNIQUE,
+    thumb_name VARCHAR(80),
+    original_name VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(50) NOT NULL,
+    width INTEGER NOT NULL DEFAULT 0,
+    height INTEGER NOT NULL DEFAULT 0,
+    size_bytes INTEGER NOT NULL DEFAULT 0,
+    alt_text VARCHAR(255) NOT NULL DEFAULT '',
+    category VARCHAR(191) NOT NULL DEFAULT '',
+    search_text TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE media_tags (
+    media_id INTEGER NOT NULL,
+    tag VARCHAR(191) NOT NULL,
+    PRIMARY KEY (media_id, tag),
+    FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
+);
+
 CREATE INDEX login_attempts_ip_time ON login_attempts (ip_address, attempted_at);
 CREATE INDEX login_attempts_user_time ON login_attempts (username, attempted_at);
 CREATE INDEX locales_status_order ON locales (status, sort_order);
@@ -195,3 +217,6 @@ CREATE INDEX post_tags_tag ON post_tags (tag_id);
 CREATE INDEX category_translations_locale ON category_translations (locale);
 CREATE INDEX tag_translations_locale ON tag_translations (locale);
 CREATE INDEX menu_items_menu_order ON menu_items (menu, sort_order);
+CREATE INDEX media_created ON media (created_at, id);
+CREATE INDEX media_category ON media (category);
+CREATE INDEX media_tags_tag ON media_tags (tag);

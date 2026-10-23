@@ -98,15 +98,35 @@
 <?= e($values['summary'] ?? '') ?>
 </textarea>
 </label>
-<label class="field">Markdown<textarea name="content_md" class="min-h-[560px] font-mono text-sm leading-7" rows="22">
+<div class="field" data-md-editor>
+<div class="flex flex-wrap items-end justify-between gap-2">
+<label id="content-label" for="content-md" lang="en" dir="ltr">Content</label>
+<div class="mode-switch" role="group" aria-label="Editor mode" lang="en" dir="ltr" data-mode-switch hidden>
+<button type="button" data-mode="visual" aria-pressed="false">Visual</button>
+<button type="button" data-mode="markdown" aria-pressed="false">Markdown</button>
+</div>
+</div>
+<div class="flex flex-col">
+<div class="md-toolbar" role="toolbar" aria-label="Formatting" aria-controls="content-md" lang="en" dir="ltr" data-toolbar hidden>
+<?php foreach ([['p', '¶', 'Normal text'], ['h2', 'H2', 'Heading 2'], ['h3', 'H3', 'Heading 3'], null, ['bold', 'B', 'Bold (Ctrl+B)'], ['italic', 'I', 'Italic (Ctrl+I)'], ['code', '‹›', 'Inline code'], ['link', 'Link', 'Link (Ctrl+K)'], null,
+    ['ul', '• List', 'Bulleted list'], ['ol', '1. List', 'Numbered list'], ['quote', '“ ”', 'Quote'], ['codeblock', '{ }', 'Code block'], ['hr', '—', 'Divider'], null, ['image', 'Image', 'Insert image from the media library']] as $tool): ?>
+<?php if ($tool === null): ?><span class="md-sep" aria-hidden="true"></span><?php else: [$command, $text, $name] = $tool; ?>
+<button type="button" data-cmd="<?= e($command) ?>" title="<?= e($name) ?>" aria-label="<?= e($name) ?>" class="<?= $command === 'bold' ? 'font-bold' : ($command === 'italic' ? 'italic font-serif' : ($command === 'code' || $command === 'codeblock' ? 'font-mono' : '')) ?>"><?= e($text) ?></button>
+<?php endif ?>
+<?php endforeach ?>
+</div>
+<div class="md-visual prose-meteor" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="content-label" spellcheck="true" data-visual hidden></div>
+<textarea id="content-md" name="content_md" class="min-h-[560px] font-mono text-sm leading-7" rows="22" spellcheck="false">
 <?= e($values['content_md'] ?? '') ?>
 </textarea>
-</label>
 </div>
-<p class="border-t border-slate-200 px-5 py-3 text-xs text-slate-500 dark:border-slate-800">HTML and table of contents are compiled when you save.</p>
+</div>
+</div>
+<p class="border-t border-slate-200 px-5 py-3 text-xs text-slate-500 dark:border-slate-800">Visual and Markdown edit the same text. HTML and table of contents are compiled when you save.</p>
 </section>
 </div>
 </form>
 <?php if ($id): ?>
 <a class="mt-6 inline-flex min-h-11 items-center text-sm text-red-700 dark:text-red-400" href="/admin/<?= $page ? 'pages' : 'posts' ?>/<?= e($id) ?>/delete">Delete <?= $page ? 'page' : 'post' ?>…</a>
 <?php endif ?>
+<?php require __DIR__ . '/media-picker.php'; ?>

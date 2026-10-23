@@ -53,7 +53,7 @@ test('Admin HTTP: anonymous cache, guarded routes, login CSRF, rotation, rate li
         foreach (['/en/', '/en/posts', '/custom.css', '/sitemap.xml', '/ja/', '/missing'] as $path) {
             [$h] = $c->request($path); contains('Cache-Control: public, max-age=300', $h); ok(!str_contains($h, 'Set-Cookie:')); same('', $c->cookie);
         }
-        foreach (['/admin', '/admin/posts', '/admin/pages', '/admin/editor', '/admin/taxonomy', '/admin/languages', '/admin/settings', '/admin/security', '/admin/updates', '/admin/logout', '/admin/security/passkeys/options', '/admin/security/passkeys', '/admin/posts/1/delete', '/admin/unknown'] as $path) {
+        foreach (['/admin', '/admin/posts', '/admin/pages', '/admin/editor', '/admin/taxonomy', '/admin/languages', '/admin/settings', '/admin/security', '/admin/updates', '/admin/logout', '/admin/security/passkeys/options', '/admin/security/passkeys', '/admin/posts/1/delete', '/admin/media', '/admin/media/upload', '/admin/optimization', '/admin/unknown'] as $path) {
             foreach (['GET', 'POST', 'PUT'] as $method) { [$h] = $c->request($path, $method); contains('302 Found', $h); contains('Location: /admin/login', $h); contains("script-src 'self'", $h); contains('X-Robots-Tag: noindex, nofollow', $h); contains('Cache-Control: no-store', $h); }
         }
         $token = $c->token(); $before = $c->cookie;

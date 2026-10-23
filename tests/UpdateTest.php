@@ -15,13 +15,13 @@ test('Migrator: ordered pending migrations, recorded history, failure transactio
     try {
         $directory = $root . '/database/migrations';
         $runner = new Migrator($db, $directory);
-        same(['001_published_at.php', '002_lowercase_usernames.php', '003_menus.php', '004_language_files_and_updates.php'], $runner->run()); same([], $runner->run());
+        same(['001_published_at.php', '002_lowercase_usernames.php', '003_menus.php', '004_language_files_and_updates.php', '005_media.php'], $runner->run()); same([], $runner->run());
         file_put_contents($directory . '/900_test.php', '<?php return static function (\Core\Database $db): void { $db->query("CREATE TABLE migration_probe (id INT)"); };');
         same(['900_test.php'], $runner->run());
         file_put_contents($directory . '/901_fail.php', '<?php return static function (\Core\Database $db): void { $db->query("INSERT INTO migration_probe VALUES (1)"); throw new \RuntimeException("forced"); };');
         throws(fn () => $runner->run());
         same([], $db->all('SELECT * FROM migration_probe'));
-        same(5, count($db->all('SELECT * FROM schema_migrations')));
+        same(6, count($db->all('SELECT * FROM schema_migrations')));
     } finally { ReleasePackage::removeTree($root); }
 });
 test('Migration 003: creates menu tables and converts the earlier header and footer settings', function () {
@@ -266,18 +266,19 @@ test('Updater: expanded size limit rejects compressed bombs before extraction', 
         same([], glob($root . '/storage/updates/staging-*')); same('0.1.0', Version::current($root));
     } finally { ReleasePackage::removeTree($root); }
 });
-test('Admin updates HTTP: official repository, password recheck and maintenance access', function () {
+test('Admin updates HTTP: official repository, no password for installing and maintenance access', function () {
     $c = new AdminHttpClient();
     try {
         $token = $c->token(); $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']);
         $token = $c->token('/admin/updates');
         [$h, $html] = $c->request('/admin/updates'); contains('0.1.0', $html);
-        contains('href="https://github.com/JokerM7776/Meteor/releases"', $html); contains('value="check"', $html);
+        ok(!str_contains($html, 'github.com/JokerM7776/Meteor')); contains('value="check"', $html);
+        ok(!str_contains($html, 'name="current_password"'), 'Installing an update must not ask for the password');
         ok(!str_contains($html, 'name="repository"')); ok(!str_contains($html, 'name="token"'));
         $c->request('/admin/updates', 'POST', ['csrf_token' => $token, 'action' => 'settings', 'repository' => 'owner/repo', 'token' => 'x']);
         same(null, $c->db->one("SELECT value FROM settings WHERE `key` IN ('update_repository', 'update_token')"));
-        $c->request('/admin/updates', 'POST', ['csrf_token' => $token, 'action' => 'upload', 'current_password' => 'incorrect']);
-        [, $html] = $c->request('/admin/updates'); contains('Current password is incorrect', $html);
+        $c->request('/admin/updates', 'POST', ['csrf_token' => $token, 'action' => 'upload']);
+        [, $html] = $c->request('/admin/updates'); contains('Upload a zip up to 50 MB', $html); ok(!str_contains($html, 'Current password is incorrect'));
         same([], glob($c->root . '/storage/backups/*'));
         file_put_contents($c->root . '/storage/maintenance.flag', 'test');
         [$h, $html] = $c->request('/admin/updates'); contains('200 OK', $h); contains('Upload update zip', $html);
@@ -289,18 +290,25 @@ test('Updates view: release names and notes remain escaped plain text', function
         'release' => ['name' => '<b>Release</b>', 'version' => '0.2.0', 'date' => '2026-10-17', 'notes' => '<script>alert(1)</script>']]);
     contains('&lt;b&gt;Release&lt;/b&gt;', $html); contains('&lt;script&gt;alert(1)&lt;/script&gt;', $html); ok(!str_contains($html, '<script>'));
 });
-test('Admin updates HTTP: authenticated multipart upload and password-protected restore', function () {
+test('Admin updates HTTP: multipart upload without password, backup table and password-protected restore', function () {
     $c = new AdminHttpClient();
     try {
         $token = $c->token(); $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']);
         $token = $c->token('/admin/updates'); $zip = releaseFixture($c->root);
-        $values = ['csrf_token' => $token, 'action' => 'upload', 'current_password' => 'a long password', 'sha256' => hash_file('sha256', $zip)];
+        $values = ['csrf_token' => $token, 'action' => 'upload', 'sha256' => hash_file('sha256', $zip)];
         [$h] = $c->request('/admin/updates', 'POST', $values, false, null, ['field' => 'update', 'filename' => 'release.zip', 'bytes' => file_get_contents($zip)]);
         contains('303 See Other', $h); same('0.2.0', Version::current($c->root));
         [, $html] = $c->request('/admin/updates'); contains('Update installed successfully', $html);
         $backup = (new Updater($c->root, $c->db))->backups()[0];
-        $values = ['csrf_token' => $token, 'action' => 'restore', 'backup' => $backup, 'current_password' => 'wrong'];
+        [, $html] = $c->request('/admin/updates'); contains('<caption class="sr-only">Code backups</caption>', $html);
+        contains(e($backup), $html); contains('href="/admin/updates/restore?backup=' . e(rawurlencode($backup)) . '"', $html); contains('<td class="font-mono text-xs">0.1.0</td>', $html);
+        [$h, $html] = $c->request('/admin/updates/restore?backup=' . rawurlencode($backup)); contains('200 OK', $h); contains('name="current_password"', $html); contains('value="' . e($backup) . '"', $html);
+        [$h] = $c->request('/admin/updates/restore?backup=meteor-missing.zip'); contains('404 Not Found', $h);
+        $values = ['csrf_token' => $token, 'action' => 'restore', 'backup' => $backup];
         $c->request('/admin/updates', 'POST', $values); same('0.2.0', Version::current($c->root));
+        $values['current_password'] = 'wrong';
+        $c->request('/admin/updates', 'POST', $values); same('0.2.0', Version::current($c->root));
+        [, $html] = $c->request('/admin/updates'); contains('Current password is incorrect', $html);
         $values['current_password'] = 'a long password';
         $c->request('/admin/updates', 'POST', $values); same('0.1.0', Version::current($c->root));
     } finally { $c->close(); }

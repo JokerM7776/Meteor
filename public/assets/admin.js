@@ -85,3 +85,498 @@
     finally { button.disabled = false; }
   });
 })();
+// Content editor: a Visual mode and a Markdown mode over the same textarea, a formatting
+// toolbar for both, and the media picker. Without JavaScript the plain textarea remains.
+(() => {
+  const root = document.querySelector('[data-md-editor]');
+  if (!root) return;
+  const textarea = root.querySelector('textarea');
+  const visual = root.querySelector('[data-visual]');
+  const toolbar = root.querySelector('[data-toolbar]');
+  const switcher = root.querySelector('[data-mode-switch]');
+  let mode = 'markdown';
+  let dirty = false;
+
+  // Markdown -> HTML for the Visual mode. Mirrors the subset of core/Markdown.php.
+  const esc = text => text.replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+  const safeUrl = (url, image) => {
+    if (!url || /[\x00-\x20\x7f\\]/.test(url) || url.startsWith('//')) return false;
+    const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(url);
+    return !scheme || (image ? ['http', 'https'] : ['http', 'https', 'mailto']).includes(scheme[1].toLowerCase());
+  };
+  const inline = text => {
+    const pattern = /`([^`\n]+)`|(!?)\[([^\]\n]*)\]\(([^\s()]+)(?:\s+"([^"\n]*)")?\)|\*\*(.+?)\*\*|__(.+?)__|\*([^*\n]+)\*|(?<!\w)_([^_\n]+)_(?!\w)/gu;
+    let html = '', last = 0, m;
+    while ((m = pattern.exec(text))) {
+      html += esc(text.slice(last, m.index));
+      if (m[1] !== undefined) html += '<code>' + esc(m[1]) + '</code>';
+      else if (m[3] !== undefined) {
+        const image = m[2] === '!';
+        const title = m[5] !== undefined ? ` title="${esc(m[5])}"` : '';
+        if (!safeUrl(m[4], image)) html += esc(m[0]);
+        else html += image ? `<img src="${esc(m[4])}" alt="${esc(m[3])}"${title}>` : `<a href="${esc(m[4])}"${title}>${esc(m[3])}</a>`;
+      } else if (m[6] !== undefined || m[7] !== undefined) html += '<strong>' + inline(m[6] ?? m[7]) + '</strong>';
+      else html += '<em>' + inline(m[8] ?? m[9]) + '</em>';
+      last = pattern.lastIndex;
+    }
+    return html + esc(text.slice(last));
+  };
+  const listItem = line => {
+    const m = /^( *)([-+*]|\d+\.)\s+(.+)$/.exec(line.replace(/\t/g, '    '));
+    return m ? [m[1].length, /\d/.test(m[2][0]) ? 'ol' : 'ul', m[3]] : null;
+  };
+  const startsBlock = line => listItem(line) !== null || /^\s*(?:#{1,6}\s|>|`{3,}|~{3,}|(?:\*\s*){3,}$|(?:-\s*){3,}$|(?:_\s*){3,}$)/.test(line);
+  const listing = (lines, i, indent, depth) => {
+    const type = listItem(lines[i])[1];
+    let html = `<${type}>`, item, child;
+    while (i < lines.length && (item = listItem(lines[i])) && item[0] === indent && item[1] === type) {
+      html += '<li>' + inline(item[2]); i++;
+      while (i < lines.length && (child = listItem(lines[i])) && child[0] > indent) {
+        if (depth === 0) { const [nested, next] = listing(lines, i, child[0], 1); html += nested; i = next; }
+        else { html += ' ' + inline(child[2]); i++; }
+      }
+      html += '</li>';
+    }
+    return [html + `</${type}>`, i];
+  };
+  const blocks = lines => {
+    let html = '';
+    for (let i = 0; i < lines.length;) {
+      const line = lines[i++];
+      let m;
+      if (line.trim() === '') continue;
+      if ((m = /^\s*(`{3,}|~{3,})([a-zA-Z0-9_-]*)\s*$/.exec(line))) {
+        const closing = new RegExp('^\\s*' + (m[1][0] === '`' ? '`' : '~') + '{' + m[1].length + ',}\\s*$');
+        const code = [];
+        while (i < lines.length && !closing.test(lines[i])) code.push(lines[i++]);
+        if (i < lines.length) i++;
+        html += `<pre data-lang="${esc(m[2].toLowerCase())}"><code>${esc(code.join('\n'))}</code></pre>`;
+      } else if ((m = /^ {0,3}(#{1,6})\s+(.+?)\s*#*\s*$/u.exec(line))) {
+        html += `<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`;
+      } else if (/^ {0,3}(?:(?:\*\s*){3,}|(?:-\s*){3,}|(?:_\s*){3,})$/.test(line)) {
+        html += '<hr>';
+      } else if ((m = /^\s*>\s?(.*)$/.exec(line))) {
+        const quote = [m[1]];
+        while (i < lines.length && (m = /^\s*>\s?(.*)$/.exec(lines[i]))) { quote.push(m[1]); i++; }
+        html += '<blockquote>' + (blocks(quote) || '<p><br></p>') + '</blockquote>';
+      } else if (listItem(line)) {
+        const [list, next] = listing(lines, i - 1, listItem(line)[0], 0);
+        html += list; i = next;
+      } else {
+        const paragraph = [line];
+        while (i < lines.length && lines[i].trim() !== '' && !startsBlock(lines[i])) paragraph.push(lines[i++]);
+        html += '<p>' + inline(paragraph.join('\n')).replace(/\n/g, '<br>') + '</p>';
+      }
+    }
+    return html;
+  };
+  const toHtml = markdown => blocks(markdown.replace(/\r\n?/g, '\n').split('\n')) || '<p><br></p>';
+
+  // HTML of the Visual mode -> Markdown.
+  const BLOCK = /^(P|DIV|H[1-6]|BLOCKQUOTE|UL|OL|PRE|HR|FIGURE|TABLE|SECTION|ARTICLE)$/;
+  const LIST = /^(UL|OL)$/;
+  const clean = text => text.split('\n').map(line => line.replace(/[ \t]+/g, ' ').trim()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  const wrap = (text, mark) => {
+    const m = /^(\s*)([\s\S]*?)(\s*)$/.exec(text);
+    return m[2] ? m[1] + mark + m[2] + mark + m[3] : text;
+  };
+  const label = text => text.replace(/[\[\]\n]/g, ' ').replace(/\s+/g, ' ').trim();
+  const href = url => url.trim().replace(/[\s()]/g, c => encodeURIComponent(c));
+  const inlineOf = nodes => {
+    let out = '';
+    for (const node of nodes) {
+      if (node.nodeType === Node.TEXT_NODE) { out += node.nodeValue.replace(/ /g, ' ').replace(/[ \t\r\n]+/g, ' '); continue; }
+      if (node.nodeType !== Node.ELEMENT_NODE) continue;
+      const tag = node.tagName;
+      const title = node.getAttribute('title') ? ` "${node.getAttribute('title').replace(/"/g, '')}"` : '';
+      if (tag === 'BR') out += '\n';
+      else if (tag === 'STRONG' || tag === 'B') out += wrap(inlineOf(node.childNodes), '**');
+      else if (tag === 'EM' || tag === 'I') out += wrap(inlineOf(node.childNodes), '*');
+      else if (tag === 'CODE') { const code = node.textContent.replace(/[`\n]/g, ''); if (code) out += '`' + code + '`'; }
+      else if (tag === 'A') { const text = label(inlineOf(node.childNodes)); const url = node.getAttribute('href') || ''; out += url ? `[${text || url}](${href(url)}${title})` : text; }
+      else if (tag === 'IMG') { const src = node.getAttribute('src') || ''; if (src) out += `![${label(node.getAttribute('alt') || '')}](${href(src)}${title})`; }
+      else if (BLOCK.test(tag) || tag === 'LI') out += '\n' + inlineOf(node.childNodes) + '\n';
+      else out += inlineOf(node.childNodes);
+    }
+    return out;
+  };
+  const list = (node, depth) => {
+    const lines = [];
+    let number = 1;
+    for (const item of node.children) {
+      if (LIST.test(item.tagName)) { lines.push(list(item, depth + 1)); continue; }
+      const nested = [], parts = [];
+      for (const child of item.childNodes) {
+        if (child.nodeType === Node.ELEMENT_NODE && LIST.test(child.tagName)) nested.push(list(child, depth + 1));
+        else parts.push(child);
+      }
+      const text = clean(inlineOf(parts)).replace(/\n+/g, ' ');
+      if (text) lines.push('   '.repeat(depth) + (node.tagName === 'OL' ? `${number++}. ` : '- ') + text);
+      lines.push(...nested.filter(Boolean));
+    }
+    return lines.join('\n');
+  };
+  const block = node => {
+    const tag = node.tagName;
+    if (/^H[1-6]$/.test(tag)) { const text = clean(inlineOf(node.childNodes)).replace(/\n+/g, ' '); return text ? '#'.repeat(+tag[1]) + ' ' + text : ''; }
+    if (tag === 'HR') return '---';
+    if (tag === 'PRE') {
+      const code = (visual.hidden ? node.textContent : node.innerText).replace(/ /g, ' ').replace(/\n$/, '');
+      let fence = '```';
+      while (code.includes(fence)) fence += '`';
+      return fence + (node.dataset.lang || '') + '\n' + code + '\n' + fence;
+    }
+    if (tag === 'BLOCKQUOTE') { const inner = toMarkdown(node); return inner ? inner.split('\n').map(line => line ? '> ' + line : '>').join('\n') : ''; }
+    if (LIST.test(tag)) return list(node, 0);
+    if ([...node.children].some(child => BLOCK.test(child.tagName))) return toMarkdown(node);
+    return clean(inlineOf(node.childNodes));
+  };
+  const toMarkdown = container => {
+    const out = [];
+    let loose = [];
+    const flush = () => { const text = clean(inlineOf(loose)); if (text) out.push(text); loose = []; };
+    for (const node of container.childNodes) {
+      if (node.nodeType === Node.ELEMENT_NODE && BLOCK.test(node.tagName)) { flush(); const text = block(node); if (text) out.push(text); }
+      else loose.push(node);
+    }
+    flush();
+    return out.join('\n\n');
+  };
+
+  // Modes.
+  const sync = () => { if (mode === 'visual' && dirty) { textarea.value = toMarkdown(visual); dirty = false; } };
+  const setMode = next => {
+    if (next === 'visual' && mode !== 'visual') { visual.innerHTML = toHtml(textarea.value); dirty = false; }
+    if (next === 'markdown') sync();
+    mode = next;
+    visual.hidden = mode !== 'visual';
+    textarea.hidden = mode === 'visual';
+    for (const button of switcher.querySelectorAll('[data-mode]')) button.setAttribute('aria-pressed', String(button.dataset.mode === mode));
+    try { localStorage.setItem('meteor.editorMode', mode); } catch (error) { /* private window */ }
+    refresh();
+  };
+  switcher.hidden = false;
+  toolbar.hidden = false;
+  textarea.classList.add('md-joined');
+  switcher.addEventListener('click', event => { const button = event.target.closest('[data-mode]'); if (button) { setMode(button.dataset.mode); (mode === 'visual' ? visual : textarea).focus(); } });
+  textarea.form.addEventListener('submit', sync);
+  visual.addEventListener('input', () => { dirty = true; });
+  try { document.execCommand('defaultParagraphSeparator', false, 'p'); document.execCommand('styleWithCSS', false, false); } catch (error) { /* older browsers */ }
+  // A click in the empty space below the text puts the caret at the end, on a new line
+  // when the last block cannot take text (an image, a divider or a code block).
+  const caretAtEnd = () => {
+    let last = visual.lastElementChild;
+    if (!last || !/^(P|H[1-6]|BLOCKQUOTE|UL|OL)$/.test(last.tagName) || (last.tagName === 'P' && last.querySelector('img') && !last.textContent.trim())) {
+      last = document.createElement('p'); last.append(document.createElement('br')); visual.append(last);
+    }
+    // Inside the last line of the block, before a trailing <br> (Chrome cannot type after it).
+    let target = last;
+    while (target.lastElementChild && /^(UL|OL|LI|BLOCKQUOTE|P)$/.test(target.lastElementChild.tagName)) target = target.lastElementChild;
+    const range = document.createRange();
+    if (target.lastChild && target.lastChild.nodeName === 'BR') range.setStartBefore(target.lastChild); else { range.selectNodeContents(target); range.collapse(false); }
+    range.collapse(true);
+    const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
+  };
+  visual.addEventListener('mouseup', event => {
+    if (event.target !== visual) return;
+    const last = visual.lastElementChild;
+    if (!last || event.clientY > last.getBoundingClientRect().bottom || !visual.contains(getSelection().anchorNode) || getSelection().anchorNode === visual) caretAtEnd();
+  });
+  // Pasted or dropped content arrives as plain text, so no foreign HTML reaches the post.
+  visual.addEventListener('paste', event => {
+    event.preventDefault();
+    document.execCommand('insertText', false, event.clipboardData.getData('text/plain'));
+  });
+  visual.addEventListener('drop', event => {
+    event.preventDefault();
+    const text = event.dataTransfer.getData('text/plain');
+    if (text) document.execCommand('insertText', false, text);
+  });
+
+  // Selection helpers, so dialogs can insert at the place the writer left.
+  let savedRange = null, savedText = [0, 0];
+  const remember = () => {
+    if (mode === 'markdown') { savedText = [textarea.selectionStart, textarea.selectionEnd]; return; }
+    const selection = getSelection();
+    savedRange = selection.rangeCount && visual.contains(selection.getRangeAt(0).commonAncestorContainer) ? selection.getRangeAt(0).cloneRange() : null;
+  };
+  const restore = () => {
+    if (mode === 'markdown') { textarea.focus(); textarea.setSelectionRange(...savedText); return; }
+    visual.focus();
+    const selection = getSelection();
+    selection.removeAllRanges();
+    if (savedRange) selection.addRange(savedRange);
+    else caretAtEnd();
+  };
+  const selectedText = () => mode === 'markdown' ? textarea.value.slice(textarea.selectionStart, textarea.selectionEnd) : getSelection().toString();
+  const insertHtml = html => { document.execCommand('insertHTML', false, html); dirty = true; };
+
+  // Markdown mode: edit the text around the selection.
+  const replace = (start, end, text, selectStart = start + text.length, selectEnd = selectStart) => {
+    textarea.focus();
+    textarea.setSelectionRange(start, end);
+    if (!document.execCommand('insertText', false, text)) { textarea.setRangeText(text, start, end, 'end'); textarea.dispatchEvent(new Event('input', {bubbles: true})); }
+    textarea.setSelectionRange(selectStart, selectEnd);
+  };
+  const surround = (before, after, placeholder) => {
+    const start = textarea.selectionStart, end = textarea.selectionEnd, value = textarea.value;
+    if (value.slice(start - before.length, start) === before && value.slice(end, end + after.length) === after) {
+      replace(start - before.length, end + after.length, value.slice(start, end), start - before.length, end - before.length); return;
+    }
+    const text = value.slice(start, end) || placeholder;
+    replace(start, end, before + text + after, start + before.length, start + before.length + text.length);
+  };
+  const lines = transform => {
+    const value = textarea.value;
+    const start = value.lastIndexOf('\n', textarea.selectionStart - 1) + 1;
+    let end = value.indexOf('\n', Math.max(textarea.selectionEnd - (textarea.selectionEnd > textarea.selectionStart && value[textarea.selectionEnd - 1] === '\n' ? 1 : 0), start));
+    if (end < 0) end = value.length;
+    const text = transform(value.slice(start, end).split('\n')).join('\n');
+    // Keep a selection the writer made; otherwise leave the caret at the end of the line.
+    if (textarea.selectionStart === textarea.selectionEnd) replace(start, end, text);
+    else replace(start, end, text, start, start + text.length);
+  };
+  const PREFIX = /^(#{1,6}\s+|>\s?|\s*(?:[-+*]|\d+\.)\s+)/;
+  const prefix = (marker, numbered) => lines(rows => {
+    const all = rows.filter(row => row.trim()).every(row => numbered ? /^\d+\.\s/.test(row) : row.startsWith(marker));
+    let number = 1;
+    return rows.map(row => {
+      if (!row.trim()) return row;
+      const bare = row.replace(PREFIX, '');
+      return all ? bare : (numbered ? `${number++}. ` : marker) + bare;
+    });
+  });
+  const fence = (before, after) => {
+    const start = textarea.selectionStart, end = textarea.selectionEnd, value = textarea.value;
+    const lead = start === 0 || value.slice(0, start).endsWith('\n\n') ? '' : (value.slice(0, start).endsWith('\n') ? '\n' : '\n\n');
+    const text = lead + before + value.slice(start, end) + after + (value.slice(end).startsWith('\n') ? '' : '\n');
+    replace(start, end, text, start + lead.length + before.length, start + lead.length + before.length + (end - start));
+  };
+
+  // Visual mode: browser editing commands.
+  const formatBlock = tag => {
+    const current = (document.queryCommandValue('formatBlock') || '').toLowerCase();
+    document.execCommand('formatBlock', false, current === tag ? '<p>' : `<${tag}>`);
+  };
+  const toggleCode = () => {
+    const node = getSelection().anchorNode;
+    const code = node && (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement).closest('code');
+    if (code && visual.contains(code) && !code.closest('pre')) { code.replaceWith(document.createTextNode(code.textContent)); dirty = true; return; }
+    insertHtml('<code>' + esc(selectedText() || 'code') + '</code>');
+  };
+  const markdownImage = (url, alt) => `![${label(alt)}](${href(url)})`;
+  const commands = {
+    p: () => mode === 'visual' ? formatBlock('p') : lines(rows => rows.map(row => row.replace(PREFIX, ''))),
+    h2: () => mode === 'visual' ? formatBlock('h2') : lines(rows => rows.map(row => /^##\s/.test(row) && !/^###/.test(row) ? row.replace(PREFIX, '') : '## ' + row.replace(PREFIX, ''))),
+    h3: () => mode === 'visual' ? formatBlock('h3') : lines(rows => rows.map(row => /^###\s/.test(row) && !/^####/.test(row) ? row.replace(PREFIX, '') : '### ' + row.replace(PREFIX, ''))),
+    bold: () => mode === 'visual' ? document.execCommand('bold') : surround('**', '**', 'bold text'),
+    italic: () => mode === 'visual' ? document.execCommand('italic') : surround('*', '*', 'italic text'),
+    code: () => mode === 'visual' ? toggleCode() : surround('`', '`', 'code'),
+    ul: () => mode === 'visual' ? document.execCommand('insertUnorderedList') : prefix('- ', false),
+    ol: () => mode === 'visual' ? document.execCommand('insertOrderedList') : prefix('', true),
+    quote: () => mode === 'visual' ? formatBlock('blockquote') : prefix('> ', false),
+    codeblock: () => mode === 'visual' ? formatBlock('pre') : fence('```\n', '\n```'),
+    hr: () => mode === 'visual' ? document.execCommand('insertHorizontalRule') : fence('---', ''),
+    link: () => openLink(),
+    image: () => openPicker(),
+  };
+  const run = name => {
+    if (!commands[name]) return;
+    if (mode === 'visual' && !['link', 'image'].includes(name) && (!visual.contains(getSelection().anchorNode) || getSelection().anchorNode === visual)) { visual.focus(); caretAtEnd(); }
+    commands[name]();
+    if (mode === 'visual' && !['link', 'image'].includes(name)) dirty = true;
+    refresh();
+  };
+  toolbar.addEventListener('mousedown', event => { if (event.target.closest('[data-cmd]')) event.preventDefault(); });
+  toolbar.addEventListener('click', event => { const button = event.target.closest('[data-cmd]'); if (button) run(button.dataset.cmd); });
+  const shortcuts = event => {
+    if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
+    const name = {b: 'bold', i: 'italic', k: 'link'}[event.key.toLowerCase()];
+    if (name) { event.preventDefault(); run(name); }
+  };
+  textarea.addEventListener('keydown', shortcuts);
+  visual.addEventListener('keydown', shortcuts);
+
+  // Pressed state of the toolbar buttons in the Visual mode.
+  const refresh = () => {
+    const inside = mode === 'visual' && visual.contains(getSelection().anchorNode);
+    const format = inside ? (document.queryCommandValue('formatBlock') || '').toLowerCase() : '';
+    const state = name => inside && document.queryCommandState(name);
+    const heading = /^h[1-6]$/.test(format);
+    const pressed = {bold: !heading && state('bold'), italic: state('italic'), ul: state('insertUnorderedList'), ol: state('insertOrderedList'),
+      h2: format === 'h2', h3: format === 'h3', quote: format === 'blockquote', codeblock: format === 'pre'};
+    for (const button of toolbar.querySelectorAll('[data-cmd]')) {
+      if (button.dataset.cmd in pressed) button.setAttribute('aria-pressed', String(Boolean(pressed[button.dataset.cmd])));
+    }
+  };
+  document.addEventListener('selectionchange', () => { if (mode === 'visual') refresh(); });
+
+  // Shared dialog behaviour: close buttons, and a click on the backdrop closes too.
+  for (const dialog of document.querySelectorAll('dialog.admin-dialog')) {
+    dialog.addEventListener('click', event => { if (event.target === dialog || event.target.closest('[data-close]')) dialog.close(); });
+  }
+
+  // Link dialog.
+  const linkDialog = document.getElementById('link-dialog');
+  const linkUrl = linkDialog.querySelector('[data-link-url]');
+  const linkText = linkDialog.querySelector('[data-link-text]');
+  let linkTarget = null, linkOriginal = '';
+  const openLink = () => {
+    remember();
+    const node = mode === 'visual' ? getSelection().anchorNode : null;
+    linkTarget = node && (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement).closest('a');
+    if (linkTarget && !visual.contains(linkTarget)) linkTarget = null;
+    linkUrl.value = linkTarget ? linkTarget.getAttribute('href') : '';
+    linkText.value = linkOriginal = linkTarget ? linkTarget.textContent : selectedText();
+    linkDialog.querySelector('[data-link-remove]').hidden = !linkTarget;
+    linkDialog.showModal();
+    linkUrl.focus();
+  };
+  linkDialog.querySelector('[data-link-form]').addEventListener('submit', event => {
+    event.preventDefault();
+    const url = linkUrl.value.trim(), text = linkText.value.trim() || url;
+    if (!safeUrl(url, false)) { linkUrl.setCustomValidity('Use https://, http://, mailto: or a path such as /en/about.'); linkUrl.reportValidity(); return; }
+    linkDialog.close();
+    restore();
+    if (mode === 'markdown') { const [start, end] = savedText; replace(start, end, `[${label(text)}](${href(url)})`); return; }
+    if (linkTarget) { linkTarget.setAttribute('href', url); linkTarget.textContent = text; dirty = true; }
+    // An unchanged selection is linked in place, so formatting and paragraphs inside it survive.
+    else if (savedRange && !savedRange.collapsed && linkText.value === linkOriginal) { document.execCommand('createLink', false, url); dirty = true; }
+    else insertHtml(`<a href="${esc(url)}">${esc(text)}</a>`);
+  });
+  linkUrl.addEventListener('input', () => linkUrl.setCustomValidity(''));
+  linkDialog.querySelector('[data-link-remove]').addEventListener('click', () => {
+    linkDialog.close();
+    if (linkTarget) { linkTarget.replaceWith(...linkTarget.childNodes); dirty = true; }
+  });
+
+  // Media picker.
+  const picker = document.getElementById('media-picker');
+  const grid = picker.querySelector('[data-picker-grid]');
+  const status = picker.querySelector('[data-picker-status]');
+  const search = picker.querySelector('[data-picker-search]');
+  const categorySelect = search.elements.category;
+  const pageLabel = picker.querySelector('[data-picker-page]');
+  const prev = picker.querySelector('[data-picker-prev]');
+  const next = picker.querySelector('[data-picker-next]');
+  const altInput = picker.querySelector('[data-picked-alt]');
+  const thumb = picker.querySelector('[data-picked-thumb]');
+  const insertButton = picker.querySelector('[data-picker-insert]');
+  const upload = picker.querySelector('[data-picker-upload]');
+  const uploadStatus = picker.querySelector('[data-upload-status]');
+  const tabs = [...picker.querySelectorAll('[role="tab"]')];
+  let page = 1, pages = 1, picked = null, request = 0;
+  const showTab = tab => {
+    for (const other of tabs) {
+      const selected = other === tab;
+      other.setAttribute('aria-selected', String(selected));
+      other.tabIndex = selected ? 0 : -1;
+      document.getElementById(other.getAttribute('aria-controls')).hidden = !selected;
+    }
+  };
+  for (const tab of tabs) {
+    tab.addEventListener('click', () => showTab(tab));
+    tab.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+      const other = tabs[(tabs.indexOf(tab) + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+      showTab(other); other.focus();
+    });
+  }
+  const pick = item => {
+    picked = item;
+    for (const button of grid.querySelectorAll('button')) button.setAttribute('aria-pressed', String(Number(button.dataset.id) === item.id));
+    altInput.value = item.alt;
+    thumb.src = item.thumb; thumb.classList.remove('hidden');
+    insertButton.disabled = false;
+  };
+  const render = (items, preselect) => {
+    grid.replaceChildren();
+    for (const item of items) {
+      const li = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'picker-item'; button.dataset.id = item.id;
+      button.setAttribute('aria-pressed', String(Boolean(picked && picked.id === item.id)));
+      const img = document.createElement('img');
+      img.src = item.thumb; img.alt = ''; img.loading = 'lazy';
+      const name = document.createElement('span');
+      name.className = 'picker-name'; name.textContent = item.name;
+      button.title = `${item.name} · ${item.width}×${item.height}`;
+      button.append(img, name);
+      button.addEventListener('click', () => pick(item));
+      button.addEventListener('dblclick', () => { pick(item); insertPicked(); });
+      li.append(button);
+      grid.append(li);
+    }
+    if (preselect) pick(preselect);
+  };
+  const load = async (preselect = null) => {
+    const id = ++request;
+    status.textContent = 'Loading…';
+    const params = new URLSearchParams({q: search.elements.q.value, category: categorySelect.value, page: String(page)});
+    try {
+      const response = await fetch('/admin/media/library?' + params, {credentials: 'same-origin', headers: {Accept: 'application/json'}});
+      if (!response.ok) throw new Error();
+      const data = await response.json();
+      if (id !== request) return;
+      page = data.page; pages = data.pages;
+      const chosen = categorySelect.value;
+      categorySelect.replaceChildren(new Option('All categories', ''), ...data.categories.map(name => new Option(name, name, false, name === chosen)));
+      picker.querySelector('#picker-categories').replaceChildren(...data.categories.map(name => new Option(name)));
+      render(data.items, preselect);
+      status.textContent = data.total ? `${data.total} ${data.total === 1 ? 'image' : 'images'}. Choose one, then Insert image.` : (params.get('q') || params.get('category') ? 'No images match this search.' : 'No images yet. Upload one in the Upload tab.');
+      pageLabel.textContent = `Page ${page} of ${pages}`;
+      prev.disabled = page <= 1; next.disabled = page >= pages;
+    } catch (error) { if (id === request) status.textContent = 'Images could not be loaded. Check your connection and try again.'; }
+  };
+  const openPicker = () => {
+    remember();
+    picked = null; insertButton.disabled = true; altInput.value = ''; thumb.classList.add('hidden'); uploadStatus.textContent = '';
+    showTab(tabs[0]);
+    picker.showModal();
+    search.elements.q.focus();
+    load();
+  };
+  const insertPicked = () => {
+    if (!picked) return;
+    const alt = altInput.value.trim();
+    picker.close();
+    restore();
+    // Images go after the selection and never replace selected text.
+    if (mode === 'markdown') {
+      const end = savedText[1], value = textarea.value;
+      const before = end === 0 || value.slice(0, end).endsWith('\n\n') ? '' : (value.slice(0, end).endsWith('\n') ? '\n' : '\n\n');
+      const after = value.slice(end).startsWith('\n') ? '' : '\n\n';
+      replace(end, end, before + markdownImage(picked.url, alt) + after);
+    } else {
+      getSelection().collapseToEnd();
+      insertHtml(`<img src="${esc(picked.url)}" alt="${esc(alt)}">`);
+    }
+  };
+  insertButton.addEventListener('click', insertPicked);
+  search.addEventListener('submit', event => { event.preventDefault(); page = 1; load(); });
+  categorySelect.addEventListener('change', () => { page = 1; load(); });
+  prev.addEventListener('click', () => { if (page > 1) { page--; load(); } });
+  next.addEventListener('click', () => { if (page < pages) { page++; load(); } });
+  upload.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = upload.querySelector('button');
+    button.disabled = true; uploadStatus.textContent = 'Uploading…';
+    try {
+      const response = await fetch('/admin/media/upload', {method: 'POST', credentials: 'same-origin', headers: {Accept: 'application/json'}, body: new FormData(upload)});
+      const data = await response.json().catch(() => ({error: 'The upload failed. The file may be larger than this server accepts.'}));
+      if (!response.ok || !data.item) throw new Error(data.error || 'The upload failed. Try again.');
+      upload.reset();
+      uploadStatus.textContent = data.note || '';
+      search.elements.q.value = ''; categorySelect.value = ''; page = 1;
+      showTab(tabs[0]);
+      await load(data.item);
+      if (data.note) status.textContent = data.note;
+      insertButton.focus();
+    } catch (error) { uploadStatus.textContent = error.message; }
+    finally { button.disabled = false; }
+  });
+
+  let initial = 'visual';
+  try { initial = localStorage.getItem('meteor.editorMode') === 'markdown' ? 'markdown' : 'visual'; } catch (error) { /* private window */ }
+  setMode(initial);
+})();

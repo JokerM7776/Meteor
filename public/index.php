@@ -6,7 +6,7 @@ if (PHP_SAPI === 'cli-server') {
     $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     $file = is_string($path) ? realpath(__DIR__ . rawurldecode($path)) : false;
     if ($file && str_starts_with($file, __DIR__ . DIRECTORY_SEPARATOR) && is_file($file)
-        && preg_match('/\.(?:css|svg|png|jpe?g|gif|webp|ico|woff2?)$/i', $file)) {
+        && preg_match('/\.(?:css|js|svg|png|jpe?g|gif|webp|avif|ico|woff2?)$/i', $file)) {
         return false;
     }
 }

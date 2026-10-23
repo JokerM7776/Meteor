@@ -1,8 +1,9 @@
-<div class="max-w-[760px] space-y-6">
-<header>
+<div class="space-y-6">
+<header class="max-w-3xl">
 <h1 class="text-[32px] font-bold tracking-tight">Security</h1>
 <p class="text-slate-600 dark:text-slate-400">Your username, password and passkeys. Passkeys are the quickest way in; your password stays on as a fallback.</p>
 </header>
+<div class="grid items-start gap-6 xl:grid-cols-2">
 <form class="panel space-y-4" method="post" action="/admin/security">
 <?= \Core\Csrf::field() ?>
 <input type="hidden" name="action" value="username">
@@ -40,50 +41,55 @@
 <button class="btn">Update password</button>
 </div>
 </form>
-<section class="panel space-y-4">
-<h2 class="text-xl font-bold">Passkeys</h2>
-<p class="text-sm text-slate-600 dark:text-slate-400">Sign in with Touch ID, Face ID, Windows Hello or a security key. Add one for each device you write on.</p>
-<form id="passkey-add" method="post" action="/admin/security" class="flex flex-wrap items-end gap-3">
-<?= \Core\Csrf::field() ?>
-<label class="field flex-1">Passkey name<input id="passkey-name" name="name" placeholder="My laptop" maxlength="191" required>
-</label>
-<button class="btn-primary" type="submit">+ Add a passkey</button>
-</form>
-<p id="passkey-message" role="status" class="text-sm text-orange-700 dark:text-orange-400">
-</p>
+</div>
+<section class="space-y-3" aria-labelledby="passkeys-heading">
 <?php $keys = $db->all('SELECT * FROM passkeys WHERE user_id = ? ORDER BY created_at DESC, id DESC', [$user['id']]); ?>
-<?php foreach ($keys as $key): ?>
-<article class="space-y-3 border-t border-slate-200 py-4 dark:border-slate-800">
-<h3 class="font-semibold">
-<?= e($key['name']) ?>
-</h3>
-<p class="text-xs text-slate-600 dark:text-slate-400">Added <?= e($key['created_at']) ?> · <?= e($key['last_used_at'] ? 'Last used ' . $key['last_used_at'] : 'Not used yet') ?>
-</p>
-<details>
-<summary class="flex min-h-11 cursor-pointer items-center text-sm text-orange-700 dark:text-orange-400">Rename or remove</summary>
-<form method="post" action="/admin/security" class="my-3 flex flex-wrap items-end gap-2">
+<div class="flex flex-wrap items-baseline justify-between gap-x-4">
+<h2 id="passkeys-heading" class="text-xl font-bold">Passkeys <span class="font-mono text-sm font-normal text-slate-500">· <?= e(count($keys)) ?></span></h2>
+<p class="text-sm text-slate-600 dark:text-slate-400">Sign in with Touch ID, Face ID, Windows Hello or a security key. Add one for each device you write on.</p>
+</div>
+<div class="sheet">
+<table>
+<caption class="sr-only">Your passkeys</caption>
+<thead><tr>
+<th scope="col" class="sheet-key">Name</th>
+<th scope="col">Added (UTC)</th>
+<th scope="col">Last used (UTC)</th>
+<th scope="col" class="sheet-end">Actions</th>
+</tr></thead>
+<tbody>
+<?php foreach ($keys as $key): $form = 'passkey-' . $key['id']; ?>
+<tr>
+<th scope="row" class="sheet-key"><input form="<?= e($form) ?>" name="name" value="<?= e($key['name']) ?>" maxlength="191" required aria-label="Name of passkey <?= e($key['name']) ?>"></th>
+<td class="whitespace-nowrap font-mono text-xs"><?= e(substr($key['created_at'], 0, 16)) ?></td>
+<td class="whitespace-nowrap font-mono text-xs"><?= e($key['last_used_at'] ? substr($key['last_used_at'], 0, 16) : 'Not used yet') ?></td>
+<td class="sheet-end">
+<form id="<?= e($form) ?>" method="post" action="/admin/security" class="flex justify-end gap-2">
 <?= \Core\Csrf::field() ?>
 <input type="hidden" name="id" value="<?= e($key['id']) ?>">
-<label class="field flex-1">Name<input name="name" value="<?= e($key['name']) ?>" maxlength="191" required>
-</label>
-<button class="btn" name="action" value="rename">Rename</button>
+<button class="btn" name="action" value="rename">Rename<span class="sr-only"> <?= e($key['name']) ?></span></button>
+<a class="btn text-red-700 dark:text-red-400" href="/admin/security/passkeys/<?= e($key['id']) ?>/remove">Remove…<span class="sr-only"> <?= e($key['name']) ?></span></a>
 </form>
-<form method="post" action="/admin/security" class="flex flex-wrap items-end gap-2">
-<?= \Core\Csrf::field() ?>
-<input type="hidden" name="id" value="<?= e($key['id']) ?>">
-<label class="field flex-1">Current password<input name="current_password" type="password" autocomplete="current-password" required>
-</label>
-<button class="btn text-red-700 dark:text-red-400" name="action" value="remove">Remove passkey</button>
-</form>
-<?php if (count($keys) === 1): ?>
-<p class="mt-3 text-sm">This is your last passkey. Password sign-in remains available after removal.</p>
-<?php endif ?>
-</details>
-</article>
+</td>
+</tr>
 <?php endforeach ?>
 <?php if (!$keys): ?>
-<p class="text-sm text-slate-500">No passkeys yet. Password sign-in is available.</p>
+<tr><td colspan="4" class="p-8 text-center text-slate-500">No passkeys yet. Password sign-in is available.</td></tr>
 <?php endif ?>
-<p class="border-t border-slate-200 pt-4 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-400">Removing every passkey leaves password sign-in only. You’ll be asked for your current password before a passkey is removed.</p>
+<tr><th scope="rowgroup" colspan="4" class="sheet-group"><span class="sticky left-4">Add a passkey</span></th></tr>
+<tr class="sheet-new">
+<th scope="row" class="sheet-key"><input form="passkey-add" id="passkey-name" name="name" placeholder="My laptop" maxlength="191" required aria-label="New passkey name"></th>
+<td colspan="2"><p id="passkey-message" role="status" class="text-sm text-orange-700 dark:text-orange-400"></p></td>
+<td class="sheet-end">
+<form id="passkey-add" method="post" action="/admin/security" class="flex justify-end">
+<?= \Core\Csrf::field() ?>
+<button class="btn-primary whitespace-nowrap" type="submit">+ Add a passkey</button>
+</form>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-400">Removing every passkey leaves password sign-in only. You’ll be asked for your current password before a passkey is removed.</p>
 </section>
 </div>

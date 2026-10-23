@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @source "../views";
+@source "../public/assets/admin.js";
 @theme {
   --font-display: "Source Sans 3", "Noto Sans SC", system-ui, sans-serif;
   --font-serif: "Source Serif 4", "Noto Serif SC", Georgia, serif;
@@ -42,6 +43,7 @@
 }
 
 @layer components {
+  .admin .btn:disabled, .admin .btn-primary:disabled { @apply cursor-not-allowed opacity-40; }
   .admin .btn { @apply inline-flex min-h-11 items-center justify-center gap-1 rounded-[10px] border border-slate-300 px-4 py-2 text-sm font-semibold hover:border-slate-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 dark:border-slate-600; }
   .admin .btn-primary { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-slate-900 px-5 py-3 font-semibold text-white hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600; }
   .admin .panel { @apply rounded-[14px] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900; }
@@ -68,4 +70,24 @@
   .admin .sheet .btn { @apply min-h-10 px-3; }
   .admin .status-dot { @apply inline-block size-2 shrink-0 rounded-full; }
   .admin .status-chip { @apply inline-flex min-h-11 items-center whitespace-nowrap rounded-lg px-3 font-mono text-xs font-medium; }
+  /* Content editor: mode switch, toolbar, Visual surface, and the dialogs it opens. */
+  .admin .mode-switch { @apply inline-flex rounded-[10px] border border-slate-300 bg-slate-100 p-0.5 dark:border-slate-600 dark:bg-slate-800; }
+  .admin .mode-switch button { @apply min-h-10 rounded-lg px-3 text-sm font-semibold text-slate-600 hover:text-slate-900 aria-pressed:bg-white aria-pressed:text-slate-900 aria-pressed:shadow-sm dark:text-slate-300 dark:hover:text-white dark:aria-pressed:bg-slate-950 dark:aria-pressed:text-white; }
+  .admin .md-toolbar { @apply flex flex-wrap items-center gap-0.5 rounded-t-[10px] border border-b-0 border-slate-300 bg-slate-50 p-1 dark:border-slate-600 dark:bg-slate-800; }
+  .admin .md-toolbar button { @apply inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-2 text-sm text-slate-700 hover:bg-white hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-orange-600 aria-pressed:bg-slate-900 aria-pressed:text-white dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white dark:aria-pressed:bg-slate-100 dark:aria-pressed:text-slate-900; }
+  .admin .md-toolbar .md-sep { @apply mx-1 h-6 w-px bg-slate-300 dark:bg-slate-600; }
+  .admin textarea.md-joined, .admin .md-visual { @apply rounded-t-none; }
+  .admin .md-visual { @apply min-h-[560px] overflow-x-auto rounded-b-[10px] border border-slate-300 bg-white px-5 py-4 font-normal text-[17px] leading-[1.75] focus:outline-2 focus:outline-slate-900 md:text-[17px] md:leading-[1.75] dark:border-slate-600 dark:bg-slate-950 dark:focus:outline-slate-300; }
+  .admin .md-visual h1 { @apply text-3xl; }
+  .admin .md-visual h2 { @apply mt-8 text-2xl; }
+  .admin .md-visual h3 { @apply mt-6 text-xl; }
+  .admin .md-visual > :first-child { @apply mt-0; }
+  .admin .md-visual img { @apply max-h-96 w-auto; }
+  .admin .md-visual pre { @apply whitespace-pre-wrap; }
+  .admin dialog.admin-dialog { @apply m-auto flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-5xl flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100; }
+  .admin dialog.admin-dialog:not([open]) { @apply hidden; }
+  .admin .dialog-tab { @apply -mb-px inline-flex min-h-11 items-center border-b-2 border-transparent px-3 text-sm font-semibold text-slate-600 hover:text-slate-900 aria-selected:border-orange-600 aria-selected:text-slate-900 dark:text-slate-400 dark:hover:text-white dark:aria-selected:text-white; }
+  .admin .picker-item { @apply flex w-full flex-col overflow-hidden rounded-[10px] border-2 border-slate-200 bg-white text-left hover:border-slate-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 aria-pressed:border-orange-600 aria-pressed:ring-2 aria-pressed:ring-orange-200 dark:border-slate-700 dark:bg-slate-950 dark:aria-pressed:ring-orange-900; }
+  .admin .picker-item img { @apply aspect-square w-full bg-slate-100 object-cover dark:bg-slate-800; }
+  .admin .picker-name { @apply block truncate px-2 py-1.5 text-xs text-slate-600 dark:text-slate-300; }
 }

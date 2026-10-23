@@ -212,6 +212,26 @@ Do not run the fresh installer against an existing database. If an installation
 fails after database creation, inspect the failure before retrying: MySQL DDL
 cannot be rolled back, and filesystem writes cannot share a database transaction.
 
+## Media library and editor
+
+Images live in `public/uploads/media/` under random 32-hex names (`MediaLibrary`); the
+`media` table keeps the original name, size, alt text, category and a lower-cased
+`search_text`, and `media_tags` the tags. Search ANDs each word against `search_text`
+with `LIKE … ESCAPE '!'`, so it behaves the same on MySQL and SQLite and ignores case
+for non-ASCII text. Lists are paginated (20 rows in Admin → Media, 24 in the picker).
+
+`Core\ImageOptimizer` uses GD: it applies the JPEG EXIF orientation, shrinks to the
+configured longest side, re-encodes to WebP or AVIF (dropping all metadata) and writes a
+400 px WebP thumbnail. Animated GIFs, images over 60 megapixels or beyond the memory
+limit are kept as uploaded. Settings (`media_optimize`, `media_format`, `media_quality`,
+`media_max_size`) are global rows in `settings`; optimization defaults to on.
+
+The editor (`/assets/admin.js`) keeps the Markdown textarea as the source of truth. Visual
+mode renders it with a JavaScript copy of the `Core\Markdown` subset and, only after an
+edit, serializes the editable HTML back to Markdown on mode switch or submit. Pasted and
+dropped content is inserted as plain text. The picker reads `GET /admin/media/library`
+(JSON) and uploads to `POST /admin/media/upload` (multipart with the CSRF field).
+
 ## Online and manual updates
 
 Open **Admin → Updates**. Online updates always come from the public official
@@ -229,8 +249,8 @@ serves an asset from a host outside this configured policy.
 Alternatively upload the same release zip (up to 50 MB) and optionally paste its
 64-character SHA-256. Set PHP upload_max_filesize=50M and post_max_size=55M
 (or higher) and allow enough request time/memory for your hosting environment.
-Both online and manual installation require the signed-in admin's current
-password. Only install releases you trust: packages contain executable PHP and
+Installing (online or manual) needs only the signed-in admin session and CSRF
+token; restoring a backup also asks for the current password. Only install releases you trust: packages contain executable PHP and
 their manifest provides integrity checks, not publisher signatures.
 
 CLI updates use filesystem access instead of a web password:
@@ -257,8 +277,9 @@ a stale maintenance flag. Keep a separate database backup before each update.
 
 ## Backups and rollback
 
-The last five code backups appear on Updates with password-protected Restore
-actions. A restore first creates a rescue backup of the affected current files.
+The last five code backups appear on Updates as a table (version, date, size).
+Restore opens a confirmation page that asks for the current password (rate-limited
+like sign-in). A restore first creates a rescue backup of the affected current files.
 On a caught update failure, the updater restores replaced/deleted files, removes
 new files, clears maintenance mode and logs the error. Logs live in
 storage/logs/updates.log; staging directories are deleted after each attempt.
