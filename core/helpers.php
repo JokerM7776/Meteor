@@ -42,3 +42,11 @@ function localized_date(string $date, string $pattern = 'dd MMM yyyy'): string
     $formatter = new IntlDateFormatter($GLOBALS['i18n']->locale(), IntlDateFormatter::NONE, IntlDateFormatter::NONE, 'UTC', null, $pattern);
     return $formatter->format(new DateTimeImmutable($date, new DateTimeZone('UTC')));
 }
+
+// Public asset URL with a version stamp, so browsers and CDNs fetch the new file after an update.
+function asset(string $path): string
+{
+    $path = ltrim($path, '/');
+    $mtime = @filemtime(dirname(__DIR__) . '/public/' . $path);
+    return '/' . $path . ($mtime ? '?v=' . $mtime : '');
+}

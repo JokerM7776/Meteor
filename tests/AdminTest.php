@@ -70,8 +70,8 @@ test('Admin: every view renders with escaped data, external-only script, matrix 
     $f = adminFixture(); $db = $f['db']; $_SESSION = ['user_id' => 1, 'session_version' => 1]; $_SERVER['REQUEST_METHOD'] = 'GET'; $_GET = [];
     $editor = new App\Services\ContentEditor($db); $id = $editor->save(false, 0, 'en', ['slug' => 'hello', 'title' => '<script>title</script>', 'status' => 'published', 'is_pinned' => '1']);
     foreach (['/admin/posts', '/admin/pages', '/admin/editor', '/admin/languages', '/admin/settings', '/admin/taxonomy', '/admin/security', '/admin/posts/1/delete'] as $path) {
-        $html = $f['controller']->handle($path); contains('<script src="/assets/admin.js" defer></script>', $html);
-        ok(!preg_match('/<script(?! src="\/assets\/admin.js" defer>)/i', $html)); ok(!preg_match('/\son[a-z]+\s*=/i', $html));
+        $html = $f['controller']->handle($path); ok(preg_match('~<script src="/assets/admin\.js\?v=\d+" defer></script>~', $html) === 1, 'admin.js');
+        ok(!preg_match('~<script(?! src="/assets/admin\.js\?v=\d+" defer>)~i', $html)); ok(!preg_match('/\son[a-z]+\s*=/i', $html));
         preg_match_all('~<form\b[^>]*method="post"[^>]*>(.*?)</form>~s', $html, $forms);
         foreach ($forms[1] as $form) { contains('name="csrf_token"', $form); }
         if ($path === '/admin/posts') { contains('✓ Published', $html); contains('+ Add', $html); contains('base', $html); contains('Pinned', $html); contains('&lt;script&gt;title', $html); ok(!str_contains($html, '>de ·')); }

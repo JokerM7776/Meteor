@@ -30,10 +30,10 @@ $editor = new \App\Services\TaxonomyEditor($db);
 <caption class="sr-only"><?= e($heading) ?></caption>
 <thead><tr>
 <th scope="col" class="sheet-key">Slug</th>
-<?php if ($kind === 'category'): ?><th scope="col">Order</th><?php endif ?>
+<?php if ($kind === 'category'): ?><th scope="col" class="sheet-center">Order</th><?php endif ?>
 <?php foreach ($locales as $code => $language) { require __DIR__ . '/sheet-head.php'; } ?>
-<th scope="col">Posts</th>
-<th scope="col">Actions</th>
+<th scope="col" class="sheet-center">Posts</th>
+<th scope="col" class="sheet-end">Actions</th>
 </tr></thead>
 <tbody>
 <?php foreach ($rows as $row):
@@ -41,18 +41,18 @@ $editor = new \App\Services\TaxonomyEditor($db);
     $o = (int) ($oldRow['id'] ?? -1) === (int) $row['id'] ? $oldRow : [];
     $label = $row['id'] ? $row['slug'] : 'new ' . $kind;
 ?>
-<tr<?= $row['id'] ? '' : ' class="bg-slate-50/60 dark:bg-slate-950/30"' ?>>
+<?php if (!$row['id']): ?><tr><th scope="rowgroup" colspan="<?= e(count($locales) + ($kind === 'category' ? 4 : 3)) ?>" class="sheet-group"><span class="sticky left-4">Add a <?= e($kind) ?></span></th></tr><?php endif ?>
+<tr<?= $row['id'] ? '' : ' class="sheet-new"' ?>>
 <th scope="row" class="sheet-key">
-<?php if (!$row['id']): ?><span class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Add a <?= e($kind) ?></span><?php endif ?>
 <input form="<?= e($form) ?>" name="slug" value="<?= e($o['slug'] ?? $row['slug']) ?>" maxlength="191" <?= $row['id'] ? 'required' : '' ?> placeholder="slug" aria-label="Slug of <?= e($label) ?>" class="font-mono">
 </th>
-<?php if ($kind === 'category'): ?><td><input form="<?= e($form) ?>" type="number" name="sort_order" value="<?= e($o['sort_order'] ?? $row['sort_order']) ?>" min="-9999" max="9999" aria-label="Order of <?= e($label) ?>"></td><?php endif ?>
+<?php if ($kind === 'category'): ?><td class="sheet-center"><input form="<?= e($form) ?>" type="number" name="sort_order" value="<?= e($o['sort_order'] ?? $row['sort_order']) ?>" min="-9999" max="9999" aria-label="Order of <?= e($label) ?>"></td><?php endif ?>
 <?php foreach ($locales as $code => $language): ?>
 <td><input form="<?= e($form) ?>" name="names[<?= e($code) ?>]" lang="<?= e($code) ?>" maxlength="191" value="<?= e($o['names'][$code] ?? $row['names'][$code] ?? '') ?>" placeholder="<?= $row['id'] ? 'Missing' : 'Name' ?>" aria-label="<?= e($language['name']) ?> name of <?= e($label) ?>"></td>
 <?php endforeach ?>
-<td class="font-mono text-slate-600 dark:text-slate-300"><span class="inline-flex min-h-11 items-center"><?= $row['post_count'] === null ? '' : e($row['post_count']) ?></span></td>
-<td>
-<form id="<?= e($form) ?>" method="post" action="/admin/taxonomy<?= $q !== '' ? '?q=' . e(rawurlencode($q)) : '' ?>" class="flex gap-2">
+<td class="sheet-center font-mono text-slate-600 dark:text-slate-300"><span class="inline-flex min-h-11 items-center"><?= $row['post_count'] === null ? '' : e($row['post_count']) ?></span></td>
+<td class="sheet-end">
+<form id="<?= e($form) ?>" method="post" action="/admin/taxonomy<?= $q !== '' ? '?q=' . e(rawurlencode($q)) : '' ?>" class="flex justify-end gap-2">
 <?= \Core\Csrf::field() ?>
 <input type="hidden" name="kind" value="<?= e($kind) ?>">
 <input type="hidden" name="id" value="<?= e($row['id']) ?>">

@@ -22,7 +22,7 @@ $toggle = function (string $key, string $label) use ($old, $globals): void { ?>
 <?php foreach (\App\Services\MenuEditor::TOGGLES['header'] as $key => $label) { $toggle($key, $label); } ?>
 </div>
 <h3 class="font-semibold">Header menu</h3>
-<p class="text-sm text-slate-500">Built-in items can be hidden and reordered. Links accept /paths, #anchors, https://, http:// and mailto:. Use {locale} for the language code, e.g. /{locale}/projects. A link without a label in a language uses the <?= e($locales[$default]['name']) ?> label; leave that one empty to show the link only in languages that have a label.</p>
+<p class="max-w-4xl text-sm text-slate-600 dark:text-slate-400">Built-in items can be hidden and reordered. Links accept /paths, #anchors, https://, http:// and mailto:. Use {locale} for the language code, e.g. /{locale}/projects. A link without a label in a language uses the <?= e($locales[$default]['name']) ?> label; leave that one empty to show the link only in languages that have a label.</p>
 <?php $menu = 'header'; $rows = $menus['header']; require __DIR__ . '/menu-sheet.php'; ?>
 <button class="btn-primary">Save header</button>
 </section>
@@ -42,7 +42,7 @@ $toggle = function (string $key, string $label) use ($old, $globals): void { ?>
 <caption class="sr-only">Footer menu column heading</caption>
 <thead><tr><th scope="col" class="sheet-key">Text</th><?php $missing = []; foreach ($locales as $code => $language) { require __DIR__ . '/sheet-head.php'; } ?></tr></thead>
 <tbody><tr>
-<th scope="row" class="sheet-key"><span class="font-semibold">Column heading</span><span class="block text-xs text-slate-500">Shown above the footer menu.</span></th>
+<th scope="row" class="sheet-key"><span class="block font-semibold text-slate-900 dark:text-slate-100">Column heading</span><span class="mt-0.5 block text-xs text-slate-500">Shown above the footer menu.</span></th>
 <?php foreach ($locales as $code => $language): ?>
 <td><input name="footer_menu_heading[<?= e($code) ?>]" lang="<?= e($code) ?>" maxlength="80" value="<?= e(($old['menu'] ?? '') === 'footer' ? ($old['footer_menu_heading'][$code] ?? '') : ($headings[$code] ?? '')) ?>" placeholder="<?= e($i18n->translateFor($code, 'site')) ?>" aria-label="<?= e($language['name']) ?> column heading"></td>
 <?php endforeach ?>

@@ -7,9 +7,9 @@
 <title>
 <?= e($title) ?> · <?= e($siteTitle) ?> Admin</title>
 <?php require __DIR__ . '/../partials/favicon.php' ?>
-<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="<?= e(asset('assets/style.css')) ?>">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&amp;family=Source+Serif+4:wght@400;600&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;600&amp;family=Noto+Serif+SC:wght@400;600&amp;display=swap">
-<script src="/assets/admin.js" defer></script>
+<script src="<?= e(asset('assets/admin.js')) ?>" defer></script>
 </head>
 <body class="admin min-h-screen <?= $active === 'login' || $active === 'editor' ? 'bg-slate-100' : 'bg-slate-50' ?> font-display text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 <?php if ($active === 'login'): ?>
@@ -35,23 +35,23 @@
 </main>
 <?php else: ?>
 <div class="flex min-h-screen flex-col md:flex-row">
-<aside class="flex shrink-0 flex-col gap-6 bg-slate-900 px-4 py-5 text-slate-300 md:w-60">
+<aside class="flex shrink-0 flex-col gap-2 bg-slate-900 px-4 py-3 text-slate-300 md:w-60 md:gap-6 md:py-5">
 <a href="/admin/posts" class="flex min-h-11 items-center gap-3 px-2 text-xl font-bold text-white">
 <?php require __DIR__ . '/../partials/mark.php'; ?> <?= e($siteTitle) ?></a>
-<nav aria-label="Admin" class="flex flex-col gap-0.5 text-[15px]">
+<nav aria-label="Admin" class="-mx-4 flex gap-1 overflow-x-auto px-4 text-[15px] md:mx-0 md:flex-col md:gap-0.5 md:overflow-visible md:px-0">
 <?php foreach (['posts' => 'Posts', 'pages' => 'Pages', 'taxonomy' => 'Categories & tags', 'languages' => 'Languages', 'menus' => 'Header & footer', 'settings' => 'Settings', 'security' => 'Security', 'updates' => 'Updates'] as $key => $label): $selected = $active === $key || ($active === 'strings' && $key === 'settings') || ($active === 'taxonomy-delete' && $key === 'taxonomy') || ($active === 'matrix' && $key === (!empty($pageContent) ? 'pages' : 'posts')) || ($active === 'editor' && $key === (!empty($page) ? 'pages' : 'posts')); ?>
-<a href="/admin/<?= e($key) ?>" <?= $selected ? 'aria-current="page"' : '' ?> class="flex min-h-11 items-center gap-3 rounded-lg px-3 <?= $selected ? 'bg-slate-800 font-semibold text-white' : 'hover:bg-slate-800' ?>">
+<a href="/admin/<?= e($key) ?>" <?= $selected ? 'aria-current="page"' : '' ?> class="flex min-h-11 shrink-0 items-center gap-3 whitespace-nowrap rounded-lg px-3 <?= $selected ? 'bg-slate-800 font-semibold text-white' : 'hover:bg-slate-800' ?>">
 <?php require __DIR__ . "/../admin/nav-icon.php"; ?>
 <?= e($label) ?>
 </a>
 <?php endforeach ?>
 </nav>
-<div class="mt-auto border-t border-slate-800 pt-4 text-sm">
+<div class="flex flex-wrap items-center gap-x-2 border-t border-slate-800 pt-2 text-sm md:mt-auto md:block md:pt-4">
 <p class="px-3 font-mono text-xs">Meteor <?= e(\Core\Version::current()) ?></p>
 <a class="flex min-h-11 items-center px-3" href="/<?= e($i18n->defaultLocale()) ?>/">View site ↗</a>
 <form method="post" action="/admin/logout">
 <?= \Core\Csrf::field() ?>
-<button class="min-h-11 w-full px-3 text-left" type="submit">Sign out</button>
+<button class="min-h-11 px-3 text-left md:w-full" type="submit">Sign out</button>
 </form>
 </div>
 </aside>

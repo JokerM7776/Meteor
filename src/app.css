@@ -51,14 +51,21 @@
   /* Spreadsheet-style tables: one row per item, one column per language. */
   .admin .sheet { @apply overflow-x-auto rounded-[14px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900; }
   .admin .sheet table { @apply w-full border-separate border-spacing-0 text-left text-sm; }
-  .admin .sheet thead th { @apply border-b border-slate-200 bg-slate-50 px-3 py-3 align-bottom text-xs font-semibold text-slate-600 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300; }
-  .admin .sheet tbody th, .admin .sheet tbody td { @apply border-b border-slate-100 px-3 py-2 align-top dark:border-slate-800; }
+  .admin .sheet thead th { @apply border-b border-slate-200 bg-slate-50 px-4 py-3 align-bottom text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap text-slate-500 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400; }
+  .admin .sheet tbody th, .admin .sheet tbody td { @apply border-b border-slate-100 bg-white px-4 py-2.5 align-middle dark:border-slate-800 dark:bg-slate-900; }
+  .admin .sheet tbody tr:hover > * { @apply bg-slate-50 dark:bg-slate-800/40; }
   .admin .sheet tbody tr:last-child > * { @apply border-b-0; }
-  .admin .sheet .sheet-key { @apply sticky left-0 z-10 min-w-48 max-w-64 bg-white text-left font-normal dark:bg-slate-900; }
-  .admin .sheet thead .sheet-key { @apply z-20 bg-slate-50 dark:bg-slate-800; }
-  .admin .sheet .sheet-lang { @apply min-w-48; }
-  .admin .sheet .sheet-group { @apply bg-slate-50 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/60 dark:text-slate-400; }
-  .admin .sheet input:not([type=checkbox]):not([type=hidden]), .admin .sheet textarea { @apply w-full text-sm placeholder:text-slate-400 placeholder-shown:border-dashed placeholder-shown:bg-slate-50 dark:placeholder-shown:bg-slate-950/40; }
-  .admin .sheet input[type=number] { @apply w-20; }
+  .admin .sheet .sheet-key { @apply sticky left-0 z-10 min-w-36 max-w-48 text-left font-normal md:min-w-52 md:max-w-64; }
+  .admin .sheet thead .sheet-key { @apply z-20; }
+  .admin .sheet .sheet-lang { @apply min-w-44 normal-case tracking-normal; }
+  .admin .sheet .sheet-center { @apply text-center; }
+  .admin .sheet thead .sheet-center, .admin .sheet thead .sheet-end { @apply w-px; }
+  .admin .sheet .sheet-end { @apply text-right; }
+  .admin .sheet tbody .sheet-group { @apply border-t border-slate-200 bg-slate-50 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400; }
+  .admin .sheet tbody tr.sheet-new > * { @apply bg-slate-50 dark:bg-slate-800/60; }
+  .admin .sheet input:not([type=checkbox]):not([type=hidden]), .admin .sheet textarea { @apply min-h-10 w-full border-slate-200 bg-white text-sm placeholder:text-slate-400 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-slate-500; }
+  .admin .sheet input[type=number]:not([type=checkbox]):not([type=hidden]) { @apply w-16 text-center; }
+  .admin .sheet .btn { @apply min-h-10 px-3; }
+  .admin .status-dot { @apply inline-block size-2 shrink-0 rounded-full; }
   .admin .status-chip { @apply inline-flex min-h-11 items-center whitespace-nowrap rounded-lg px-3 font-mono text-xs font-medium; }
 }

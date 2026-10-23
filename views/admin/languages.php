@@ -63,7 +63,8 @@
 </td>
 <td class="px-4 py-4">
 <span class="block font-mono text-xs"><?= e($ownText) ?> / <?= e(count($builtin)) ?></span>
-<span class="flex flex-wrap gap-x-3 text-sm"><a class="inline-flex min-h-11 items-center text-orange-700 dark:text-orange-400" href="/admin/strings">Edit<span class="sr-only"> interface text</span></a><a class="inline-flex min-h-11 items-center text-orange-700 dark:text-orange-400" href="/admin/languages/export?code=<?= e(rawurlencode($code)) ?>" download>Download file<span class="sr-only"> for <?= e($language['name']) ?></span></a></span>
+<span class="flex flex-wrap gap-x-3 text-sm"><a class="inline-flex min-h-11 items-center text-orange-700 dark:text-orange-400" href="/admin/strings">Edit<span class="sr-only"> interface text</span></a>
+<a class="inline-flex min-h-11 items-center text-orange-700 dark:text-orange-400" href="/admin/languages/export?code=<?= e(rawurlencode($code)) ?>" download>Download file<span class="sr-only"> for <?= e($language['name']) ?></span></a></span>
 </td>
 <td class="px-4 py-4">
 <details>

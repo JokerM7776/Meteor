@@ -25,47 +25,38 @@
 <button class="btn">Search</button>
 </form>
 </div>
-<div class="overflow-x-auto rounded-[14px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-<table class="w-full text-left text-sm">
-<thead class="border-b border-slate-200 bg-slate-50 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+<div class="sheet">
+<table>
+<caption class="sr-only"><?= e($title) ?></caption>
+<thead>
 <tr>
-<th class="px-6 py-4">
-<?= e($title) ?>
-</th>
-<?php foreach ($locales as $code => $language): ?>
-<th class="px-4 py-4">
-<span lang="<?= e($code) ?>">
-<?= e($language['native_name']) ?>
-</span>
-<span class="block font-mono font-normal">
-<?= e($code) ?> · <?= e($language['status']) ?>
-</span>
-</th>
-<?php endforeach ?>
-<th class="px-4 py-4">Updated</th>
+<th scope="col" class="sheet-key"><?= e($title) ?></th>
+<?php foreach ($locales as $code => $language) { require __DIR__ . '/sheet-head.php'; } ?>
+<th scope="col" class="sheet-end">Updated</th>
 </tr>
 </thead>
 <tbody>
 <?php foreach ($rows as $row): ?>
-<tr class="border-b border-slate-100 dark:border-slate-800">
-<td class="min-w-64 px-6 py-5">
-<a class="font-semibold text-base" href="/admin/editor?<?= e(http_build_query(['post' => $row['id'], 'locale' => $row['base_locale'], 'kind' => $pageContent ? 'page' : 'post'])) ?>">
+<tr>
+<th scope="row" class="sheet-key py-4 md:min-w-64">
+<a class="text-base font-semibold text-slate-900 hover:text-orange-700 dark:text-slate-100 dark:hover:text-orange-400" href="/admin/editor?<?= e(http_build_query(['post' => $row['id'], 'locale' => $row['base_locale'], 'kind' => $pageContent ? 'page' : 'post'])) ?>">
 <?= e($row['translations'][$row['base_locale']]['title'] ?? $row['slug']) ?>
 </a>
-<p class="mt-1 font-mono text-xs text-slate-500">/<?= e($row['slug']) ?> <?= !empty($row['is_pinned']) ? '· Pinned' : '' ?> <?= !$row['is_published'] ? '· Hidden' : '' ?>
-</p>
-</td>
+<span class="mt-1 block font-mono text-xs text-slate-500">/<?= e($row['slug']) ?> <?= !empty($row['is_pinned']) ? '· Pinned' : '' ?> <?= !$row['is_published'] ? '· Hidden' : '' ?></span>
+</th>
 <?php foreach ($locales as $code => $language): $status = $row['translations'][$code]['status'] ?? 'missing'; ?>
-<td class="px-4 py-5">
+<td>
+<span class="flex items-center gap-2">
 <a class="status-chip <?= $status === 'published' ? 'bg-slate-900 text-white dark:bg-slate-700' : ($status === 'draft' ? 'bg-amber-100 text-amber-950' : 'border border-dashed border-slate-400 text-slate-600 dark:text-slate-300') ?>" href="/admin/editor?<?= e(http_build_query(['post' => $row['id'], 'locale' => $code, 'kind' => $pageContent ? 'page' : 'post', 'from' => $row['base_locale']])) ?>">
 <?= e($status === 'missing' ? '+ Add' : ($status === 'published' ? '✓ Published' : '◐ Draft')) ?>
 </a>
 <?php if ($code === $row['base_locale']): ?>
-<span class="mt-1 block font-mono text-[10px] text-slate-500">base</span>
+<span class="font-mono text-[10px] uppercase tracking-wider text-slate-500">base</span>
 <?php endif ?>
+</span>
 </td>
 <?php endforeach ?>
-<td class="whitespace-nowrap px-4 py-5 font-mono text-xs text-slate-500">
+<td class="sheet-end whitespace-nowrap font-mono text-xs text-slate-500">
 <?= e(substr($row['updated_at'], 0, 10)) ?>
 </td>
 </tr>
