@@ -34,33 +34,55 @@ only in development because edited demo content is replaced. Languages the insta
 as Off are switched to the demo status; other existing statuses are preserved. Preview access requires a valid signed-in admin session (user ID and
 matching session version), and preview locales never appear in feeds or SEO alternates.
 
-Per-language settings are `site_title`, `site_tagline`, `home_heading`, `home_intro`,
-`footer_text`, `copyright`, `language_label` and `footer_menu_heading`. Admin → Settings
-edits them as one table (rows = keys, columns = languages); a save changes only the
-cells it posts, and an empty cell deletes that row. The copyright token `{year}` is
-replaced with the current UTC year. Footer text defaults to `footer_description`. Localized values fall back
+Per-language settings are `site_title`, `site_tagline`, `footer_text`, `copyright`,
+`language_label` and `footer_menu_heading` (Admin → Settings → Site), `home_eyebrow`,
+`home_heading`, `home_intro` and `home_button_{1,2}_label` (Settings → Home page), and
+`author_name` / `author_bio` (Settings → Author). Each tab edits them as one table (rows = keys,
+columns = languages); a save changes only the cells it posts, and an empty cell deletes that
+row. The copyright tokens `{year}` (current UTC year) and `{site}` (site title) are replaced;
+the default copyright is `© {year} {site}`. Footer text, the home intro and the home eyebrow
+default to nothing; the home heading defaults to the site title and the intro to the tagline.
+Home globals: `home_sections` (`intro:1,pinned:1,latest:1,categories:0,author:0`, order =
+display order), `home_latest_count`, `home_decoration`, `home_button_{n}_url|_show`.
+Author globals: `author_avatar` (media library URL) and `author_links` (one URL or
+`Label | URL` per line, max 8). The author card is a representative h-card: `p-name u-url u-uid`
+links to the language's home page with `rel="me"`, profile links are `u-url rel="me"`, mailto
+links `u-email`; footer setting `footer_brand` = `site` | `author` | `none`.
+Appearance globals: `theme_scheme` (`auto`|`light`|`dark`) sets `<html data-theme>`, which drives
+Tailwind's `dark:` variant (`auto` follows `prefers-color-scheme`); `theme_switch` adds a header
+menu that links to `/theme?set=…&back=…` (sets the `meteor_theme` cookie, then redirects to a
+same-site path). `theme_accent` (a Tailwind color name or `#rrggbb`) and `theme_neutral` replace the
+`--color-orange-*` and `--color-slate-*` variables through `/theme.css?v=<hash>`, linked only when
+not the default. Localized values fall back
 to the default locale, then a global row, then the built-in UI text. `language_label`
 controls the compact header label; native names remain in translation bars and footers.
 Global `posts_per_page` defaults to 10, and `custom_css` is served at `/custom.css`
 with a five-minute cache and ETag. The layout links it only when non-empty.
 
 Global identity settings are `site_icon`, `header_show_icon`, `header_show_title`,
-`header_show_switcher`, `footer_show_languages`, `footer_show_feeds`, and
-`footer_show_site` (the footer menu column). Toggles default on; at least the header
+`header_show_switcher`, `footer_show_languages`, `footer_show_feeds`, `footer_show_site`
+(the footer menu column) and `footer_show_copyright`. Toggles default on; at least the header
 icon or title must remain visible.
-Site icons accept PNG/JPG/WebP/ICO up to 1 MB, validated by MIME and image data
-(or the ICO header). Random upload names are cleaned up after replacement/removal;
-failed database saves remove the new upload. The default is `/assets/favicon.svg`.
+The site icon, post covers and the author photo are chosen from the media library (stored as
+`/uploads/media/<name>` URLs and validated against the `media` table; icons and photos must be
+PNG/JPG/WebP/GIF). Media files are never deleted by these fields; older icons/covers uploaded
+straight to `/uploads/<hex>.<ext>` keep working and are deleted when replaced. The media delete
+page counts these uses. The default icon is `/assets/favicon.svg`.
 Header and footer menus live in `menu_items` (menu `header`|`footer`, kind, url,
 sort_order, is_visible) and `menu_item_labels` (item, locale, label). Each menu holds
-every built-in kind once — `posts`, `tags`, `about`, `pages` (expands to published pages
+every built-in kind once — `posts`, `tags`, `pages` (expands to published pages
 with “Show in navigation”), `rss` (hidden on preview locales), `sitemap` — which can be
 hidden and reordered but not removed, plus up to 30 rows in total including custom
 `link` rows. Built-in labels fall back to the UI string in that language; link labels
 fall back to the default language, and a link with neither is not shown. `{locale}` in
 a link URL becomes the current language code. Only single-slash root paths, fragments,
 HTTP(S) and mailto are allowed (`SiteLinks::validUrl`), checked on save and on render.
-The built-in About link is skipped when the same menu shows an `about` nav page.
+A `link` row with `page_id` links to a page: it is shown once the page is published in that
+language, its label defaults to the page's navigation label or title, and it is skipped when the
+same menu's `pages` item already lists the page. The installer creates a draft About page
+(slug `about`) linked from both menus; migration `006` converts the old built-in `about` items to
+such page links (creating the draft page when missing) and moves customized `home_heading`,
+`home_intro` and `footer_description` interface text into the site settings.
 Admin → Header & footer edits both menus as tables (one column per language); rows and
 languages missing from a post are left unchanged. Migration `003_menus` creates the tables
 and converts the earlier `nav_show_*`, `nav_*` label and `header_links`/`footer_links`

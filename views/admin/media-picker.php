@@ -1,4 +1,4 @@
-<?php // Dialogs for the editor toolbar. They stay outside the translation form, which cannot contain other forms. ?>
+<?php // The media picker dialog (editor Image button and image fields). Include it once, outside other forms: it holds its own upload form. ?>
 <dialog id="media-picker" class="admin-dialog" aria-labelledby="picker-heading">
 <div class="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-3 dark:border-slate-800">
 <h2 id="picker-heading" class="text-lg font-bold">Insert image</h2>
@@ -41,23 +41,10 @@
 <datalist id="picker-categories"></datalist>
 </section>
 </div>
-<div class="flex flex-wrap items-end gap-3 border-t border-slate-200 px-5 py-3 dark:border-slate-800">
+<div class="flex flex-wrap items-end justify-end gap-3 border-t border-slate-200 px-5 py-3 dark:border-slate-800">
 <img alt="" class="hidden size-11 rounded-md bg-slate-100 object-cover dark:bg-slate-800" data-picked-thumb>
-<label class="field min-w-56 flex-1">Alt text in this post<input data-picked-alt maxlength="255" placeholder="Describe the image for screen readers"></label>
+<label class="field min-w-56 flex-1" data-picked-alt-field>Alt text in this post<input data-picked-alt maxlength="255" placeholder="Describe the image for screen readers"></label>
 <button type="button" class="btn" data-close>Cancel</button>
 <button type="button" class="btn-primary" data-picker-insert disabled>Insert image</button>
 </div>
-</dialog>
-<dialog id="link-dialog" class="admin-dialog max-w-lg!" aria-labelledby="link-heading">
-<form method="dialog" class="space-y-4 p-5" data-link-form>
-<h2 id="link-heading" class="text-lg font-bold">Link</h2>
-<label class="field">Address<input type="text" inputmode="url" name="url" required placeholder="https://… or /en/posts/…" spellcheck="false" autocomplete="off" data-link-url></label>
-<label class="field">Text<input name="text" data-link-text></label>
-<p class="text-xs text-slate-500">Use https://, http://, mailto: or a path such as /en/about.</p>
-<div class="flex flex-wrap justify-end gap-3">
-<button type="button" class="btn me-auto text-red-700 dark:text-red-400" data-link-remove>Remove link</button>
-<button type="button" class="btn" data-close>Cancel</button>
-<button class="btn-primary" value="ok">Apply</button>
-</div>
-</form>
 </dialog>

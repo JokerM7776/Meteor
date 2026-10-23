@@ -14,7 +14,7 @@ final class FeedsController
         $xml = '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>'
             . $this->xml($this->site->settings->get('site_title', $locale, 'Meteor')) . '</title><link>'
             . $this->xml(absolute_url('/' . $locale . '/')) . '</link><language>' . $this->xml($locale)
-            . '</language><description>' . $this->xml($this->site->settings->get('home_intro', $locale, 'Meteor')) . '</description>';
+            . '</language><description>' . $this->xml($this->site->settings->get('home_intro', $locale) ?: $this->site->settings->get('site_tagline', $locale) ?: $this->site->settings->get('site_title', $locale, 'Meteor')) . '</description>';
         foreach (array_slice($this->site->posts->published($locale), 0, 20) as $post) {
             $url = $this->xml(absolute_url('/' . $locale . '/posts/' . rawurlencode($post['slug'])));
             $xml .= '<item><title>' . $this->xml($post['title']) . '</title><link>' . $url . '</link><guid isPermaLink="true">'
@@ -59,5 +59,31 @@ final class FeedsController
         header('ETag: ' . $etag);
         if (($_SERVER['HTTP_IF_NONE_MATCH'] ?? '') === $etag) { http_response_code(304); return ''; }
         return $css;
+    }
+    /** Site colors from Settings → Appearance. */
+    public function theme(): string
+    {
+        $css = \App\Services\Appearance::css($this->site->settings);
+        $etag = '"' . hash('sha256', $css) . '"';
+        header('Content-Type: text/css; charset=UTF-8');
+        header('Cache-Control: public, max-age=31536000, immutable');
+        header('ETag: ' . $etag);
+        if (($_SERVER['HTTP_IF_NONE_MATCH'] ?? '') === $etag) { http_response_code(304); return ''; }
+        return $css;
+    }
+    /** The visitor's light/dark choice, kept in a cookie. Works without JavaScript. */
+    public function scheme(): string
+    {
+        $set = (string) ($_GET['set'] ?? '');
+        $back = (string) ($_GET['back'] ?? '/');
+        if (!preg_match('~^/(?!/)~', $back) || preg_match('/[\p{C}\s\\\\]/u', $back) || strlen($back) > 2048) { $back = '/'; }
+        if (isset(\App\Services\Appearance::SCHEMES[$set])) {
+            setcookie('meteor_theme', $set, ['expires' => time() + 31536000, 'path' => '/', 'samesite' => 'Lax', 'httponly' => true,
+                'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off']);
+        }
+        header('Cache-Control: no-store');
+        header('X-Robots-Tag: noindex, nofollow');
+        header('Location: ' . $back, true, 303);
+        return '';
     }
 }

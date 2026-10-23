@@ -1,36 +1,55 @@
-<div class="mb-5 flex flex-wrap items-center justify-between gap-4">
+<?php
+$registry = $i18n->registry();
+$kind = $page ? 'page' : 'post';
+$base = $item['base_locale'];
+$baseTitle = $ts[$base]['title'] ?? '';
+$publicUrl = '/' . $locale . ($page ? '/' : '/posts/') . rawurlencode((string) ($item['slug'] ?? ''));
+$isPublic = $id && !empty($item['is_published']) && ($ts[$locale]['status'] ?? '') === 'published'
+    && ($page || (($item['published_at'] ?? null) !== null && $item['published_at'] <= gmdate('Y-m-d H:i:s')));
+?>
+<div class="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
 <div>
-<a class="text-sm text-orange-700 dark:text-orange-400" href="/admin/<?= $page ? 'pages' : 'posts' ?>">← All <?= $page ? 'pages' : 'posts' ?>
-</a>
-<h1 class="mt-2 text-2xl font-bold">
-<?= e($title) ?>
-</h1>
+<a class="inline-flex min-h-11 items-center text-sm text-orange-700 dark:text-orange-400" href="/admin/<?= $page ? 'pages' : 'posts' ?>">← All <?= $page ? 'pages' : 'posts' ?></a>
+<h1 class="text-2xl font-bold"><?= e($title) ?></h1>
 </div>
-<div class="flex gap-3">
-<button form="translation" name="status" value="draft" class="btn">Save draft</button>
-<button form="translation" name="status" value="published" class="btn bg-orange-700 text-white">Publish</button>
-</div>
-</div>
-<nav aria-label="Translation language" class="mb-5 flex flex-wrap gap-2">
-<?php foreach ($i18n->registry() as $code => $language): if ($language['status'] === 'off') { continue; } ?>
-<a lang="<?= e($code) ?>" class="btn <?= $code === $locale ? 'bg-slate-900 text-white' : '' ?>" <?= $code === $locale ? 'aria-current="page"' : '' ?> href="?<?= e(http_build_query(['post' => $id, 'kind' => $page ? 'page' : 'post', 'locale' => $code, 'from' => $item['base_locale']])) ?>">
-<?= e($language['native_name']) ?> · <?= e($ts[$code]['status'] ?? 'missing') ?>
-<?= $code === $item['base_locale'] ? ' · base' : '' ?>
-</a>
+<div class="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
+<form method="get" action="/admin/editor" class="flex w-full min-w-0 items-center gap-2 sm:w-auto" data-language-switch>
+<?php if ($id): ?><input type="hidden" name="post" value="<?= e($id) ?>"><?php endif ?>
+<input type="hidden" name="kind" value="<?= e($kind) ?>">
+<input type="hidden" name="from" value="<?= e($base) ?>">
+<label class="sr-only" for="editor-language">Language</label>
+<select id="editor-language" name="locale" class="w-full min-w-0 sm:w-auto sm:min-w-56">
+<?php foreach ($registry as $code => $language): if ($language['status'] === 'off') { continue; } $state = $ts[$code]['status'] ?? 'missing'; ?>
+<option value="<?= e($code) ?>" lang="<?= e($code) ?>" <?= $code === $locale ? 'selected' : '' ?>><?= e($language['native_name'] . ' · ' . ucfirst($state) . ($code === $base ? ' · base' : '')) ?></option>
 <?php endforeach ?>
-</nav>
+</select>
+<button class="btn" data-language-go>Open</button>
+</form>
+<?php if ($isPublic): ?>
+<a class="btn" href="<?= e($publicUrl) ?>" target="_blank" rel="noopener">View ↗<span class="sr-only"> (opens in a new tab)</span></a>
+<?php endif ?>
+<button form="translation" name="status" value="draft" class="btn">Save draft</button>
+<button form="translation" name="status" value="published" class="btn bg-orange-700 text-white hover:border-orange-800 hover:bg-orange-800">Publish</button>
+</div>
+</div>
 <?php if ($error): ?>
 <p id="validation-error" role="alert" class="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
-<?= e($error) ?> Your text has been preserved; reselect any cover upload.</p>
+<?= e($error) ?> Your text has been preserved.</p>
 <?php endif ?>
-<form id="translation" method="post" action="<?= e($target) ?>" enctype="multipart/form-data">
+<form id="translation" method="post" action="<?= e($target) ?>">
 <?= \Core\Csrf::field() ?>
 <details class="panel mb-5" <?= !$id || $error ? 'open' : '' ?>>
 <summary class="min-h-11 cursor-pointer font-semibold">Shared settings <span class="font-normal text-slate-500">· applies to all languages</span>
 </summary>
 <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-<label class="field">Slug<input name="slug" required maxlength="191" value="<?= e($values['slug'] ?? '') ?>">
-</label>
+<div class="field" data-slug-field data-base-title="<?= e($baseTitle) ?>" data-is-base="<?= $locale === $base ? '1' : '0' ?>">
+<label for="slug">Slug</label>
+<div class="flex gap-2">
+<input id="slug" name="slug" maxlength="191" class="min-w-0 flex-1" value="<?= e($values['slug'] ?? '') ?>" placeholder="Generated from the title" aria-describedby="slug-hint" spellcheck="false" autocomplete="off">
+<button type="button" class="btn shrink-0" data-slug-generate hidden>From title</button>
+</div>
+<span id="slug-hint" class="text-sm font-normal text-slate-500 dark:text-slate-400">Leave empty to generate it from the <?= e($registry[$base]['name'] ?? $base) ?> title.</span>
+</div>
 <?php if (!$page): ?>
 <label class="field">Category<select name="category_id">
 <option value="">None</option>
@@ -43,8 +62,8 @@
 </label>
 <label class="field">Tags · comma separated<input name="tags" value="<?= e($values['tags'] ?? '') ?>">
 </label>
-<label class="field">Cover · JPG, PNG or WebP, max 5 MB<input type="file" name="cover" accept="image/jpeg,image/png,image/webp">
-</label>
+<?php $fieldName = 'cover_image'; $fieldValue = (string) ($values['cover_image'] ?? ''); $fieldLabel = 'Cover'; $emptyText = 'No cover';
+$fieldHint = 'Shown on cards and at the top of the post.'; $pickerTitle = 'Choose cover'; $pickerAction = 'Use as cover'; require __DIR__ . '/media-field.php'; ?>
 <label class="flex min-h-11 items-center gap-2">
 <input type="checkbox" name="is_pinned" <?= !empty($values['is_pinned']) ? 'checked' : '' ?>>Pinned</label>
 <?php else: ?>
@@ -58,7 +77,7 @@
 </div>
 </details>
 <div class="grid items-stretch gap-5 xl:grid-cols-2">
-<section class="overflow-hidden rounded-[14px] border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900" aria-labelledby="reference-heading">
+<section class="order-last overflow-hidden rounded-[14px] border border-slate-200 bg-slate-50 xl:order-none dark:border-slate-800 dark:bg-slate-900" aria-labelledby="reference-heading">
 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-5 py-3 dark:border-slate-800 dark:bg-slate-900">
 <h2 id="reference-heading" class="font-semibold">
 <?= e(strtoupper($from)) ?> · Original · read only</h2>
@@ -129,4 +148,4 @@
 <?php if ($id): ?>
 <a class="mt-6 inline-flex min-h-11 items-center text-sm text-red-700 dark:text-red-400" href="/admin/<?= $page ? 'pages' : 'posts' ?>/<?= e($id) ?>/delete">Delete <?= $page ? 'page' : 'post' ?>…</a>
 <?php endif ?>
-<?php require __DIR__ . '/media-picker.php'; ?>
+<?php require __DIR__ . '/media-picker.php'; require __DIR__ . '/link-dialog.php'; ?>

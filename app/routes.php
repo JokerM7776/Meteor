@@ -15,6 +15,8 @@ $router->add('GET', '~^/$~', static function () use ($site, $i18n): string {
 });
 $router->add('GET', '~^/sitemap\.xml$~', fn () => $feeds->sitemap());
 $router->add('GET', '~^/custom\.css$~', fn () => $feeds->css());
+$router->add('GET', '~^/theme\.css$~', fn () => $feeds->theme());
+$router->add('GET', '~^/theme$~', fn () => $feeds->scheme());
 $router->add('GET', '~^/$~', fn ($p, $l) => $site->home($l), true);
 $router->add('GET', '~^/rss\.xml$~', fn ($p, $l) => $feeds->rss($l), true);
 $router->add('GET', '~^/(?P<kind>posts|tags)$~', fn ($p, $l) => $site->archive($l, $p['kind']), true);

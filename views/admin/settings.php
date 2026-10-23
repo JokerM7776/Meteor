@@ -7,16 +7,14 @@ if (isset($old['text']) && is_array($old['text'])) { foreach ($old['text'] as $k
 $placeholder = function (string $key, string $code) use ($i18n, $text, $default, $locales): string {
     return match ($key) {
         'site_title' => $text['site_title'][$default] ?? 'Meteor',
-        'home_intro' => $i18n->translateFor($code, 'home_intro'),
-        'footer_text' => $i18n->translateFor($code, 'footer_description'),
-        'copyright' => '© {year} Meteor',
+        'copyright' => '© {year} {site}',
         'language_label' => mb_strlen($locales[$code]['native_name']) <= 4 ? $locales[$code]['native_name'] : strtoupper($code),
         default => '',
     };
 };
 $missing = [];
 foreach (\App\Services\AdminSettings::TEXT as $key => $meta) {
-    if ($key === 'site_tagline') { continue; } // optional
+    if (in_array($key, ['site_tagline', 'footer_text'], true)) { continue; } // optional
     foreach ($locales as $code => $language) { if (($text[$key][$code] ?? '') === '' && $placeholder($key, $code) === '') { $missing[$code] = ($missing[$code] ?? 0) + 1; } }
 }
 ?>
@@ -26,17 +24,13 @@ foreach (\App\Services\AdminSettings::TEXT as $key => $meta) {
 <p class="text-slate-600 dark:text-slate-400">Your site text in every language, side by side. Leave a cell empty to use the text shown in grey.</p>
 </header>
 <?php require __DIR__ . '/settings-tabs.php'; ?>
-<form method="post" enctype="multipart/form-data" class="space-y-6">
+<form method="post" class="space-y-6">
 <?= \Core\Csrf::field() ?>
 <section class="panel space-y-4">
 <h2 class="text-xl font-bold">Site icon · all languages</h2>
-<div class="flex flex-wrap items-start gap-5">
-<img src="<?= e($siteIcon ?: '/assets/favicon.svg') ?>" alt="Current site icon" width="48" height="48" class="size-12 rounded-md object-contain">
-<label class="field min-w-64 flex-1">Site icon<input type="file" name="site_icon" accept="image/png,image/jpeg,image/webp,image/vnd.microsoft.icon,image/x-icon,.ico">
-<span class="text-sm font-normal text-slate-500">Square, at least 180 × 180 px. PNG, JPG, WebP or ICO up to 1 MB.</span></label>
-</div>
-<input type="hidden" name="remove_site_icon" value="0">
-<label class="flex min-h-11 items-center gap-3"><input type="checkbox" name="remove_site_icon" value="1" <?= !empty($old['remove_site_icon']) ? 'checked' : '' ?>>Use the default Meteor icon</label>
+<?php $fieldName = 'site_icon'; $fieldValue = (string) ($old['site_icon'] ?? $siteIcon); $fieldLabel = 'Site icon'; $emptyText = 'Default';
+$fieldHint = 'Square, at least 180 × 180 px. PNG, JPG or WebP work best. Remove it to use the default icon.';
+$pickerTitle = 'Choose site icon'; $pickerAction = 'Use as site icon'; require __DIR__ . '/media-field.php'; ?>
 <p class="text-sm text-slate-500">Header and footer items are on <a class="text-orange-700 underline dark:text-orange-400" href="/admin/menus">Header &amp; footer</a>.</p>
 </section>
 <section class="space-y-3">
@@ -68,3 +62,4 @@ foreach (\App\Services\AdminSettings::TEXT as $key => $meta) {
 <button class="btn-primary">Save settings</button>
 </form>
 </div>
+<?php require __DIR__ . '/media-picker.php'; ?>

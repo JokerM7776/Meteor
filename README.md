@@ -150,6 +150,9 @@ for online updates — the application files. For photos allow `upload_max_files
   **Header & footer**, Settings, **Security**, **Updates**.
 - **Add a language:** Admin → Languages → *Add a language*. It starts in **Preview**; translate,
   then click **Go live**. English is the default language.
+- **Posts and pages lists:** *View ↗* opens the public page. In the editor, pick the language
+  from the menu next to Save; the slug is generated from the title when left empty; a post's
+  cover is chosen from the media library.
 - **Writing:** the editor has a **Visual** mode with a toolbar (headings, bold, italic, links,
   lists, quotes, code, images) and a **Markdown** mode that shows the `#`, `**`, `-` syntax. Both
   edit the same text; the toolbar works in either mode.
@@ -157,15 +160,25 @@ for online updates — the application files. For photos allow `upload_max_files
   their addresses cannot be guessed. Give images a category, tags and alt text when uploading or
   later; search and filter by them. Admin → Settings → *Optimization* (on by default) converts
   uploads to WebP or AVIF, shrinks very large photos and removes camera data such as GPS location.
-- **Customize the site:** Admin → Settings — upload an icon and edit the title, tagline, home
-  intro, footer text and copyright for every language in one table.
+- **Customize the site:** Admin → Settings — pick the site icon from the media library and edit
+  the title, tagline, footer text and copyright for every language in one table.
+  - *Home page:* choose and drag-reorder the sections (intro, pinned posts, latest posts,
+    categories, author), write the intro per language, and set up to two buttons (or none).
+  - *Author:* your name, bio, photo and profile links, published as a representative
+    [h-card](https://microformats.org/wiki/representative-h-card-authoring) in the footer and/or
+    on the home page.
+  - *Appearance:* light, dark or follow the device; an optional visitor switch (no JavaScript);
+    accent color (presets or any color) and the text/background tone.
+  - Nothing on the public site says “Meteor” unless you write it: the defaults use your site title.
 - **Interface text and language files:** Admin → Settings → *Interface text* — every menu label,
   button and heading in one table, one column per language. Meteor ships language files for
   简体中文 (`zh`) and Bahasa Melayu (`ms`) in `lang/`; they start **Off** — switch one to Preview or
   Live under Languages. Languages → *Download file* exports a language as JSON to share with
   another site, and *Import a language file* brings one in (a new language is added as Off).
-- **Header and footer:** Admin → Header & footer — show, hide and reorder the built-in links,
-  add your own links with a label per language, and choose which footer columns to show.
+- **Header and footer:** Admin → Header & footer — drag to reorder, show or hide the built-in
+  links, add links to pages or any URL with a label per language, and choose what the footer
+  shows (site info, author card or nothing; each column and the copyright line can be turned off).
+  The About link points at a normal page (Pages → About), so its content is yours to edit.
 - **Categories & tags:** one table row per term with a column per language, so missing
   translations stand out; each row saves on its own.
 - **Passkeys:** Admin → Security → *Add a passkey*. Requires HTTPS (or `localhost`) and correct

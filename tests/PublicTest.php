@@ -137,7 +137,7 @@ test('Public: configurable RTL and off locales, reserved pages and RSS limit', f
     $db->query("UPDATE locales SET status = 'off' WHERE code = ?", ['zh']);
     $i18n = new Core\I18n($db, require dirname(__DIR__) . '/lang/en.php'); $GLOBALS['i18n'] = $i18n;
     $site = new App\Controllers\Public\SiteController($db, $i18n, $app['view'], true);
-    $html = $site->home('ar'); contains('<html lang="ar" dir="rtl">', $html); ok(!str_contains($html, '/zh/'));
+    $html = $site->home('ar'); contains('<html lang="ar" dir="rtl" data-theme="auto">', $html); ok(!str_contains($html, '/zh/'));
     $db->upsert('pages', ['slug' => 'assets', 'base_locale' => 'en', 'is_published' => 1], ['slug']);
     $id = (int) $db->one('SELECT id FROM pages WHERE slug = ?', ['assets'])['id'];
     $db->upsert('page_translations', ['page_id' => $id, 'locale' => 'en', 'title' => 'Reserved', 'summary' => '', 'content_md' => '', 'content_html' => '', 'toc_html' => '', 'status' => 'published'], ['page_id', 'locale']);
@@ -166,7 +166,7 @@ test('Public: identity, header and footer customization without scripts', functi
     $editor->save('footer', ['items' => ['new' => ['url' => 'HTTPS://example.com/?a=1&b=2', 'labels' => ['en' => '<Footer>']]]]);
     $db->query("UPDATE menu_items SET url = 'javascript:alert(1)' WHERE url = '/en/'");
     $html = publicRequest($app, '/en/');
-    contains('<link rel="icon" href="' . $icon . '">', $html); contains('<link rel="apple-touch-icon" href="' . $icon . '">', $html);
+    contains('<link rel="icon" href="' . $icon . '" type="image/png">', $html); contains('<link rel="apple-touch-icon" href="' . $icon . '">', $html);
     same(2, substr_count($html, '<img src="' . $icon)); ok(!str_contains($html, 'viewBox="0 0 28 28"'));
     contains('A tagline', $html); contains('Footer &lt;text&gt;', $html); contains('© ' . gmdate('Y') . ' Custom', $html); contains('More &amp; more</h2>', $html);
     contains('&lt;Header&gt;', $html); contains('href="/en/?a=1&amp;b=2"', $html); contains('href="/en/" aria-current="page">Here', $html);
@@ -174,7 +174,7 @@ test('Public: identity, header and footer customization without scripts', functi
     contains('rel="noopener">&lt;Footer&gt;', $html); ok(!str_contains($html, 'javascript:')); ok(!str_contains($html, '<script'));
     $zh = publicRequest($app, '/zh/'); contains('href="/zh/?a=1&amp;b=2"', $zh); contains('&lt;Header&gt;', $zh); ok(!str_contains($zh, '只在中文'));
     foreach (['header_show_title', 'header_show_switcher', 'footer_show_languages', 'footer_show_feeds', 'footer_show_site'] as $key) { $set($key, '0'); }
-    $db->query("UPDATE menu_items SET is_visible = 0 WHERE menu = 'header' AND kind <> 'link'");
+    $db->query("UPDATE menu_items SET is_visible = 0 WHERE menu = 'header' AND (kind <> 'link' OR page_id IS NOT NULL)");
     $html = publicRequest($app, '/en/'); contains('<span class="sr-only">Custom &amp; title</span>', $html);
     preg_match('~<header\b.*?</header>~s', $html, $header);
     foreach (['/en/posts', '/en/tags', '/en/about', '/en/rss.xml', 'aria-label="Language"'] as $hidden) { ok(!str_contains($header[0], $hidden), $hidden); }
@@ -190,6 +190,6 @@ test('Public: menu built-ins for nav pages, About de-duplication and preview RSS
     contains('Who we are', $header[0]); same(2, substr_count($header[0], 'href="/en/about"'));
     preg_match('~<footer\b.*?</footer>~s', $html, $footer); contains('href="/en/about"', $footer[0]);
     $db->query("UPDATE menu_items SET is_visible = 0 WHERE menu = 'header' AND kind = 'pages'");
-    preg_match('~<header\b.*?</header>~s', publicRequest($app, '/en/'), $header); ok(!str_contains($header[0], 'Who we are')); contains('href="/en/about"', $header[0]);
+    preg_match('~<header\b.*?</header>~s', publicRequest($app, '/en/'), $header); same(2, substr_count($header[0], 'href="/en/about"')); contains('Who we are', $header[0]);
     preg_match('~<header\b.*?</header>~s', publicRequest($app, '/ms/'), $header); ok(!str_contains($header[0], 'rss.xml'));
 });

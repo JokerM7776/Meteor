@@ -11,9 +11,9 @@ use Core\{Database, LanguagePack};
 final class UiStrings
 {
     public const GROUPS = [
-        'Layout & navigation' => ['skip_content', 'site_name', 'menu', 'language', 'home', 'posts', 'tags', 'about', 'rss', 'sitemap', 'site', 'breadcrumb', 'pagination'],
-        'Footer' => ['footer_description', 'read_in', 'feeds', 'language_rss'],
-        'Home' => ['home_heading', 'home_intro', 'pinned', 'latest', 'view_all_posts', 'read_archive', 'empty_posts'],
+        'Layout & navigation' => ['skip_content', 'site_name', 'menu', 'language', 'home', 'posts', 'tags', 'about', 'rss', 'sitemap', 'site', 'breadcrumb', 'pagination', 'color_scheme', 'scheme_auto', 'scheme_light', 'scheme_dark'],
+        'Footer' => ['read_in', 'feeds', 'language_rss'],
+        'Home' => ['pinned', 'latest', 'view_all_posts', 'read_archive', 'empty_posts', 'browse_categories', 'about_author'],
         'Articles & pages' => ['published', 'reading_minutes', 'on_this_page', 'translation', 'available_translations', 'category', 'more_posts', 'previous', 'next'],
         'Archive' => ['archive', 'archive_description', 'all', 'newer', 'older'],
         'Page not found' => ['not_found', 'not_found_heading', 'not_found_description', 'back_home', 'browse_archive'],

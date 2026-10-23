@@ -9,7 +9,7 @@
 </div>
 </div>
 <?php if ($usage): ?>
-<p role="alert" class="rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">Used in <?= e($usage) ?> <?= $usage === 1 ? 'translation' : 'translations' ?>. Those images will stop showing.</p>
+<p role="alert" class="rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">Used in <?= e($usage) ?> <?= $usage === 1 ? 'place' : 'places' ?> (posts, pages, covers, the site icon or the author photo). It will stop showing there.</p>
 <?php else: ?>
 <p class="text-sm text-slate-600 dark:text-slate-400">No post or page uses this image.</p>
 <?php endif ?>

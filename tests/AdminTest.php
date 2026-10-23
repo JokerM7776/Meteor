@@ -117,8 +117,8 @@ test('Admin: link URL rules', function () {
 });
 test('Admin: menu editor saves only what is posted and keeps built-ins', function () {
     $f = adminFixture(); $db = $f['db']; $menus = new App\Repositories\Menus($db); $editor = new App\Services\MenuEditor($db);
-    same(6, count($menus->rows('header'))); same(0, (int) $menus->rows('header')[0]['id']);
-    $menus->ensureDefaults(); $menus->ensureDefaults(); same(12, (int) $db->one('SELECT COUNT(*) AS n FROM menu_items')['n']);
+    same(5, count($menus->rows('header'))); same(0, (int) $menus->rows('header')[0]['id']);
+    $menus->ensureDefaults(); $menus->ensureDefaults(); same(10, (int) $db->one('SELECT COUNT(*) AS n FROM menu_items')['n']);
     $ids = array_column($menus->rows('header'), 'id', 'kind');
     $editor->save('header', ['header_show_title' => '0', 'items' => [$ids['posts'] => ['labels' => ['en' => 'Blog', 'ja' => '']], $ids['tags'] => ['visible' => '0']]]);
     $settings = new App\Repositories\Settings($db, $f['i18n']);
@@ -127,8 +127,8 @@ test('Admin: menu editor saves only what is posted and keeps built-ins', functio
     $rows = array_column($menus->rows('header'), null, 'kind'); same(['en' => 'Blog'], $rows['posts']['labels']); same(0, (int) $rows['tags']['is_visible']);
     $editor->save('header', ['items' => [$ids['posts'] => ['labels' => ['ja' => 'ブログ']]]]);
     same(['en' => 'Blog', 'ja' => 'ブログ'], array_column($menus->rows('header'), null, 'kind')['posts']['labels']);
-    try { $editor->save('header', ['items' => [$ids['about'] => ['remove' => '1']]]); throw new RuntimeException('Expected an error'); }
-    catch (InvalidArgumentException $e) { contains('Header menu, row 3: built-in items', $e->getMessage()); }
+    try { $editor->save('header', ['items' => [$ids['rss'] => ['remove' => '1']]]); throw new RuntimeException('Expected an error'); }
+    catch (InvalidArgumentException $e) { contains('Header menu, row 4: built-in items', $e->getMessage()); }
     foreach (['javascript:alert(1)', '//evil.example', 'data:text/html,x', ''] as $url) {
         try { $editor->save('header', ['items' => ['new' => ['url' => $url, 'labels' => ['en' => 'Bad']]]]); throw new RuntimeException('Expected an error'); }
         catch (InvalidArgumentException $e) { contains('Header menu, new link: use a URL', $e->getMessage()); }
@@ -138,12 +138,12 @@ test('Admin: menu editor saves only what is posted and keeps built-ins', functio
     throws(fn () => $editor->save('header', ['items' => ['new' => ['url' => '/x', 'labels' => ['en' => str_repeat('a', 81)]]]]), InvalidArgumentException::class);
     throws(fn () => $editor->save('footer', ['items' => [$ids['posts'] => ['visible' => '0']]]), InvalidArgumentException::class);
     $editor->save('header', ['items' => ['new' => ['url' => '/{locale}/projects', 'sort_order' => '-5', 'labels' => ['en' => 'Projects']]]]);
-    $rows = $menus->rows('header'); same('link', $rows[0]['kind']); same(range(0, 6), array_map('intval', array_column($rows, 'sort_order')));
+    $rows = $menus->rows('header'); same('link', $rows[0]['kind']); same(range(0, 5), array_map('intval', array_column($rows, 'sort_order')));
     $link = $rows[0]['id'];
     throws(fn () => $editor->save('header', ['items' => [$link => ['labels' => ['en' => '']]]]), InvalidArgumentException::class);
     same('Projects', $menus->rows('header')[0]['labels']['en']);
     $editor->save('header', ['items' => [$link => ['sort_order' => '99']]]); $rows = $menus->rows('header'); same('link', $rows[array_key_last($rows)]['kind']);
-    for ($n = 0; $n < 23; $n++) { $editor->save('header', ['items' => ['new' => ['url' => '/n' . $n, 'labels' => ['en' => 'N' . $n]]]]); }
+    for ($n = 0; $n < 24; $n++) { $editor->save('header', ['items' => ['new' => ['url' => '/n' . $n, 'labels' => ['en' => 'N' . $n]]]]); }
     try { $editor->save('header', ['items' => ['new' => ['url' => '/full', 'labels' => ['en' => 'Full']]]]); throw new RuntimeException('Expected an error'); }
     catch (InvalidArgumentException $e) { contains('at most 30', $e->getMessage()); }
     $editor->save('header', ['items' => [$link => ['remove' => '1']]]); same(null, $db->one('SELECT id FROM menu_items WHERE id = ?', [$link]));

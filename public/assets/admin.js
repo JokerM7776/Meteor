@@ -85,6 +85,160 @@
     finally { button.disabled = false; }
   });
 })();
+
+// Dialogs: close buttons, and a click on the backdrop closes too.
+for (const dialog of document.querySelectorAll('dialog.admin-dialog')) {
+  dialog.addEventListener('click', event => { if (event.target === dialog || event.target.closest('[data-close]')) dialog.close(); });
+}
+
+// Media picker: one dialog that lists the library and uploads, used by the editor's Image
+// button and by image fields (cover, site icon). open() takes a title, the button text,
+// whether to ask for alt text, and onPick(item, alt).
+const mediaPicker = (() => {
+  const picker = document.getElementById('media-picker');
+  if (!picker) return null;
+  const heading = picker.querySelector('#picker-heading');
+  const grid = picker.querySelector('[data-picker-grid]');
+  const status = picker.querySelector('[data-picker-status]');
+  const search = picker.querySelector('[data-picker-search]');
+  const categorySelect = search.elements.category;
+  const pageLabel = picker.querySelector('[data-picker-page]');
+  const prev = picker.querySelector('[data-picker-prev]');
+  const next = picker.querySelector('[data-picker-next]');
+  const altField = picker.querySelector('[data-picked-alt-field]');
+  const altInput = picker.querySelector('[data-picked-alt]');
+  const thumb = picker.querySelector('[data-picked-thumb]');
+  const chooseButton = picker.querySelector('[data-picker-insert]');
+  const upload = picker.querySelector('[data-picker-upload]');
+  const uploadStatus = picker.querySelector('[data-upload-status]');
+  const tabs = [...picker.querySelectorAll('[role="tab"]')];
+  let page = 1, pages = 1, picked = null, request = 0, onPick = null;
+  const showTab = tab => {
+    for (const other of tabs) {
+      const selected = other === tab;
+      other.setAttribute('aria-selected', String(selected));
+      other.tabIndex = selected ? 0 : -1;
+      document.getElementById(other.getAttribute('aria-controls')).hidden = !selected;
+    }
+  };
+  for (const tab of tabs) {
+    tab.addEventListener('click', () => showTab(tab));
+    tab.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+      const other = tabs[(tabs.indexOf(tab) + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+      showTab(other); other.focus();
+    });
+  }
+  const pick = item => {
+    picked = item;
+    for (const button of grid.querySelectorAll('button')) button.setAttribute('aria-pressed', String(Number(button.dataset.id) === item.id));
+    altInput.value = item.alt;
+    thumb.src = item.thumb; thumb.classList.remove('hidden');
+    chooseButton.disabled = false;
+  };
+  const choose = () => {
+    if (!picked) return;
+    const item = picked, alt = altInput.value.trim();
+    picker.close();
+    if (onPick) onPick(item, alt);
+  };
+  const render = (items, preselect) => {
+    grid.replaceChildren();
+    for (const item of items) {
+      const li = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'picker-item'; button.dataset.id = item.id;
+      button.setAttribute('aria-pressed', String(Boolean(picked && picked.id === item.id)));
+      const img = document.createElement('img');
+      img.src = item.thumb; img.alt = ''; img.loading = 'lazy';
+      const name = document.createElement('span');
+      name.className = 'picker-name'; name.textContent = item.name;
+      button.title = `${item.name} · ${item.width}×${item.height}`;
+      button.append(img, name);
+      button.addEventListener('click', () => pick(item));
+      button.addEventListener('dblclick', () => { pick(item); choose(); });
+      li.append(button);
+      grid.append(li);
+    }
+    if (preselect) pick(preselect);
+  };
+  const load = async (preselect = null) => {
+    const id = ++request;
+    status.textContent = 'Loading…';
+    const params = new URLSearchParams({q: search.elements.q.value, category: categorySelect.value, page: String(page)});
+    try {
+      const response = await fetch('/admin/media/library?' + params, {credentials: 'same-origin', headers: {Accept: 'application/json'}});
+      if (!response.ok) throw new Error();
+      const data = await response.json();
+      if (id !== request) return;
+      page = data.page; pages = data.pages;
+      const chosen = categorySelect.value;
+      categorySelect.replaceChildren(new Option('All categories', ''), ...data.categories.map(name => new Option(name, name, false, name === chosen)));
+      picker.querySelector('#picker-categories').replaceChildren(...data.categories.map(name => new Option(name)));
+      render(data.items, preselect);
+      status.textContent = data.total ? `${data.total} ${data.total === 1 ? 'image' : 'images'}. Choose one, then ${chooseButton.textContent}.` : (params.get('q') || params.get('category') ? 'No images match this search.' : 'No images yet. Upload one in the Upload tab.');
+      pageLabel.textContent = `Page ${page} of ${pages}`;
+      prev.disabled = page <= 1; next.disabled = page >= pages;
+    } catch (error) { if (id === request) status.textContent = 'Images could not be loaded. Check your connection and try again.'; }
+  };
+  const open = ({title = 'Insert image', action = 'Insert image', withAlt = true, onPick: callback = null} = {}) => {
+    onPick = callback;
+    heading.textContent = title;
+    chooseButton.textContent = action;
+    altField.hidden = !withAlt;
+    picked = null; chooseButton.disabled = true; altInput.value = ''; thumb.classList.add('hidden'); uploadStatus.textContent = '';
+    showTab(tabs[0]);
+    picker.showModal();
+    search.elements.q.focus();
+    load();
+  };
+  chooseButton.addEventListener('click', choose);
+  search.addEventListener('submit', event => { event.preventDefault(); page = 1; load(); });
+  categorySelect.addEventListener('change', () => { page = 1; load(); });
+  prev.addEventListener('click', () => { if (page > 1) { page--; load(); } });
+  next.addEventListener('click', () => { if (page < pages) { page++; load(); } });
+  upload.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = upload.querySelector('button');
+    button.disabled = true; uploadStatus.textContent = 'Uploading…';
+    try {
+      const response = await fetch('/admin/media/upload', {method: 'POST', credentials: 'same-origin', headers: {Accept: 'application/json'}, body: new FormData(upload)});
+      const data = await response.json().catch(() => ({error: 'The upload failed. The file may be larger than this server accepts.'}));
+      if (!response.ok || !data.item) throw new Error(data.error || 'The upload failed. Try again.');
+      upload.reset();
+      uploadStatus.textContent = data.note || '';
+      search.elements.q.value = ''; categorySelect.value = ''; page = 1;
+      showTab(tabs[0]);
+      await load(data.item);
+      if (data.note) status.textContent = data.note;
+      chooseButton.focus();
+    } catch (error) { uploadStatus.textContent = error.message; }
+    finally { button.disabled = false; }
+  });
+  return {open};
+})();
+
+// Image fields (post cover, site icon): a hidden URL chosen with the media picker.
+for (const field of document.querySelectorAll('[data-media-field]')) {
+  const value = field.querySelector('[data-media-value]');
+  const preview = field.querySelector('[data-media-preview]');
+  const empty = field.querySelector('[data-media-empty]');
+  const choose = field.querySelector('[data-media-choose]');
+  const clear = field.querySelector('[data-media-clear]');
+  const show = (url, thumb) => {
+    value.value = url;
+    if (url) preview.src = thumb || url;
+    preview.hidden = !url; empty.hidden = Boolean(url); clear.hidden = !url;
+    value.dispatchEvent(new Event('input', {bubbles: true}));
+  };
+  if (!mediaPicker) { choose.disabled = true; continue; }
+  choose.addEventListener('click', () => mediaPicker.open({
+    title: field.dataset.pickerTitle, action: field.dataset.pickerAction, withAlt: false,
+    onPick: item => { show(item.url, item.thumb); choose.focus(); },
+  }));
+  clear.addEventListener('click', () => { show('', ''); choose.focus(); });
+}
+
 // Content editor: a Visual mode and a Markdown mode over the same textarea, a formatting
 // toolbar for both, and the media picker. Without JavaScript the plain textarea remains.
 (() => {
@@ -411,11 +565,6 @@
   };
   document.addEventListener('selectionchange', () => { if (mode === 'visual') refresh(); });
 
-  // Shared dialog behaviour: close buttons, and a click on the backdrop closes too.
-  for (const dialog of document.querySelectorAll('dialog.admin-dialog')) {
-    dialog.addEventListener('click', event => { if (event.target === dialog || event.target.closest('[data-close]')) dialog.close(); });
-  }
-
   // Link dialog.
   const linkDialog = document.getElementById('link-dialog');
   const linkUrl = linkDialog.querySelector('[data-link-url]');
@@ -450,133 +599,176 @@
     if (linkTarget) { linkTarget.replaceWith(...linkTarget.childNodes); dirty = true; }
   });
 
-  // Media picker.
-  const picker = document.getElementById('media-picker');
-  const grid = picker.querySelector('[data-picker-grid]');
-  const status = picker.querySelector('[data-picker-status]');
-  const search = picker.querySelector('[data-picker-search]');
-  const categorySelect = search.elements.category;
-  const pageLabel = picker.querySelector('[data-picker-page]');
-  const prev = picker.querySelector('[data-picker-prev]');
-  const next = picker.querySelector('[data-picker-next]');
-  const altInput = picker.querySelector('[data-picked-alt]');
-  const thumb = picker.querySelector('[data-picked-thumb]');
-  const insertButton = picker.querySelector('[data-picker-insert]');
-  const upload = picker.querySelector('[data-picker-upload]');
-  const uploadStatus = picker.querySelector('[data-upload-status]');
-  const tabs = [...picker.querySelectorAll('[role="tab"]')];
-  let page = 1, pages = 1, picked = null, request = 0;
-  const showTab = tab => {
-    for (const other of tabs) {
-      const selected = other === tab;
-      other.setAttribute('aria-selected', String(selected));
-      other.tabIndex = selected ? 0 : -1;
-      document.getElementById(other.getAttribute('aria-controls')).hidden = !selected;
-    }
-  };
-  for (const tab of tabs) {
-    tab.addEventListener('click', () => showTab(tab));
-    tab.addEventListener('keydown', event => {
-      if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
-      const other = tabs[(tabs.indexOf(tab) + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
-      showTab(other); other.focus();
-    });
-  }
-  const pick = item => {
-    picked = item;
-    for (const button of grid.querySelectorAll('button')) button.setAttribute('aria-pressed', String(Number(button.dataset.id) === item.id));
-    altInput.value = item.alt;
-    thumb.src = item.thumb; thumb.classList.remove('hidden');
-    insertButton.disabled = false;
-  };
-  const render = (items, preselect) => {
-    grid.replaceChildren();
-    for (const item of items) {
-      const li = document.createElement('li');
-      const button = document.createElement('button');
-      button.type = 'button'; button.className = 'picker-item'; button.dataset.id = item.id;
-      button.setAttribute('aria-pressed', String(Boolean(picked && picked.id === item.id)));
-      const img = document.createElement('img');
-      img.src = item.thumb; img.alt = ''; img.loading = 'lazy';
-      const name = document.createElement('span');
-      name.className = 'picker-name'; name.textContent = item.name;
-      button.title = `${item.name} · ${item.width}×${item.height}`;
-      button.append(img, name);
-      button.addEventListener('click', () => pick(item));
-      button.addEventListener('dblclick', () => { pick(item); insertPicked(); });
-      li.append(button);
-      grid.append(li);
-    }
-    if (preselect) pick(preselect);
-  };
-  const load = async (preselect = null) => {
-    const id = ++request;
-    status.textContent = 'Loading…';
-    const params = new URLSearchParams({q: search.elements.q.value, category: categorySelect.value, page: String(page)});
-    try {
-      const response = await fetch('/admin/media/library?' + params, {credentials: 'same-origin', headers: {Accept: 'application/json'}});
-      if (!response.ok) throw new Error();
-      const data = await response.json();
-      if (id !== request) return;
-      page = data.page; pages = data.pages;
-      const chosen = categorySelect.value;
-      categorySelect.replaceChildren(new Option('All categories', ''), ...data.categories.map(name => new Option(name, name, false, name === chosen)));
-      picker.querySelector('#picker-categories').replaceChildren(...data.categories.map(name => new Option(name)));
-      render(data.items, preselect);
-      status.textContent = data.total ? `${data.total} ${data.total === 1 ? 'image' : 'images'}. Choose one, then Insert image.` : (params.get('q') || params.get('category') ? 'No images match this search.' : 'No images yet. Upload one in the Upload tab.');
-      pageLabel.textContent = `Page ${page} of ${pages}`;
-      prev.disabled = page <= 1; next.disabled = page >= pages;
-    } catch (error) { if (id === request) status.textContent = 'Images could not be loaded. Check your connection and try again.'; }
-  };
+  // Images go after the selection and never replace selected text.
   const openPicker = () => {
     remember();
-    picked = null; insertButton.disabled = true; altInput.value = ''; thumb.classList.add('hidden'); uploadStatus.textContent = '';
-    showTab(tabs[0]);
-    picker.showModal();
-    search.elements.q.focus();
-    load();
+    mediaPicker.open({title: 'Insert image', action: 'Insert image', withAlt: true, onPick: (item, alt) => {
+      restore();
+      if (mode === 'markdown') {
+        const end = savedText[1], value = textarea.value;
+        const before = end === 0 || value.slice(0, end).endsWith('\n\n') ? '' : (value.slice(0, end).endsWith('\n') ? '\n' : '\n\n');
+        const after = value.slice(end).startsWith('\n') ? '' : '\n\n';
+        replace(end, end, before + markdownImage(item.url, alt) + after);
+      } else {
+        getSelection().collapseToEnd();
+        insertHtml(`<img src="${esc(item.url)}" alt="${esc(alt)}">`);
+      }
+    }});
   };
-  const insertPicked = () => {
-    if (!picked) return;
-    const alt = altInput.value.trim();
-    picker.close();
-    restore();
-    // Images go after the selection and never replace selected text.
-    if (mode === 'markdown') {
-      const end = savedText[1], value = textarea.value;
-      const before = end === 0 || value.slice(0, end).endsWith('\n\n') ? '' : (value.slice(0, end).endsWith('\n') ? '\n' : '\n\n');
-      const after = value.slice(end).startsWith('\n') ? '' : '\n\n';
-      replace(end, end, before + markdownImage(picked.url, alt) + after);
-    } else {
-      getSelection().collapseToEnd();
-      insertHtml(`<img src="${esc(picked.url)}" alt="${esc(alt)}">`);
-    }
-  };
-  insertButton.addEventListener('click', insertPicked);
-  search.addEventListener('submit', event => { event.preventDefault(); page = 1; load(); });
-  categorySelect.addEventListener('change', () => { page = 1; load(); });
-  prev.addEventListener('click', () => { if (page > 1) { page--; load(); } });
-  next.addEventListener('click', () => { if (page < pages) { page++; load(); } });
-  upload.addEventListener('submit', async event => {
-    event.preventDefault();
-    const button = upload.querySelector('button');
-    button.disabled = true; uploadStatus.textContent = 'Uploading…';
-    try {
-      const response = await fetch('/admin/media/upload', {method: 'POST', credentials: 'same-origin', headers: {Accept: 'application/json'}, body: new FormData(upload)});
-      const data = await response.json().catch(() => ({error: 'The upload failed. The file may be larger than this server accepts.'}));
-      if (!response.ok || !data.item) throw new Error(data.error || 'The upload failed. Try again.');
-      upload.reset();
-      uploadStatus.textContent = data.note || '';
-      search.elements.q.value = ''; categorySelect.value = ''; page = 1;
-      showTab(tabs[0]);
-      await load(data.item);
-      if (data.note) status.textContent = data.note;
-      insertButton.focus();
-    } catch (error) { uploadStatus.textContent = error.message; }
-    finally { button.disabled = false; }
-  });
 
   let initial = 'visual';
   try { initial = localStorage.getItem('meteor.editorMode') === 'markdown' ? 'markdown' : 'visual'; } catch (error) { /* private window */ }
   setMode(initial);
 })();
+
+// Editor header: the language select opens another translation; ask first when there are unsaved edits.
+(() => {
+  const switcher = document.querySelector('[data-language-switch]');
+  if (!switcher) return;
+  const select = switcher.elements.locale;
+  const form = document.getElementById('translation');
+  let dirty = false, current = select.value;
+  switcher.querySelector('[data-language-go]').hidden = true;
+  if (form) {
+    form.addEventListener('input', () => { dirty = true; });
+    form.addEventListener('change', () => { dirty = true; });
+    form.addEventListener('submit', () => { dirty = false; });
+  }
+  select.addEventListener('change', () => {
+    if (dirty && !window.confirm('Switch language? Unsaved changes in this language will be lost.')) { select.value = current; return; }
+    current = select.value;
+    switcher.submit();
+  });
+})();
+
+// Slug: generated from the title. While the base language is edited and the slug started empty,
+// it follows the title until the writer edits the slug. Same rules as ContentEditor::slugFrom.
+(() => {
+  const field = document.querySelector('[data-slug-field]');
+  if (!field) return;
+  const slug = field.querySelector('input');
+  const button = field.querySelector('[data-slug-generate]');
+  const title = document.querySelector('#translation [name="title"]');
+  const isBase = field.dataset.isBase === '1';
+  const slugFrom = text => text.trim().toLowerCase().replace(/[^\p{L}\p{N}\p{M}]+/gu, '-').replace(/^-+|-+$/g, '')
+    .slice(0, 80).replace(/-+$/, '');
+  const source = () => (isBase && title ? title.value : field.dataset.baseTitle) || '';
+  let follow = isBase && slug.value === '';
+  button.hidden = false;
+  button.addEventListener('click', () => {
+    const value = slugFrom(source());
+    if (value) { slug.value = value; slug.dispatchEvent(new Event('input', {bubbles: true})); }
+    slug.focus();
+  });
+  slug.addEventListener('input', event => { if (event.isTrusted) follow = false; });
+  if (title) title.addEventListener('input', () => { if (follow) slug.value = slugFrom(title.value); });
+})();
+
+// Sortable tables (languages, header & footer menus): drag a row by its handle, with a mouse or
+// a finger, or focus the handle and use the arrow keys. Order inputs are renumbered after each move.
+(() => {
+  const bodies = document.querySelectorAll('tbody[data-sortable]');
+  if (!bodies.length) return;
+  const live = document.createElement('p');
+  live.className = 'sr-only'; live.setAttribute('aria-live', 'polite');
+  document.body.append(live);
+  const rowsOf = body => [...body.querySelectorAll(':scope > tr[data-sortable-row]')];
+  const changed = (body, row) => {
+    const rows = rowsOf(body);
+    rows.forEach((item, index) => { for (const input of item.querySelectorAll('[data-sort-order]')) input.value = String(index + 1); });
+    const input = body.querySelector('[data-sort-order], [data-sort-key]');
+    const form = input && input.form;
+    if (form) form.dispatchEvent(new Event('input', {bubbles: true}));
+    live.textContent = `Moved ${row.dataset.name || 'row'} to position ${rows.indexOf(row) + 1} of ${rows.length}.`;
+  };
+  for (const body of bodies) {
+    for (const handle of body.querySelectorAll('[data-drag-handle]')) handle.hidden = false;
+    body.addEventListener('keydown', event => {
+      const handle = event.target.closest('[data-drag-handle]');
+      if (!handle || !['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+      event.preventDefault();
+      const row = handle.closest('tr'), rows = rowsOf(body), index = rows.indexOf(row);
+      const other = rows[index + (event.key === 'ArrowUp' ? -1 : 1)];
+      if (!other) return;
+      if (event.key === 'ArrowUp') other.before(row); else other.after(row);
+      handle.focus();
+      changed(body, row);
+    });
+    body.addEventListener('pointerdown', event => {
+      const handle = event.target.closest('[data-drag-handle]');
+      if (!handle || event.button !== 0) return;
+      event.preventDefault();
+      const row = handle.closest('tr');
+      const start = rowsOf(body).indexOf(row);
+      // Listen on the window: moving the row in the DOM drops any pointer capture.
+      const pointer = event.pointerId;
+      row.classList.add('is-dragging');
+      document.body.classList.add('select-none');
+      const move = moveEvent => {
+        if (moveEvent.pointerId !== pointer) return;
+        moveEvent.preventDefault();
+        const target = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+        const over = target && target.closest('tr[data-sortable-row]');
+        if (!over || over === row || over.parentElement !== body) return;
+        const box = over.getBoundingClientRect();
+        if (moveEvent.clientY < box.top + box.height / 2) over.before(row); else over.after(row);
+      };
+      const end = endEvent => {
+        if (endEvent.pointerId !== pointer) return;
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', end);
+        window.removeEventListener('pointercancel', end);
+        row.classList.remove('is-dragging');
+        document.body.classList.remove('select-none');
+        if (rowsOf(body).indexOf(row) !== start) changed(body, row);
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', end);
+      window.addEventListener('pointercancel', end);
+    });
+  }
+  // Forms with a save button that waits for a change (the language order).
+  for (const form of document.querySelectorAll('form[data-save-on-change]')) {
+    const button = form.querySelector('button');
+    const status = form.querySelector('[data-save-status]');
+    button.disabled = true;
+    form.addEventListener('input', () => { button.disabled = false; if (status) status.textContent = 'Order changed. Save to apply it.'; });
+  }
+})();
+
+// Sidebar: collapse to icons. The choice is kept in a cookie so the server renders it on the next page.
+(() => {
+  const toggle = document.querySelector('[data-nav-toggle]');
+  if (!toggle) return;
+  const shell = toggle.closest('[data-nav]');
+  toggle.addEventListener('click', () => {
+    const collapsed = shell.dataset.nav !== 'collapsed';
+    shell.dataset.nav = collapsed ? 'collapsed' : 'expanded';
+    const label = collapsed ? 'Expand menu' : 'Collapse menu';
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+    toggle.setAttribute('aria-label', label); toggle.title = label;
+    document.cookie = `meteor_admin_nav=${collapsed ? 'collapsed' : 'expanded'}; Path=/admin; Max-Age=31536000; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`;
+  });
+})();
+
+// Menu "Add a page or a link" row: a page needs no URL, and its labels are optional.
+for (const box of document.querySelectorAll('[data-link-kind]')) {
+  const select = box.querySelector('select');
+  const url = box.querySelector('input');
+  const labels = [...box.closest('tr').querySelectorAll('[data-page-placeholder]')];
+  const update = () => {
+    const page = select.value !== '';
+    url.hidden = page;
+    for (const input of labels) {
+      input.dataset.linkPlaceholder ??= input.placeholder;
+      input.placeholder = page ? 'Optional: page title' : input.dataset.linkPlaceholder;
+    }
+  };
+  select.addEventListener('change', update);
+  update();
+}
+
+// Appearance: picking a custom color also selects the "Custom color" option.
+for (const input of document.querySelectorAll('[data-custom-color]')) {
+  input.addEventListener('input', () => { const radio = input.form.querySelector('input[name="theme_accent"][value="custom"]'); if (radio) radio.checked = true; });
+}

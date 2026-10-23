@@ -1,6 +1,6 @@
 <?php $siteIcon = $settings->icon(); ?>
 <!doctype html>
-<html lang="<?= e($locale) ?>" dir="<?= e($i18n->direction()) ?>">
+<html lang="<?= e($locale) ?>" dir="<?= e($i18n->direction()) ?>" data-theme="<?= e($scheme) ?>">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -17,6 +17,7 @@
 <?php if (!$preview): ?><link rel="alternate" type="application/rss+xml" title="<?= e(__('rss')) ?>" href="<?= e('/' . $locale . '/rss.xml') ?>"><?php endif ?>
 <?php require __DIR__ . '/../partials/favicon.php' ?>
 <link rel="stylesheet" href="<?= e(asset('assets/style.css')) ?>">
+<?php if ($themeCss !== ''): ?><link rel="stylesheet" href="<?= e($themeCss) ?>"><?php endif ?>
 <?php if (trim($settings->get('custom_css')) !== ''): ?><link rel="stylesheet" href="/custom.css"><?php endif ?>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;700&amp;family=Noto+Serif+SC:wght@400;600&amp;display=swap">
 </head>
@@ -34,19 +35,41 @@
 <?php endforeach ?>
 </nav>
 <?php endif ?>
-<details class="relative md:hidden"><summary aria-label="<?= e(__('menu')) ?>" class="flex size-11 cursor-pointer list-none items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></summary><div class="absolute end-0 z-20 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900"><?php require __DIR__ . '/../partials/nav.php' ?></div></details>
+<?php if ($themeSwitch): $back = (string) ($_SERVER['REQUEST_URI'] ?? '/'); ?>
+<details class="relative"><summary aria-label="<?= e(__('color_scheme')) ?>" title="<?= e(__('color_scheme')) ?>" class="flex size-11 cursor-pointer list-none items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 [&::-webkit-details-marker]:hidden"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.75a7.25 7.25 0 0 1 0 14.5z" fill="currentColor"/></svg></summary>
+<div class="absolute end-0 z-20 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900"><p class="eyebrow px-3 pt-1 pb-2"><?= e(__('color_scheme')) ?></p>
+<?php foreach (['auto', 'light', 'dark'] as $option): ?><a rel="nofollow" href="<?= e('/theme?' . http_build_query(['set' => $option, 'back' => $back])) ?>" <?= $scheme === $option ? 'aria-current="true"' : '' ?> class="flex min-h-11 items-center justify-between rounded-lg px-3 text-sm hover:bg-slate-100 aria-[current=true]:font-semibold dark:hover:bg-slate-800"><?= e(__('scheme_' . $option)) ?><?php if ($scheme === $option): ?><span aria-hidden="true">✓</span><?php endif ?></a><?php endforeach ?>
+</div></details>
+<?php endif ?>
+<details class="relative md:hidden"><summary aria-label="<?= e(__('menu')) ?>" class="flex size-11 cursor-pointer list-none items-center [&::-webkit-details-marker]:hidden justify-center rounded-lg border border-slate-300 dark:border-slate-700"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></summary><div class="absolute end-0 z-20 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900"><?php require __DIR__ . '/../partials/nav.php' ?></div></details>
 </div></div></header>
 <main id="main"><?= $content ?></main>
+<?php
+$brand = $settings->global('footer_brand', 'site');
+if ($brand === 'author' && $author === null) { $brand = 'site'; }
+$columns = ($settings->enabled('footer_show_languages') && $live) || ($settings->enabled('footer_show_feeds') && $live) || ($settings->enabled('footer_show_site') && $footerLinks);
+$copyright = $settings->enabled('footer_show_copyright') ? str_replace(['{year}', '{site}'], [gmdate('Y'), $settings->label('site_title')], $settings->get('copyright', $locale, '© {year} {site}')) : '';
+?>
+<?php if ($brand !== 'none' || $columns || $copyright !== ''): ?>
 <footer class="bg-slate-900 text-slate-300">
+<?php if ($brand !== 'none' || $columns): ?>
 <div class="mx-auto flex max-w-[1120px] flex-wrap justify-between gap-10 px-4 py-12 md:px-6">
-<div class="max-w-xs"><div class="mb-3 flex items-center gap-2 text-xl font-bold text-white"><?php require __DIR__ . '/../partials/mark.php' ?><?= e($settings->label('site_title')) ?></div><?php $tagline = $settings->get('site_tagline', $locale); if ($tagline !== ''): ?><p class="mb-3 text-sm text-slate-400"><?= e($tagline) ?></p><?php endif ?><p class="text-sm leading-relaxed text-slate-400"><?= e($settings->get('footer_text', $locale, __('footer_description'))) ?></p></div>
+<?php if ($brand === 'author'): $card = $author; $cardVariant = 'footer'; ?><div class="max-w-sm"><?php require __DIR__ . '/../partials/author-card.php' ?></div>
+<?php elseif ($brand === 'site'): ?>
+<div class="max-w-xs"><div class="mb-3 flex items-center gap-2 text-xl font-bold text-white"><?php if ($settings->enabled('header_show_icon')) { require __DIR__ . '/../partials/mark.php'; } ?><?= e($settings->label('site_title')) ?></div><?php $tagline = $settings->get('site_tagline', $locale); if ($tagline !== ''): ?><p class="mb-3 text-sm text-slate-400"><?= e($tagline) ?></p><?php endif ?><?php $footerText = $settings->get('footer_text', $locale); if ($footerText !== ''): ?><p class="text-sm leading-relaxed text-slate-400"><?= nl2br(e($footerText), false) ?></p><?php endif ?></div>
+<?php endif ?>
+<?php if ($columns): ?>
 <div class="flex flex-wrap gap-8 text-sm md:gap-12">
 <?php if ($settings->enabled('footer_show_languages') && $live): ?><div><h2 class="eyebrow text-slate-400"><?= e(__('read_in')) ?></h2><?php foreach ($live as $code): ?><a class="flex min-h-11 items-center text-white" lang="<?= e($code) ?>" href="<?= e('/' . $code . '/') ?>"><?= e($registry[$code]['native_name']) ?></a><?php endforeach ?></div><?php endif ?>
 <?php if ($settings->enabled('footer_show_feeds') && $live): ?><div><h2 class="eyebrow text-slate-400"><?= e(__('feeds')) ?></h2><?php foreach ($live as $code): ?><a class="flex min-h-11 items-center text-white" href="<?= e('/' . $code . '/rss.xml') ?>"><?= e('/' . $code . '/rss.xml') ?></a><?php endforeach ?></div><?php endif ?>
 <?php if ($settings->enabled('footer_show_site') && $footerLinks): ?><div><h2 class="eyebrow text-slate-400"><?= e($settings->get('footer_menu_heading', $locale, __('site'))) ?></h2>
 <?php foreach ($footerLinks as $link): ?><a class="flex min-h-11 items-center text-white" href="<?= e($link['url']) ?>"<?= $link['external'] ? ' rel="noopener"' : '' ?><?= $link['current'] ? ' aria-current="page"' : '' ?>><?= e($link['label']) ?></a><?php endforeach ?>
 </div><?php endif ?>
-</div></div>
-<div class="border-t border-slate-800"><p class="mx-auto max-w-[1120px] px-4 py-5 text-sm text-slate-400 md:px-6"><?= e(str_replace('{year}', gmdate('Y'), $settings->get('copyright', $locale, '© {year} Meteor'))) ?></p></div>
+</div>
+<?php endif ?>
+</div>
+<?php endif ?>
+<?php if ($copyright !== ''): ?><div class="<?= $brand !== 'none' || $columns ? 'border-t border-slate-800' : '' ?>"><p class="mx-auto max-w-[1120px] px-4 py-5 text-sm text-slate-400 md:px-6"><?= e($copyright) ?></p></div><?php endif ?>
 </footer>
+<?php endif ?>
 </body></html>

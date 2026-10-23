@@ -172,7 +172,8 @@ CREATE TABLE menu_items (
     kind VARCHAR(10) NOT NULL CHECK (kind IN ('posts', 'tags', 'about', 'pages', 'rss', 'sitemap', 'link')),
     url VARCHAR(2048),
     sort_order INTEGER NOT NULL DEFAULT 0,
-    is_visible INTEGER NOT NULL DEFAULT 1 CHECK (is_visible IN (0, 1))
+    is_visible INTEGER NOT NULL DEFAULT 1 CHECK (is_visible IN (0, 1)),
+    page_id INTEGER NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE menu_item_labels (

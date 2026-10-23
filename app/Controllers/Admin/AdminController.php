@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace App\Controllers\Admin;
 use Core\{Auth, Csrf, Database, I18n, Session, View, WebAuthn};
-use App\Services\{Account, AdminSettings, ContentEditor, Languages, MenuEditor, TaxonomyEditor, UiStrings};
+use App\Services\{Account, AdminSettings, Appearance, Author, ContentEditor, HomePage, Languages, MenuEditor, TaxonomyEditor, UiStrings};
 
 final class AdminController
 {
@@ -105,18 +105,22 @@ final class AdminController
             } catch (\InvalidArgumentException $e) { $message = $e->getMessage(); }
             return $this->go('/admin/languages', $message);
         }
-        $section = match ($path) { '/admin/languages' => 'languages', '/admin/menus' => 'menus', '/admin/settings' => 'settings', '/admin/strings' => 'strings', '/admin/taxonomy' => 'taxonomy', '/admin/security' => 'security', default => '' };
+        $section = match ($path) { '/admin/languages' => 'languages', '/admin/menus' => 'menus', '/admin/settings' => 'settings', '/admin/strings' => 'strings', '/admin/taxonomy' => 'taxonomy', '/admin/security' => 'security',
+            '/admin/home' => 'home', '/admin/author' => 'author', '/admin/appearance' => 'appearance', default => '' };
         if ($section !== '') {
             $error = ''; $old = $_SESSION['old'][$section] ?? []; unset($_SESSION['old'][$section]);
             if ($post) {
                 try {
                     match ($section) {
                         'languages' => (new Languages($this->db))->save($_POST['action'] ?? 'add', $_POST),
-                        'settings' => (new AdminSettings($this->db))->save($_POST, $_FILES['site_icon'] ?? null),
+                        'settings' => (new AdminSettings($this->db))->save($_POST),
                         'strings' => $this->saveStrings(),
                         'menus' => (new MenuEditor($this->db))->save((string) ($_POST['menu'] ?? ''), $_POST),
                         'taxonomy' => (new TaxonomyEditor($this->db))->save($_POST),
                         'security' => (new Account($this->db))->update($user, $_POST['action'] ?? '', $_POST),
+                        'home' => (new HomePage($this->db))->save($_POST),
+                        'author' => (new Author($this->db))->save($_POST),
+                        'appearance' => (new Appearance($this->db))->save($_POST),
                     };
                     return $this->go($path . $this->query($section), $section === 'security' && ($_POST['action'] ?? '') === 'remove' ? 'Passkey removed. Password sign-in remains available.' : 'Changes saved.');
                 } catch (\InvalidArgumentException $e) {
@@ -127,12 +131,20 @@ final class AdminController
             }
             $locale = (string) ($_GET['locale'] ?? $this->i18n->defaultLocale());
             if (!isset($this->i18n->registry()[$locale])) { $locale = $this->i18n->defaultLocale(); }
-            $data = ['db' => $this->db, 'locale' => $locale, 'old' => $old];
+            $data = ['db' => $this->db, 'locale' => $locale, 'old' => $old, 'settings' => new \App\Repositories\Settings($this->db, $this->i18n)];
             if ($section === 'menus') {
                 $menus = new \App\Repositories\Menus($this->db); $menus->ensureDefaults();
                 $data['menus'] = ['header' => $menus->rows('header'), 'footer' => $menus->rows('footer')];
+                $data['pages'] = [];
+                foreach ($this->db->all('SELECT p.id, p.slug, p.base_locale, p.is_published, t.locale, t.title, t.nav_label, t.status FROM pages p LEFT JOIN page_translations t ON t.page_id = p.id ORDER BY p.sort_order, p.id') as $row) {
+                    $data['pages'][$row['id']] ??= ['id' => (int) $row['id'], 'slug' => $row['slug'], 'base' => $row['base_locale'], 'visible' => (bool) $row['is_published'], 'labels' => [], 'published' => []];
+                    if ($row['locale'] !== null) {
+                        $data['pages'][$row['id']]['labels'][$row['locale']] = $row['nav_label'] ?: $row['title'];
+                        if ($row['status'] === 'published') { $data['pages'][$row['id']]['published'][] = $row['locale']; }
+                    }
+                }
             }
-            return $this->render($section, ['taxonomy' => 'Categories & tags', 'menus' => 'Header & footer', 'strings' => 'Interface text'][$section] ?? ucfirst($section), $data);
+            return $this->render($section, ['taxonomy' => 'Categories & tags', 'menus' => 'Header & footer', 'strings' => 'Interface text', 'home' => 'Home page'][$section] ?? ucfirst($section), $data);
         }
         http_response_code(404); return $this->render('message', 'Not found', ['message' => 'This admin page does not exist.']);
     }
@@ -206,7 +218,7 @@ final class AdminController
         $target = '/admin/editor?' . http_build_query(['post' => $id, 'locale' => $locale, 'kind' => $page ? 'page' : 'post', 'from' => $_GET['from'] ?? $item['base_locale']]);
         if ($post) {
             try {
-                $saved = (new ContentEditor($this->db))->save($page, $id, $locale, $_POST, $_FILES['cover'] ?? null);
+                $saved = (new ContentEditor($this->db))->save($page, $id, $locale, $_POST);
                 return $this->go('/admin/editor?' . http_build_query(['post' => $saved, 'locale' => $locale, 'kind' => $page ? 'page' : 'post']), 'Translation saved.');
             } catch (\InvalidArgumentException $e) {
                 $_SESSION['editor_old'] = ['target' => $target, 'values' => $_POST, 'error' => $e->getMessage()];

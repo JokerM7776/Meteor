@@ -129,51 +129,65 @@ test('Admin HTTP: passkey JSON registration/login, rename/remove and ownership',
         same([], $c->db->all('SELECT * FROM passkeys')); [, $html] = $c->request('/admin/security'); contains('Password sign-in remains available.', $html);
     } finally { $c->close(); }
 });
-test('Admin HTTP: MIME/size-checked cover uploads, replacement cleanup and delete', function () {
-    $c = new AdminHttpClient(); $files = [];
+function mediaRow(Core\Database $db, string $mime = 'image/png'): string
+{
+    $name = bin2hex(random_bytes(16)) . '.' . (['image/png' => 'png', 'image/svg+xml' => 'svg', 'image/avif' => 'avif'][$mime] ?? 'png');
+    $db->query('INSERT INTO media (file_name, original_name, mime_type, search_text) VALUES (?, ?, ?, ?)', [$name, 'x', $mime, 'x']);
+    return App\Services\MediaLibrary::url($name);
+}
+test('Admin HTTP: post cover from the media library, legacy covers and validation', function () {
+    $c = new AdminHttpClient(); $legacy = '/uploads/' . bin2hex(random_bytes(16)) . '.png';
     try {
         $token = $c->token(); $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']); $token = $c->token('/admin/editor');
+        [, $html] = $c->request('/admin/editor'); contains('name="cover_image"', $html); contains('data-media-field', $html); contains('id="media-picker"', $html); ok(!str_contains($html, 'type="file" name="cover"'));
+        $url = mediaRow($c->db);
         $values = ['csrf_token' => $token, 'slug' => 'cover-test', 'title' => 'Cover', 'status' => 'draft'];
-        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6wWQAAAAASUVORK5CYII=');
-        $c->request('/admin/editor', 'POST', $values, false, null, ['bytes' => $png]);
-        $path = $c->db->one('SELECT cover_image FROM posts')['cover_image']; $files[] = $path; ok(preg_match('~^/uploads/[a-f0-9]{32}\.png$~', $path) === 1); ok(is_file($c->root . '/public' . $path));
-        $c->request('/admin/editor?post=1', 'POST', $values, false, null, ['bytes' => $png]);
-        $newPath = $c->db->one('SELECT cover_image FROM posts')['cover_image']; $files[] = $newPath; ok($newPath !== $path); ok(!is_file($c->root . '/public' . $path));
-        foreach (['<?php echo "bad";', $png . str_repeat('x', 5 * 1024 * 1024)] as $bytes) {
-            [$h] = $c->request('/admin/editor?post=1', 'POST', $values, false, null, ['bytes' => $bytes]); contains('303 See Other', $h);
-            same($newPath, $c->db->one('SELECT cover_image FROM posts')['cover_image']);
+        $c->request('/admin/editor', 'POST', $values + ['cover_image' => $url]);
+        same($url, $c->db->one('SELECT cover_image FROM posts')['cover_image']);
+        $library = new App\Services\MediaLibrary($c->db, $c->root . '/public');
+        same(1, $library->usage($c->db->one('SELECT * FROM media')));
+        foreach (['/uploads/media/' . str_repeat('b', 32) . '.png', 'https://example.com/x.png', '/uploads/media/../../x.png'] as $bad) {
+            [$h] = $c->request('/admin/editor?post=1', 'POST', $values + ['cover_image' => $bad]); contains('303', $h);
+            same($url, $c->db->one('SELECT cover_image FROM posts')['cover_image']);
         }
-        $c->request('/admin/posts/1/delete', 'POST', ['csrf_token' => $token]); ok(!is_file($c->root . '/public' . $newPath));
-    } finally { foreach ($files as $file) { $path = $c->root . '/public' . $file; if (is_file($path)) { unlink($path); } } $c->close(); }
+        [, $html] = $c->request('/admin/editor?' . http_build_query(['post' => 1, 'locale' => 'en', 'kind' => 'post', 'from' => 'en'])); contains('Cover: choose an image from the media library.', $html);
+        // An older cover stored straight in /uploads stays while unchanged and is removed when replaced.
+        file_put_contents($c->root . '/public' . $legacy, 'x'); $c->db->query('UPDATE posts SET cover_image = ?', [$legacy]);
+        $c->request('/admin/editor?post=1', 'POST', $values + ['cover_image' => $legacy]); same($legacy, $c->db->one('SELECT cover_image FROM posts')['cover_image']); ok(is_file($c->root . '/public' . $legacy));
+        $c->request('/admin/editor?post=1', 'POST', $values); same($legacy, $c->db->one('SELECT cover_image FROM posts')['cover_image']);
+        $c->request('/admin/editor?post=1', 'POST', $values + ['cover_image' => $url]); same($url, $c->db->one('SELECT cover_image FROM posts')['cover_image']); ok(!is_file($c->root . '/public' . $legacy));
+        $c->request('/admin/editor?post=1', 'POST', $values + ['cover_image' => '']); same(null, $c->db->one('SELECT cover_image FROM posts')['cover_image']);
+    } finally { if (is_file($c->root . '/public' . $legacy)) { unlink($c->root . '/public' . $legacy); } $c->close(); }
 });
-test('Admin HTTP: site identity uploads, cleanup and settings validation PRG', function () {
-    $c = new AdminHttpClient();
+test('Admin HTTP: site icon from the media library and settings validation PRG', function () {
+    $c = new AdminHttpClient(); $legacy = '/uploads/' . bin2hex(random_bytes(16)) . '.png';
     try {
         $token = $c->token(); $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']);
         $token = $c->token('/admin/settings'); $values = ['csrf_token' => $token, 'locale' => 'en'];
         $c->request('/admin/settings', 'POST', $values + ['text' => ['site_title' => ['en' => 'My & Site']]]);
-        [, $html] = $c->request('/admin/settings'); contains('enctype="multipart/form-data"', $html);
+        [, $html] = $c->request('/admin/settings');
         foreach (array_keys(App\Services\AdminSettings::TEXT) as $key) { contains('name="text[' . $key . '][en]"', $html); }
-        foreach (['site_icon', 'remove_site_icon'] as $field) { contains('name="' . $field . '"', $html); }
-        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6wWQAAAAASUVORK5CYII=');
-        $upload = ['field' => 'site_icon', 'filename' => 'icon.png', 'bytes' => $png];
-        $c->request('/admin/settings', 'POST', $values, false, null, $upload);
-        $path = $c->db->one("SELECT value FROM settings WHERE `key` = 'site_icon'")['value']; ok(App\Services\SiteIcon::validPath($path)); ok(is_file($c->root . '/public' . $path));
-        [, $html] = $c->request('/admin/settings'); contains('src="' . $path . '"', $html); contains('My &amp; Site Admin', $html); contains('My &amp; Site</a>', $html);
+        contains('name="site_icon"', $html); contains('id="media-picker"', $html); ok(!str_contains($html, 'remove_site_icon'));
+        $icon = mediaRow($c->db);
+        $c->request('/admin/settings', 'POST', $values + ['site_icon' => $icon]);
+        same($icon, $c->db->one("SELECT value FROM settings WHERE `key` = 'site_icon'")['value']); ok(App\Services\SiteIcon::validPath($icon));
+        same(1, (new App\Services\MediaLibrary($c->db, $c->root . '/public'))->usage($c->db->one('SELECT * FROM media')));
+        [, $html] = $c->request('/admin/settings'); contains('src="' . $icon . '"', $html); contains('My &amp; Site Admin', $html); contains('My &amp; Site</span></a>', $html);
         $cookie = $c->cookie; $c->cookie = '';
-        [, $login] = $c->request('/admin/login'); contains('src="' . $path . '"', $login); contains('My &amp; Site', $login); $c->cookie = $cookie;
-        $c->request('/admin/settings', 'POST', $values, false, null, $upload);
-        $new = $c->db->one("SELECT value FROM settings WHERE `key` = 'site_icon'")['value']; ok($new !== $path); ok(!is_file($c->root . '/public' . $path));
-        foreach (['<svg xmlns="http://www.w3.org/2000/svg"></svg>', 'plain text', $png . str_repeat('x', 1024 * 1024)] as $bytes) {
-            [$h] = $c->request('/admin/settings', 'POST', $values, false, null, ['field' => 'site_icon', 'filename' => 'fake.svg', 'bytes' => $bytes]); contains('303', $h);
-            [, $html] = $c->request('/admin/settings'); contains('Site icon: upload a valid', $html);
-            same($new, $c->db->one("SELECT value FROM settings WHERE `key` = 'site_icon'")['value']);
+        [, $login] = $c->request('/admin/login'); contains('src="' . $icon . '"', $login); contains('My &amp; Site', $login); $c->cookie = $cookie;
+        foreach ([mediaRow($c->db, 'image/avif'), '/uploads/media/' . str_repeat('c', 32) . '.png', '/assets/favicon.svg'] as $bad) {
+            [$h] = $c->request('/admin/settings', 'POST', $values + ['site_icon' => $bad]); contains('303', $h);
+            [, $html] = $c->request('/admin/settings'); contains('Site icon: choose a PNG, JPG, WebP or GIF image from the media library.', $html);
+            same($icon, $c->db->one("SELECT value FROM settings WHERE `key` = 'site_icon'")['value']);
         }
-        $c->request('/admin/settings', 'POST', $values + ['remove_site_icon' => '1']); ok(!is_file($c->root . '/public' . $new)); same(null, $c->db->one("SELECT value FROM settings WHERE `key` = 'site_icon'"));
+        // An older icon uploaded straight to /uploads is deleted when it is replaced.
+        file_put_contents($c->root . '/public' . $legacy, 'x'); $c->db->query("UPDATE settings SET value = ? WHERE `key` = 'site_icon'", [$legacy]);
+        $c->request('/admin/settings', 'POST', $values + ['site_icon' => $icon]); ok(!is_file($c->root . '/public' . $legacy));
+        $c->request('/admin/settings', 'POST', $values + ['site_icon' => '']); same(null, $c->db->one("SELECT value FROM settings WHERE `key` = 'site_icon'"));
         $c->request('/admin/settings', 'POST', $values + ['text' => ['site_tagline' => ['en' => 'Keep <this>', 'nope' => 'x']]]);
         [, $html] = $c->request('/admin/settings?locale=en'); contains('Unknown language.', $html); contains('value="Keep &lt;this&gt;"', $html);
         same(null, $c->db->one("SELECT value FROM settings WHERE `key` = 'site_tagline'"));
-    } finally { $c->close(); }
+    } finally { if (is_file($c->root . '/public' . $legacy)) { unlink($c->root . '/public' . $legacy); } $c->close(); }
 });
 test('Admin HTTP: header & footer page, settings sheet and taxonomy rows', function () {
     $c = new AdminHttpClient();
@@ -182,7 +196,7 @@ test('Admin HTTP: header & footer page, settings sheet and taxonomy rows', funct
         $token = $c->token('/admin/menus');
         [$h, $html] = $c->request('/admin/menus'); contains('200 OK', $h);
         contains('href="/admin/menus" aria-current="page"', $html); contains('<span lang="ja"', $html); contains('ja · preview', $html);
-        contains('name="footer_menu_heading[ja]"', $html); same(12, (int) $c->db->one('SELECT COUNT(*) AS n FROM menu_items')['n']);
+        contains('name="footer_menu_heading[ja]"', $html); same(10, (int) $c->db->one('SELECT COUNT(*) AS n FROM menu_items')['n']);
         $posts = $c->db->one("SELECT id FROM menu_items WHERE menu = 'header' AND kind = 'posts'")['id'];
         [$h] = $c->request('/admin/menus', 'POST', ['csrf_token' => $token, 'menu' => 'header', 'header_show_switcher' => '0',
             'items' => [$posts => ['sort_order' => '9', 'visible' => '1', 'labels' => ['en' => 'Journal']], 'new' => ['url' => '/{locale}/now', 'labels' => ['en' => 'Now', 'ja' => '']]]]);
@@ -197,7 +211,7 @@ test('Admin HTTP: header & footer page, settings sheet and taxonomy rows', funct
         $c->request('/admin/settings', 'POST', ['csrf_token' => $token, 'locale' => 'en', 'text' => ['site_title' => ['ja' => 'メテオ']]]);
         $c->request('/admin/settings', 'POST', ['csrf_token' => $token, 'locale' => 'en', 'text' => ['site_title' => ['en' => 'Meteor EN']]]);
         same(['en' => 'Meteor EN', 'ja' => 'メテオ'], array_column($c->db->all("SELECT locale, value FROM settings WHERE `key` = 'site_title' ORDER BY locale"), 'value', 'locale'));
-        [, $html] = $c->request('/admin/settings'); contains('name="text[home_intro][ja]"', $html); contains('value="メテオ"', $html);
+        [, $html] = $c->request('/admin/settings'); contains('name="text[footer_text][ja]"', $html); contains('value="メテオ"', $html);
         // Taxonomy: each row is its own form.
         $token = $c->token('/admin/taxonomy');
         $c->request('/admin/taxonomy', 'POST', ['csrf_token' => $token, 'kind' => 'tag', 'id' => '0', 'action' => 'save', 'slug' => 'php', 'names' => ['en' => 'PHP', 'ja' => 'PHP 日本']]);
@@ -223,7 +237,7 @@ test('Admin HTTP: interface text table, language file download and import', func
         $token = $c->token('/admin/strings');
         [$h, $html] = $c->request('/admin/strings'); contains('200 OK', $h);
         contains('href="/admin/settings" aria-current="page"', $html); contains('href="/admin/strings" class=', $html); contains('data-changed-only', $html);
-        contains('Layout &amp; navigation</span>', $html); contains('name="strings[zh][posts]"', $html); contains('value="文章"', $html); contains('43 missing', $html);
+        contains('Layout &amp; navigation</span>', $html); contains('name="strings[zh][posts]"', $html); contains('value="文章"', $html); contains('46 missing', $html);
         $c->request('/admin/strings', 'POST', ['csrf_token' => $token, 'strings' => ['ja' => ['posts' => '投稿'], 'zh' => ['posts' => '文章']]]);
         same([['locale' => 'ja', 'key' => 'posts', 'value' => '投稿']], $c->db->all('SELECT locale, `key`, value FROM ui_strings'));
         $c->request('/admin/strings?q=minutes', 'POST', ['csrf_token' => $token, 'strings' => ['ja' => ['reading_minutes' => '読了', 'tags' => 'タグ']]]);
@@ -234,7 +248,7 @@ test('Admin HTTP: interface text table, language file download and import', func
         [$h, $json] = $c->request('/admin/languages/export?code=ja');
         contains('Content-Type: application/json', $h); contains('attachment; filename="meteor-language-ja.json"', $h); same('投稿', json_decode($json, true)['strings']['posts']);
         [$h] = $c->request('/admin/languages/export?code=nope'); contains('404', $h);
-        [, $html] = $c->request('/admin/languages'); contains('href="/admin/languages/export?code=zh" download', $html); contains('name="language_file"', $html); contains('43 / 43', $html);
+        [, $html] = $c->request('/admin/languages'); contains('href="/admin/languages/export?code=zh" download', $html); contains('name="language_file"', $html); contains('46 / 46', $html);
         $pack = json_encode(['meteor_language_pack' => 1, 'code' => 'fr', 'name' => 'French', 'native_name' => 'Français', 'direction' => 'ltr', 'strings' => ['posts' => 'Articles']]);
         $c->request('/admin/languages', 'POST', ['csrf_token' => $token, 'action' => 'import'], false, null, ['field' => 'language_file', 'filename' => 'fr.json', 'bytes' => $pack]);
         [, $html] = $c->request('/admin/languages'); contains('Imported 1 interface text into French (added as Off).', $html);

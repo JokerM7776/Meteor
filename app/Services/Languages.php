@@ -29,6 +29,14 @@ final class Languages
                     if ($this->db->one("SELECT id FROM $table WHERE base_locale = ?", [$code])) { throw new \InvalidArgumentException('This language is used as a base. Set it to Off instead.'); }
                 }
                 $this->db->query('DELETE FROM locales WHERE code = ?', [$code]);
+            } elseif ($action === 'order') {
+                $codes = array_column($this->db->all('SELECT code FROM locales'), 'code');
+                $order = is_array($input['order'] ?? null) ? array_values($input['order']) : [];
+                $order = array_map(fn ($code) => is_string($code) ? $code : '', $order);
+                if (count($order) !== count($codes) || count(array_unique($order)) !== count($order) || array_diff($codes, $order)) {
+                    throw new \InvalidArgumentException('Reload the page and try again: the language list has changed.');
+                }
+                foreach ($order as $i => $language) { $this->db->query('UPDATE locales SET sort_order = ? WHERE code = ?', [$i, $language]); }
             } elseif ($action === 'up' || $action === 'down') {
                 $rows = $this->db->all('SELECT code FROM locales ORDER BY sort_order, code');
                 $index = array_search($code, array_column($rows, 'code'), true);

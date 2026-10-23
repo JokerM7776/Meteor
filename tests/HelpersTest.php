@@ -16,14 +16,15 @@ test('Helpers: escaping, Unicode slugs, URL and CSRF', function () {
 });
 test('View: public layout escapes UI values and emits no scripts', function () {
     $db = database(); locale($db);
-    $db->upsert('ui_strings', ['locale' => 'en', 'key' => 'home_heading', 'value' => '<script>bad</script>'], ['locale', 'key']);
+    $db->upsert('ui_strings', ['locale' => 'en', 'key' => 'latest', 'value' => '<script>bad</script>'], ['locale', 'key']);
+    $db->upsert('settings', ['key' => 'home_heading', 'locale' => 'en', 'value' => '<b>Heading</b>'], ['key', 'locale_scope']);
     $i18n = new Core\I18n($db, require dirname(__DIR__) . '/lang/en.php');
     $GLOBALS['i18n'] = $i18n;
     $view = new Core\View(dirname(__DIR__) . '/views');
     $site = new App\Controllers\Public\SiteController($db, $i18n, $view);
     $html = $site->home('en');
-    contains('<html lang="en" dir="ltr">', $html);
-    contains('&lt;script&gt;bad&lt;/script&gt;', $html);
+    contains('<html lang="en" dir="ltr" data-theme="auto">', $html);
+    contains('&lt;script&gt;bad&lt;/script&gt;', $html); contains('&lt;b&gt;Heading&lt;/b&gt;', $html);
     ok(!str_contains($html, '<script'));
     throws(fn () => $view->partial('../config/config'));
     throws(fn () => $view->partial('missing'));

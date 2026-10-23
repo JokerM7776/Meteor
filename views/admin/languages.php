@@ -22,36 +22,37 @@
 </div>
 </form>
 <section class="overflow-x-auto rounded-[14px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-<h2 class="px-6 py-5 text-xl font-bold">Your languages</h2>
+<div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-4">
+<h2 class="text-xl font-bold">Your languages</h2>
+<form id="language-order" method="post" class="flex flex-wrap items-center gap-3" data-save-on-change>
+<?= \Core\Csrf::field() ?>
+<input type="hidden" name="action" value="order">
+<p class="text-sm text-slate-600 dark:text-slate-400" role="status" data-save-status>Drag ⋮⋮ to change the order readers see, then save.</p>
+<button class="btn-primary">Save order</button>
+</form>
+</div>
 <table class="w-full text-left text-sm">
 <thead class="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
 <tr>
-<?php foreach (['Order', 'Language', 'Status', 'Posts translated', 'Interface text', 'Actions'] as $heading): ?>
+<?php foreach (['Language', 'Status', 'Posts translated', 'Interface text', 'Actions'] as $heading): ?>
 <th class="px-4 py-3">
 <?= e($heading) ?>
 </th>
 <?php endforeach ?>
 </tr>
 </thead>
-<tbody>
+<tbody data-sortable>
 <?php $uiStrings = new \App\Services\UiStrings($db); $builtin = $uiStrings->builtins(); $overrides = $uiStrings->overrides(); $totalPosts = $db->one('SELECT COUNT(*) AS n FROM posts')['n']; foreach ($i18n->registry() as $code => $language): $translated = $db->one('SELECT COUNT(*) AS n FROM post_translations WHERE locale = ?', [$code])['n']; $ownText = count($uiStrings->own($code, $overrides)); ?>
-<tr class="border-t border-slate-200 dark:border-slate-800">
+<tr class="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900" data-sortable-row data-name="<?= e($language['name']) ?>">
 <td class="px-4 py-4">
-<form method="post" class="flex gap-1">
-<?= \Core\Csrf::field() ?>
-<input type="hidden" name="code" value="<?= e($code) ?>">
-<button class="btn" name="action" value="up" aria-label="Move <?= e($language['name']) ?> up">↑</button>
-<button class="btn" name="action" value="down" aria-label="Move <?= e($language['name']) ?> down">↓</button>
-</form>
-</td>
-<td class="px-4 py-4">
-<span class="font-semibold" lang="<?= e($code) ?>">
-<?= e($language['native_name']) ?>
-</span>
-<span class="block text-xs text-slate-500">
-<?= e($language['name']) ?> · <?= e($code) ?>
-<?= $language['is_default'] ? ' · Default' : '' ?>
-</span>
+<div class="flex items-center gap-2">
+<?php $handleName = $language['name']; require __DIR__ . '/drag-handle.php'; ?>
+<input type="hidden" form="language-order" name="order[]" value="<?= e($code) ?>" data-sort-key>
+<div>
+<span class="font-semibold" lang="<?= e($code) ?>"><?= e($language['native_name']) ?></span>
+<span class="block text-xs text-slate-500"><?= e($language['name']) ?> · <?= e($code) ?><?= $language['is_default'] ? ' · Default' : '' ?></span>
+</div>
+</div>
 </td>
 <td class="px-4 py-4">
 <span class="status-chip <?= $language['status'] === 'live' ? 'bg-slate-900 text-white dark:bg-slate-700' : ($language['status'] === 'preview' ? 'bg-amber-100 text-amber-950' : 'border border-dashed border-slate-400') ?>">

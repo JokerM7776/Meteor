@@ -138,12 +138,13 @@ final class MediaLibrary
         }
     }
 
-    /** Translations and covers that still point at the file. */
+    /** Translations, covers, the site icon and the author avatar that still point at the file. */
     public function usage(array $row): int
     {
         $like = '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], self::url($row['file_name'])) . '%';
         $count = 0;
         foreach (['post_translations', 'page_translations'] as $table) { $count += (int) $this->db->one("SELECT COUNT(*) AS n FROM $table WHERE content_md LIKE ? ESCAPE '!'", [$like])['n']; }
+        $count += (int) $this->db->one("SELECT COUNT(*) AS n FROM settings WHERE `key` IN ('site_icon', 'author_avatar') AND locale_scope = '' AND value = ?", [self::url($row['file_name'])])['n'];
         return $count + (int) $this->db->one('SELECT COUNT(*) AS n FROM posts WHERE cover_image = ?', [self::url($row['file_name'])])['n'];
     }
 

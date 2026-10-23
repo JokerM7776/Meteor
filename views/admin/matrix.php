@@ -33,6 +33,7 @@
 <th scope="col" class="sheet-key"><?= e($title) ?></th>
 <?php foreach ($locales as $code => $language) { require __DIR__ . '/sheet-head.php'; } ?>
 <th scope="col" class="sheet-end">Updated</th>
+<th scope="col" class="sheet-end">View</th>
 </tr>
 </thead>
 <tbody>
@@ -59,11 +60,27 @@
 <td class="sheet-end whitespace-nowrap font-mono text-xs text-slate-500">
 <?= e(substr($row['updated_at'], 0, 10)) ?>
 </td>
+<td class="sheet-end">
+<?php
+// Link to the base language when it is published there, else the first published language.
+$viewLocale = null;
+if ($row['is_published'] && ($pageContent || ($row['published_at'] !== null && $row['published_at'] <= gmdate('Y-m-d H:i:s')))) {
+    foreach (array_unique(array_merge([$row['base_locale']], array_keys($locales))) as $code) {
+        if (isset($locales[$code]) && ($row['translations'][$code]['status'] ?? '') === 'published') { $viewLocale = $code; break; }
+    }
+}
+?>
+<?php if ($viewLocale !== null): ?>
+<a class="btn whitespace-nowrap" href="<?= e('/' . $viewLocale . ($pageContent ? '/' : '/posts/') . rawurlencode($row['slug'])) ?>" target="_blank" rel="noopener">View ↗<span class="sr-only"> <?= e($row['translations'][$viewLocale]['title'] ?? $row['slug']) ?> (opens in a new tab)</span></a>
+<?php else: ?>
+<span class="whitespace-nowrap text-xs text-slate-500">Not public</span>
+<?php endif ?>
+</td>
 </tr>
 <?php endforeach ?>
 <?php if (!$rows): ?>
 <tr>
-<td colspan="<?= e(count($locales) + 2) ?>" class="p-8 text-center text-slate-500">No results. Start with a new <?= $pageContent ? 'page' : 'post' ?>.</td>
+<td colspan="<?= e(count($locales) + 3) ?>" class="p-8 text-center text-slate-500">No results. Start with a new <?= $pageContent ? 'page' : 'post' ?>.</td>
 </tr>
 <?php endif ?>
 </tbody>

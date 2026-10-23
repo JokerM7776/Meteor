@@ -9,7 +9,6 @@ final class DemoSeeder
     public function run(bool $demoLocales = false): void
     {
         $this->db->transaction(function () use ($demoLocales): void {
-            (new \App\Repositories\Menus($this->db))->ensureDefaults();
             if (!$this->db->one('SELECT code FROM locales WHERE code = ?', ['en'])) {
                 $this->db->upsert('locales', ['code' => 'en', 'name' => 'English', 'native_name' => 'English', 'status' => 'live', 'is_default' => 1], ['code']);
             }
@@ -55,6 +54,7 @@ final class DemoSeeder
             $this->db->upsert('pages', ['slug' => 'about', 'base_locale' => 'en', 'is_published' => 1, 'show_in_nav' => 1], ['slug']);
             $id = (int) $this->db->one('SELECT id FROM pages WHERE slug = ?', ['about'])['id'];
             $this->translation('page', $id, 'en', 'About Meteor', 'Server-rendered HTML and CSS. Zero JavaScript on public pages.', "Meteor is a small place for notes on engineering, design and everyday life.\n\n## A quieter web\n\nEvery page is plain HTML and CSS — no scripts, no trackers, nothing to wait for.\n\n## Read your way\n\n- Browse the archive\n- Follow a language’s RSS feed\n- Share a direct link to a translation\n\n> Good tools leave room for the writing.");
+            (new \App\Repositories\Menus($this->db))->ensureDefaults();
             if ($demoLocales) { $this->translation('page', $id, 'zh', '关于 Meteor', '一个简单的多语言博客。', "## 关于本站\n\n这里记录工程、设计与日常生活。\n\n## 阅读方式\n\n通过归档和 RSS 阅读文章。"); }
         });
     }

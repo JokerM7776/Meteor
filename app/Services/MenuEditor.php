@@ -9,9 +9,10 @@ final class MenuEditor
 {
     public const TOGGLES = [
         'header' => ['header_show_icon' => 'Show icon', 'header_show_title' => 'Show site title', 'header_show_switcher' => 'Show language switcher'],
-        'footer' => ['footer_show_languages' => 'Show “Read in” column', 'footer_show_feeds' => 'Show “Feeds” column', 'footer_show_site' => 'Show the menu column'],
+        'footer' => ['footer_show_languages' => 'Show “Read in” column', 'footer_show_feeds' => 'Show “Feeds” column', 'footer_show_site' => 'Show the menu column', 'footer_show_copyright' => 'Show the copyright line'],
     ];
-    public const NAMES = ['posts' => 'Posts', 'tags' => 'Tags', 'about' => 'About', 'pages' => 'Pages', 'rss' => 'RSS feed', 'sitemap' => 'Sitemap'];
+    public const BRANDS = ['site' => 'Site: icon, title, tagline and footer text', 'author' => 'Author card: photo, name, bio and profile links', 'none' => 'Nothing'];
+    public const NAMES = ['posts' => 'Posts', 'tags' => 'Tags', 'pages' => 'Pages', 'rss' => 'RSS feed', 'sitemap' => 'Sitemap'];
 
     public function __construct(private Database $db) {}
 
@@ -43,6 +44,11 @@ final class MenuEditor
             foreach ($toggles as $key => $value) {
                 $this->db->upsert('settings', ['key' => $key, 'locale' => null, 'value' => $value], ['key', 'locale_scope']);
             }
+            if ($menu === 'footer' && array_key_exists('footer_brand', $input)) {
+                $brand = (string) $input['footer_brand'];
+                if (!isset(self::BRANDS[$brand])) { throw new \InvalidArgumentException('Footer: choose what the footer shows on the left.'); }
+                $this->db->upsert('settings', ['key' => 'footer_brand', 'locale' => null, 'value' => $brand], ['key', 'locale_scope']);
+            }
             if ($menu === 'footer' && is_array($input['footer_menu_heading'] ?? null)) {
                 foreach ($input['footer_menu_heading'] as $locale => $heading) {
                     $this->setting('footer_menu_heading', $this->locale((string) $locale, $locales), $this->text($heading, 80, 'Menu column heading'));
@@ -55,6 +61,7 @@ final class MenuEditor
                 if (!$row || (string) (int) $id !== (string) $id) { throw new \InvalidArgumentException($name . ': unknown item. Reload the page and try again.'); }
                 $where = $name . ', row ' . ($position[$row['id']] + 1);
                 $link = $row['kind'] === 'link';
+                $pageLink = $link && !empty($row['page_id']);
                 if (!empty($data['remove'])) {
                     if (!$link) { throw new \InvalidArgumentException($where . ': built-in items can be hidden but not removed.'); }
                     $this->db->query('DELETE FROM menu_items WHERE id = ?', [$row['id']]); $count--;
@@ -63,27 +70,29 @@ final class MenuEditor
                 $changes = [];
                 if (array_key_exists('sort_order', $data)) { $changes['sort_order'] = $this->order($data['sort_order'], $where); }
                 if (array_key_exists('visible', $data)) { $changes['is_visible'] = (string) $data['visible'] === '1' ? 1 : 0; }
-                if ($link && array_key_exists('url', $data)) { $changes['url'] = $this->url($data['url'], $where); }
+                if ($link && !$pageLink && array_key_exists('url', $data)) { $changes['url'] = $this->url($data['url'], $where); }
                 foreach ($changes as $column => $value) {
                     $this->db->query("UPDATE menu_items SET $column = ? WHERE id = ?", [$value, $row['id']]);
                 }
                 if ($row['kind'] !== 'pages') { $this->labels((int) $row['id'], $data['labels'] ?? [], $locales, $where); }
-                if ($link && !$this->db->one('SELECT item_id FROM menu_item_labels WHERE item_id = ?', [$row['id']])) {
+                if ($link && !$pageLink && !$this->db->one('SELECT item_id FROM menu_item_labels WHERE item_id = ?', [$row['id']])) {
                     throw new \InvalidArgumentException($where . ': enter a label in at least one language.');
                 }
             }
             $new = is_array($items['new'] ?? null) ? $items['new'] : [];
             $labels = is_array($new['labels'] ?? null) ? $new['labels'] : [];
-            if (trim((string) ($new['url'] ?? '')) !== '' || implode('', array_map(fn ($v) => trim((string) $v), $labels)) !== '') {
+            $pageId = (int) ($new['page_id'] ?? 0);
+            if ($pageId > 0 || trim((string) ($new['url'] ?? '')) !== '' || implode('', array_map(fn ($v) => trim((string) $v), $labels)) !== '') {
                 $where = $name . ', new link';
                 if ($count >= Menus::LIMIT) { throw new \InvalidArgumentException($name . ': use at most ' . Menus::LIMIT . ' items.'); }
-                $url = $this->url($new['url'] ?? '', $where);
+                if ($pageId > 0 && !$this->db->one('SELECT id FROM pages WHERE id = ?', [$pageId])) { throw new \InvalidArgumentException($where . ': that page no longer exists.'); }
+                $url = $pageId > 0 ? null : $this->url($new['url'] ?? '', $where);
                 $max = (int) ($this->db->one('SELECT MAX(sort_order) AS n FROM menu_items WHERE menu = ?', [$menu])['n'] ?? 0);
                 $order = array_key_exists('sort_order', $new) && trim((string) $new['sort_order']) !== '' ? $this->order($new['sort_order'], $where) : $max + 1;
-                $id = $this->db->insert('INSERT INTO menu_items (menu, kind, url, sort_order, is_visible) VALUES (?, ?, ?, ?, ?)',
-                    [$menu, 'link', $url, $order, (string) ($new['visible'] ?? '1') === '0' ? 0 : 1]);
+                $id = $this->db->insert('INSERT INTO menu_items (menu, kind, url, page_id, sort_order, is_visible) VALUES (?, ?, ?, ?, ?, ?)',
+                    [$menu, 'link', $url, $pageId > 0 ? $pageId : null, $order, (string) ($new['visible'] ?? '1') === '0' ? 0 : 1]);
                 $this->labels($id, $labels, $locales, $where);
-                if (!$this->db->one('SELECT item_id FROM menu_item_labels WHERE item_id = ?', [$id])) {
+                if ($pageId === 0 && !$this->db->one('SELECT item_id FROM menu_item_labels WHERE item_id = ?', [$id])) {
                     throw new \InvalidArgumentException($where . ': enter a label in at least one language.');
                 }
             }

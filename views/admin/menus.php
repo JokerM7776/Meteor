@@ -22,7 +22,7 @@ $toggle = function (string $key, string $label) use ($old, $globals): void { ?>
 <?php foreach (\App\Services\MenuEditor::TOGGLES['header'] as $key => $label) { $toggle($key, $label); } ?>
 </div>
 <h3 class="font-semibold">Header menu</h3>
-<p class="max-w-4xl text-sm text-slate-600 dark:text-slate-400">Built-in items can be hidden and reordered. Links accept /paths, #anchors, https://, http:// and mailto:. Use {locale} for the language code, e.g. /{locale}/projects. A link without a label in a language uses the <?= e($locales[$default]['name']) ?> label; leave that one empty to show the link only in languages that have a label.</p>
+<p class="max-w-4xl text-sm text-slate-600 dark:text-slate-400">Drag ⋮⋮ to reorder. Built-in items can be hidden; pages and links can also be removed. A page link shows once the page is published in that language. Links accept /paths, #anchors, https://, http:// and mailto:. Use {locale} for the language code, e.g. /{locale}/projects. A link without a label in a language uses the <?= e($locales[$default]['name']) ?> label; leave that one empty to show the link only in languages that have a label.</p>
 <?php $menu = 'header'; $rows = $menus['header']; require __DIR__ . '/menu-sheet.php'; ?>
 <button class="btn-primary">Save header</button>
 </section>
@@ -33,10 +33,21 @@ $toggle = function (string $key, string $label) use ($old, $globals): void { ?>
 <input type="hidden" name="menu" value="footer">
 <section class="panel space-y-4">
 <h2 id="footer-heading" class="text-xl font-bold">Footer</h2>
+<?php $brand = ($old['menu'] ?? '') === 'footer' ? ($old['footer_brand'] ?? '') : ''; $brand = $brand ?: ($globals['footer_brand'] ?? 'site'); ?>
+<fieldset class="space-y-1">
+<legend class="mb-1 font-semibold">Left side of the footer</legend>
+<div class="flex flex-wrap gap-x-8">
+<?php foreach (\App\Services\MenuEditor::BRANDS as $value => $label): ?>
+<label class="flex min-h-11 items-center gap-3"><input type="radio" name="footer_brand" value="<?= e($value) ?>" class="size-5 accent-orange-700" <?= $brand === $value ? 'checked' : '' ?>><?= e($label) ?></label>
+<?php endforeach ?>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-400">Edit the footer text and copyright on <a class="text-orange-700 underline dark:text-orange-400" href="/admin/settings">Settings → Site</a>, and the author card on <a class="text-orange-700 underline dark:text-orange-400" href="/admin/author">Settings → Author</a>.</p>
+</fieldset>
 <div class="flex flex-wrap gap-x-8">
 <?php foreach (\App\Services\MenuEditor::TOGGLES['footer'] as $key => $label) { $toggle($key, $label); } ?>
 </div>
 <h3 class="font-semibold">Footer menu</h3>
+<p class="max-w-4xl text-sm text-slate-600 dark:text-slate-400">Drag ⋮⋮ to reorder. The column heading and these links appear when “Show the menu column” is on.</p>
 <div class="sheet">
 <table>
 <caption class="sr-only">Footer menu column heading</caption>

@@ -38,10 +38,16 @@ final class SiteController
         foreach ($this->i18n->enabledLocales($this->admin) as $code) {
             $switcher[$code] = '/' . $code . (in_array($code, array_column($translations, 'code'), true) ? $suffix : '/');
         }
+        $published = $this->pages->published($locale);
         $menu = ['locale' => $locale, 'default' => $this->i18n->defaultLocale(), 'preview' => $preview, 'active' => $data['active'] ?? '',
-            'navPages' => array_values(array_filter($this->pages->published($locale), fn ($p) => (bool) $p['show_in_nav'])),
+            'navPages' => array_values(array_filter($published, fn ($p) => (bool) $p['show_in_nav'])), 'pages' => $published,
             'path' => (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), 'translate' => fn (string $key) => $this->i18n->translate($key)];
+        $themeCss = \App\Services\Appearance::css($this->settings);
         return $this->view->render('public/' . $template, $data + [
+            'scheme' => \App\Services\Appearance::scheme($this->settings, $_COOKIE['meteor_theme'] ?? null),
+            'themeSwitch' => $this->settings->global('theme_switch', '1') === '1',
+            'themeCss' => $themeCss === '' ? '' : '/theme.css?v=' . substr(hash('sha256', $themeCss), 0, 10),
+            'author' => \App\Services\Author::card($this->settings, $locale),
             'i18n' => $this->i18n, 'settings' => $this->settings, 'view' => $this->view,
             'locale' => $locale, 'registry' => $this->i18n->registry(), 'preview' => $preview,
             'headerLinks' => $this->menus->links('header', $menu), 'footerLinks' => $this->menus->links('footer', $menu),
@@ -60,13 +66,27 @@ final class SiteController
     public function home(string $locale): string
     {
         $this->i18n->setLocale($locale, $this->admin);
+        $sections = array_keys(array_filter(\App\Services\HomePage::sections($this->settings)));
         $posts = $this->decorate($this->posts->published($locale));
+        $pinned = in_array('pinned', $sections, true) ? array_values(array_filter($posts, fn ($p) => (bool) $p['is_pinned'])) : [];
+        $categories = [];
+        foreach ($posts as $post) {
+            if ($post['category_slug'] === null) { continue; }
+            $categories[$post['category_slug']] ??= ['slug' => $post['category_slug'], 'name' => $post['category_name'] ?: $post['category_slug'], 'count' => 0];
+            $categories[$post['category_slug']]['count']++;
+        }
+        $intro = $this->settings->get('home_intro', $locale) ?: $this->settings->get('site_tagline', $locale);
         return $this->render('home', $locale, [
-            'pinned' => array_filter($posts, fn ($p) => (bool) $p['is_pinned']),
-            'mobileLatest' => array_slice($posts, 0, 4),
-            'latest' => array_slice(array_values(array_filter($posts, fn ($p) => !$p['is_pinned'])), 0, 5),
+            'sections' => $sections, 'pinned' => $pinned, 'hasPosts' => $posts !== [],
+            'latest' => array_slice(array_values(array_filter($posts, fn ($p) => !$pinned || !$p['is_pinned'])), 0, \App\Services\HomePage::latestCount($this->settings)),
+            'categories' => array_values($categories),
+            'eyebrow' => $this->settings->get('home_eyebrow', $locale),
+            'heading' => $this->settings->get('home_heading', $locale) ?: $this->settings->label('site_title'),
+            'intro' => $intro,
+            'buttons' => \App\Services\HomePage::buttons($this->settings, $locale, fn (string $key) => $this->i18n->translate($key, ['language' => $this->i18n->registry()[$locale]['native_name']])),
+            'decoration' => $this->settings->global('home_decoration', '1') === '1',
             'translations' => array_values($this->i18n->registry()),
-            'description' => $this->settings->get('home_intro', $locale, $this->i18n->translate('home_intro')),
+            'description' => $intro,
         ]);
     }
     public function archive(string $locale, string $kind = 'posts', ?string $slug = null): string

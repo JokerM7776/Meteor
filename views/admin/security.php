@@ -3,8 +3,8 @@
 <h1 class="text-[32px] font-bold tracking-tight">Security</h1>
 <p class="text-slate-600 dark:text-slate-400">Your username, password and passkeys. Passkeys are the quickest way in; your password stays on as a fallback.</p>
 </header>
-<div class="grid items-start gap-6 xl:grid-cols-2">
-<form class="panel space-y-4" method="post" action="/admin/security">
+<div class="grid gap-6 xl:grid-cols-2">
+<form class="panel flex flex-col gap-4" method="post" action="/admin/security">
 <?= \Core\Csrf::field() ?>
 <input type="hidden" name="action" value="username">
 <h2 class="text-xl font-bold">Username</h2>
@@ -15,17 +15,17 @@
 <label class="field">Current password<input type="password" name="current_password" autocomplete="current-password" required>
 </label>
 </div>
-<div class="flex justify-end">
+<div class="mt-auto flex justify-end">
 <button class="btn">Change username</button>
 </div>
 </form>
-<form class="panel space-y-4" method="post" action="/admin/security">
+<form class="panel flex flex-col gap-4" method="post" action="/admin/security">
 <?= \Core\Csrf::field() ?>
 <input type="hidden" name="action" value="password">
 <input type="hidden" name="username" value="<?= e($user['username']) ?>" autocomplete="username">
 <div class="flex items-center justify-between">
 <h2 class="text-xl font-bold">Password</h2>
-<span class="rounded-full bg-slate-100 px-3 py-1 font-mono text-xs text-slate-700">Fallback · on</span>
+<span class="rounded-full bg-slate-100 px-3 py-1 font-mono text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300">Fallback · on</span>
 </div>
 <p class="text-sm text-slate-600 dark:text-slate-400">Fallback sign-in when a passkey isn’t available. Last changed <?= e(substr($user['password_changed_at'], 0, 10)) ?>.</p>
 <label class="field">Current password<input type="password" name="current_password" autocomplete="current-password" required>
@@ -37,7 +37,7 @@
 </label>
 </div>
 <p class="text-sm text-slate-600 dark:text-slate-400">At least 12 characters. Changing it signs out every other session.</p>
-<div class="flex justify-end">
+<div class="mt-auto flex justify-end">
 <button class="btn">Update password</button>
 </div>
 </form>
