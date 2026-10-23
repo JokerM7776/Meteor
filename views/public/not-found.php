@@ -3,6 +3,6 @@
 <div class="relative mx-auto flex min-h-[650px] max-w-[1120px] flex-col justify-center gap-6 px-4 py-20 md:px-6">
 <p class="font-mono text-sm text-slate-400">404 · <?= e(__('not_found')) ?> · <?= e($requestedPath) ?></p>
 <h1 class="max-w-[11ch] text-[56px] leading-[.95] font-bold tracking-[-.045em] md:text-[112px]"><?= e(__('not_found_heading')) ?></h1>
-<p class="max-w-[48ch] font-serif text-[21px] leading-relaxed text-slate-300"><?= e(__('not_found_description', ['language' => $registry[$locale]['name']])) ?></p>
+<p class="max-w-[48ch] font-serif text-[21px] leading-relaxed text-slate-300"><?= e(__('not_found_description', ['language' => $registry[$locale]['native_name']])) ?></p>
 <div class="flex flex-wrap gap-3 pt-2"><a class="inline-flex min-h-12 items-center rounded-[10px] bg-orange-500 px-5 font-bold text-slate-900" href="<?= e('/' . $locale . '/') ?>"><?= e(__('back_home')) ?></a><a class="inline-flex min-h-12 items-center rounded-[10px] border border-slate-600 px-5 font-semibold" href="<?= e('/' . $locale . '/posts') ?>"><?= e(__('browse_archive')) ?></a></div>
 </div></section>

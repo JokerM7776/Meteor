@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="<?= e(\Core\Csrf::token()) ?>">
 <title>
-<?= e($title) ?> · Meteor Admin</title>
+<?= e($title) ?> · <?= e($siteTitle) ?> Admin</title>
+<?php require __DIR__ . '/../partials/favicon.php' ?>
 <link rel="stylesheet" href="/assets/style.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&amp;family=Source+Serif+4:wght@400;600&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;600&amp;family=Noto+Serif+SC:wght@400;600&amp;display=swap">
 <script src="/assets/admin.js" defer></script>
@@ -14,7 +15,7 @@
 <?php if ($active === 'login'): ?>
 <main class="mx-auto flex min-h-screen max-w-[468px] flex-col justify-center gap-6 px-6 py-12">
 <div class="flex items-center justify-center gap-3 text-2xl font-bold">
-<?php require __DIR__ . '/../partials/mark.php'; ?> Meteor <span class="rounded-md bg-slate-200 px-2 py-1 font-mono text-[11px] font-medium uppercase tracking-wider text-slate-700">Admin</span>
+<?php require __DIR__ . '/../partials/mark.php'; ?> <?= e($siteTitle) ?> <span class="rounded-md bg-slate-200 px-2 py-1 font-mono text-[11px] font-medium uppercase tracking-wider text-slate-700">Admin</span>
 </div>
 <?php if ($flash): ?>
 <p role="status" class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
@@ -36,9 +37,9 @@
 <div class="flex min-h-screen flex-col md:flex-row">
 <aside class="flex shrink-0 flex-col gap-6 bg-slate-900 px-4 py-5 text-slate-300 md:w-60">
 <a href="/admin/posts" class="flex min-h-11 items-center gap-3 px-2 text-xl font-bold text-white">
-<?php require __DIR__ . '/../partials/mark.php'; ?> Meteor</a>
+<?php require __DIR__ . '/../partials/mark.php'; ?> <?= e($siteTitle) ?></a>
 <nav aria-label="Admin" class="flex flex-col gap-0.5 text-[15px]">
-<?php foreach (['posts' => 'Posts', 'pages' => 'Pages', 'taxonomy' => 'Categories & tags', 'languages' => 'Languages', 'settings' => 'Settings', 'security' => 'Security', 'updates' => 'Updates'] as $key => $label): $selected = $active === $key || ($active === 'matrix' && $key === (!empty($pageContent) ? 'pages' : 'posts')) || ($active === 'editor' && $key === (!empty($page) ? 'pages' : 'posts')); ?>
+<?php foreach (['posts' => 'Posts', 'pages' => 'Pages', 'taxonomy' => 'Categories & tags', 'languages' => 'Languages', 'menus' => 'Header & footer', 'settings' => 'Settings', 'security' => 'Security', 'updates' => 'Updates'] as $key => $label): $selected = $active === $key || ($active === 'strings' && $key === 'settings') || ($active === 'taxonomy-delete' && $key === 'taxonomy') || ($active === 'matrix' && $key === (!empty($pageContent) ? 'pages' : 'posts')) || ($active === 'editor' && $key === (!empty($page) ? 'pages' : 'posts')); ?>
 <a href="/admin/<?= e($key) ?>" <?= $selected ? 'aria-current="page"' : '' ?> class="flex min-h-11 items-center gap-3 rounded-lg px-3 <?= $selected ? 'bg-slate-800 font-semibold text-white' : 'hover:bg-slate-800' ?>">
 <?php require __DIR__ . "/../admin/nav-icon.php"; ?>
 <?= e($label) ?>

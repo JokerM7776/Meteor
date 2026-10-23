@@ -9,17 +9,17 @@ final class DemoSeeder
     public function run(bool $demoLocales = false): void
     {
         $this->db->transaction(function () use ($demoLocales): void {
+            (new \App\Repositories\Menus($this->db))->ensureDefaults();
             if (!$this->db->one('SELECT code FROM locales WHERE code = ?', ['en'])) {
                 $this->db->upsert('locales', ['code' => 'en', 'name' => 'English', 'native_name' => 'English', 'status' => 'live', 'is_default' => 1], ['code']);
             }
             if ($demoLocales) {
-                foreach ([['zh', 'Chinese', '中文', 'live', 1], ['ms', 'Malay', 'Bahasa Melayu', 'preview', 2]] as [$code, $name, $native, $status, $order]) {
-                    if (!$this->db->one('SELECT code FROM locales WHERE code = ?', [$code])) {
-                        $this->db->upsert('locales', ['code' => $code, 'name' => $name, 'native_name' => $native, 'status' => $status, 'sort_order' => $order], ['code']);
-                    }
-                }
-                foreach (['not_found' => '页面不存在', 'not_found_heading' => '这一页在进入大气层时烧毁了。', 'not_found_description' => '链接可能已过期，或者文章尚未翻译。请返回首页或浏览归档。', 'home' => '首页', 'posts' => '文章', 'tags' => '标签', 'about' => '关于', 'on_this_page' => '本页目录', 'available_translations' => '本文还有其他语言版本', 'reading_minutes' => '阅读约 {minutes} 分钟', 'back_home' => '返回首页', 'browse_archive' => '浏览归档'] as $key => $value) {
-                    $this->db->upsert('ui_strings', compact('key', 'value') + ['locale' => 'zh'], ['locale', 'key']);
+                // Interface text comes from lang/zh.json and lang/ms.json. Languages the installer added
+                // as Off are switched on for the demo; any other existing status is kept.
+                foreach ([['zh', 'Chinese (Simplified)', '简体中文', 'live', 1], ['ms', 'Malay', 'Bahasa Melayu', 'preview', 2]] as [$code, $name, $native, $status, $order]) {
+                    $row = $this->db->one('SELECT status FROM locales WHERE code = ?', [$code]);
+                    if (!$row) { $this->db->upsert('locales', ['code' => $code, 'name' => $name, 'native_name' => $native, 'status' => $status, 'sort_order' => $order], ['code']); }
+                    elseif ($row['status'] === 'off') { $this->db->query('UPDATE locales SET status = ? WHERE code = ?', [$status, $code]); }
                 }
             }
             $locales = $demoLocales ? ['en', 'zh', 'ms'] : ['en'];

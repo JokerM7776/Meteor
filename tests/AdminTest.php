@@ -44,11 +44,12 @@ test('Admin: language rules, settings fallback and CSS validation', function () 
     $editor = new App\Services\ContentEditor($db); $editor->save(false, 0, 'ja', ['slug' => 'test', 'title' => 'Test']);
     throws(fn () => $languages->save('delete', ['code' => 'ja'])); $languages->save('delete', ['code' => 'de']);
     $settings = new App\Services\AdminSettings($db);
-    $settings->save('pt-br', ['site_title' => 'Title fallback', 'strings' => ['read_more' => 'More fallback'], 'custom_css' => 'body {color:red}']);
-    $settings->save('ja', ['site_title' => '', 'strings' => ['read_more' => ''], 'custom_css' => 'body {color:red}']);
+    $settings->save(['text' => ['site_title' => ['pt-br' => 'Title fallback']], 'custom_css' => 'body {color:red}']);
+    (new App\Services\UiStrings($db))->save(['pt-br' => ['more_posts' => 'More fallback']]);
+    $settings->save(['text' => ['site_title' => ['ja' => '']], 'custom_css' => 'body {color:red}']);
     $i18n = new Core\I18n($db, require dirname(__DIR__) . '/lang/en.php'); $i18n->setLocale('ja', true);
-    same('More fallback', $i18n->translate('read_more')); same('Title fallback', (new App\Repositories\Settings($db, $i18n))->get('site_title', 'ja'));
-    throws(fn () => $settings->save('ja', ['custom_css' => '</StYle><script>']));
+    same('More fallback', $i18n->translate('more_posts')); same('Title fallback', (new App\Repositories\Settings($db, $i18n))->get('site_title', 'ja'));
+    throws(fn () => $settings->save(['custom_css' => '</StYle><script>']));
 });
 test('Admin: account password version, username and owned passkey actions', function () {
     $f = adminFixture(); $db = $f['db']; $service = new App\Services\Account($db); $user = $db->one('SELECT * FROM users');
@@ -109,4 +110,56 @@ test('Admin: matrix filters, search, counts and pagination use configured visibl
     $_GET = ['q' => 'Japanese']; contains('1 results', $f['controller']->handle('/admin/posts'));
     $_GET = ['q' => 'post-23']; contains('Title 23', $f['controller']->handle('/admin/posts'));
     $_GET = []; $_SESSION = [];
+});
+test('Admin: link URL rules', function () {
+    foreach (['/en/', '/{locale}/projects', '#main', 'HTTPS://example.com/a|b', 'http://example.com', 'MAILTO:hello@example.com', 'https://example.com/{locale}/'] as $url) { ok(App\Services\SiteLinks::validUrl($url), $url); }
+    foreach (['', 'javascript:alert(1)', 'JavaScript:alert(1)', 'data:text/plain,x', 'vbscript:x', '//host', '/\\host', 'ftp://host', '/a b', "/a\tx", '/a' . chr(0), 'https://', 'relative/path'] as $url) { ok(!App\Services\SiteLinks::validUrl($url), $url); }
+});
+test('Admin: menu editor saves only what is posted and keeps built-ins', function () {
+    $f = adminFixture(); $db = $f['db']; $menus = new App\Repositories\Menus($db); $editor = new App\Services\MenuEditor($db);
+    same(6, count($menus->rows('header'))); same(0, (int) $menus->rows('header')[0]['id']);
+    $menus->ensureDefaults(); $menus->ensureDefaults(); same(12, (int) $db->one('SELECT COUNT(*) AS n FROM menu_items')['n']);
+    $ids = array_column($menus->rows('header'), 'id', 'kind');
+    $editor->save('header', ['header_show_title' => '0', 'items' => [$ids['posts'] => ['labels' => ['en' => 'Blog', 'ja' => '']], $ids['tags'] => ['visible' => '0']]]);
+    $settings = new App\Repositories\Settings($db, $f['i18n']);
+    same('0', $settings->global('header_show_title')); same('', $settings->global('header_show_icon'));
+    throws(fn () => $editor->save('header', ['header_show_icon' => '0']), InvalidArgumentException::class);
+    $rows = array_column($menus->rows('header'), null, 'kind'); same(['en' => 'Blog'], $rows['posts']['labels']); same(0, (int) $rows['tags']['is_visible']);
+    $editor->save('header', ['items' => [$ids['posts'] => ['labels' => ['ja' => 'ブログ']]]]);
+    same(['en' => 'Blog', 'ja' => 'ブログ'], array_column($menus->rows('header'), null, 'kind')['posts']['labels']);
+    try { $editor->save('header', ['items' => [$ids['about'] => ['remove' => '1']]]); throw new RuntimeException('Expected an error'); }
+    catch (InvalidArgumentException $e) { contains('Header menu, row 3: built-in items', $e->getMessage()); }
+    foreach (['javascript:alert(1)', '//evil.example', 'data:text/html,x', ''] as $url) {
+        try { $editor->save('header', ['items' => ['new' => ['url' => $url, 'labels' => ['en' => 'Bad']]]]); throw new RuntimeException('Expected an error'); }
+        catch (InvalidArgumentException $e) { contains('Header menu, new link: use a URL', $e->getMessage()); }
+    }
+    throws(fn () => $editor->save('header', ['items' => ['new' => ['url' => '/x', 'labels' => ['en' => '']]]]), InvalidArgumentException::class);
+    throws(fn () => $editor->save('header', ['items' => ['new' => ['url' => '/x', 'labels' => ['xx' => 'Unknown']]]]), InvalidArgumentException::class);
+    throws(fn () => $editor->save('header', ['items' => ['new' => ['url' => '/x', 'labels' => ['en' => str_repeat('a', 81)]]]]), InvalidArgumentException::class);
+    throws(fn () => $editor->save('footer', ['items' => [$ids['posts'] => ['visible' => '0']]]), InvalidArgumentException::class);
+    $editor->save('header', ['items' => ['new' => ['url' => '/{locale}/projects', 'sort_order' => '-5', 'labels' => ['en' => 'Projects']]]]);
+    $rows = $menus->rows('header'); same('link', $rows[0]['kind']); same(range(0, 6), array_map('intval', array_column($rows, 'sort_order')));
+    $link = $rows[0]['id'];
+    throws(fn () => $editor->save('header', ['items' => [$link => ['labels' => ['en' => '']]]]), InvalidArgumentException::class);
+    same('Projects', $menus->rows('header')[0]['labels']['en']);
+    $editor->save('header', ['items' => [$link => ['sort_order' => '99']]]); $rows = $menus->rows('header'); same('link', $rows[array_key_last($rows)]['kind']);
+    for ($n = 0; $n < 23; $n++) { $editor->save('header', ['items' => ['new' => ['url' => '/n' . $n, 'labels' => ['en' => 'N' . $n]]]]); }
+    try { $editor->save('header', ['items' => ['new' => ['url' => '/full', 'labels' => ['en' => 'Full']]]]); throw new RuntimeException('Expected an error'); }
+    catch (InvalidArgumentException $e) { contains('at most 30', $e->getMessage()); }
+    $editor->save('header', ['items' => [$link => ['remove' => '1']]]); same(null, $db->one('SELECT id FROM menu_items WHERE id = ?', [$link]));
+    $editor->save('footer', ['footer_show_feeds' => '0', 'footer_menu_heading' => ['en' => 'More', 'ja' => '']]);
+    same('0', $settings->global('footer_show_feeds')); same('More', $settings->get('footer_menu_heading', 'en'));
+});
+test('Admin: taxonomy rows save independently and keep other languages', function () {
+    $f = adminFixture(); $db = $f['db']; $editor = new App\Services\TaxonomyEditor($db);
+    $editor->save(['kind' => 'category', 'slug' => 'code', 'sort_order' => '5', 'names' => ['en' => 'Code', 'ja' => 'コード']]);
+    $id = (int) $db->one('SELECT id FROM categories')['id']; same(5, (int) $db->one('SELECT sort_order FROM categories')['sort_order']);
+    $editor->save(['kind' => 'category', 'id' => $id, 'slug' => 'coding', 'names' => ['en' => 'Coding']]);
+    $names = $editor->rows('category')[0]['names']; ksort($names); same(['en' => 'Coding', 'ja' => 'コード'], $names); same(5, (int) $editor->rows('category')[0]['sort_order']);
+    $editor->save(['kind' => 'category', 'id' => $id, 'slug' => 'coding', 'names' => ['ja' => '']]); same(['en' => 'Coding'], $editor->rows('category')[0]['names']);
+    throws(fn () => $editor->save(['kind' => 'category', 'id' => $id, 'slug' => 'coding', 'sort_order' => '1.5']), InvalidArgumentException::class);
+    throws(fn () => $editor->save(['kind' => 'category', 'slug' => 'coding']), InvalidArgumentException::class);
+    throws(fn () => $editor->save(['kind' => 'tag', 'id' => 999, 'slug' => 'ghost']), InvalidArgumentException::class);
+    $editor->save(['kind' => 'tag', 'slug' => 'php', 'names' => ['en' => 'PHP', 'ja' => 'ピーエイチピー']]);
+    same(1, count($editor->rows('tag', 'ピーエイチ'))); same(0, count($editor->rows('tag', 'nothing'))); same(1, count($editor->rows('category', 'COD')));
 });

@@ -166,6 +166,24 @@ CREATE TABLE page_translations (
     FOREIGN KEY (locale) REFERENCES locales(code) ON DELETE CASCADE
 );
 
+CREATE TABLE menu_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    menu VARCHAR(10) NOT NULL CHECK (menu IN ('header', 'footer')),
+    kind VARCHAR(10) NOT NULL CHECK (kind IN ('posts', 'tags', 'about', 'pages', 'rss', 'sitemap', 'link')),
+    url VARCHAR(2048),
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    is_visible INTEGER NOT NULL DEFAULT 1 CHECK (is_visible IN (0, 1))
+);
+
+CREATE TABLE menu_item_labels (
+    item_id INTEGER NOT NULL,
+    locale VARCHAR(35) NOT NULL,
+    label VARCHAR(191) NOT NULL,
+    PRIMARY KEY (item_id, locale),
+    FOREIGN KEY (item_id) REFERENCES menu_items(id) ON DELETE CASCADE,
+    FOREIGN KEY (locale) REFERENCES locales(code) ON DELETE CASCADE
+);
+
 CREATE INDEX login_attempts_ip_time ON login_attempts (ip_address, attempted_at);
 CREATE INDEX login_attempts_user_time ON login_attempts (username, attempted_at);
 CREATE INDEX locales_status_order ON locales (status, sort_order);
@@ -176,3 +194,4 @@ CREATE INDEX page_translations_locale_status ON page_translations (locale, statu
 CREATE INDEX post_tags_tag ON post_tags (tag_id);
 CREATE INDEX category_translations_locale ON category_translations (locale);
 CREATE INDEX tag_translations_locale ON tag_translations (locale);
+CREATE INDEX menu_items_menu_order ON menu_items (menu, sort_order);

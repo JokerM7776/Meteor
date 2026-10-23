@@ -15,14 +15,35 @@ test('Migrator: ordered pending migrations, recorded history, failure transactio
     try {
         $directory = $root . '/database/migrations';
         $runner = new Migrator($db, $directory);
-        same(['001_published_at.php', '002_lowercase_usernames.php'], $runner->run()); same([], $runner->run());
-        file_put_contents($directory . '/003_test.php', '<?php return static function (\Core\Database $db): void { $db->query("CREATE TABLE migration_probe (id INT)"); };');
-        same(['003_test.php'], $runner->run());
-        file_put_contents($directory . '/004_fail.php', '<?php return static function (\Core\Database $db): void { $db->query("INSERT INTO migration_probe VALUES (1)"); throw new \RuntimeException("forced"); };');
+        same(['001_published_at.php', '002_lowercase_usernames.php', '003_menus.php', '004_language_files_and_updates.php'], $runner->run()); same([], $runner->run());
+        file_put_contents($directory . '/900_test.php', '<?php return static function (\Core\Database $db): void { $db->query("CREATE TABLE migration_probe (id INT)"); };');
+        same(['900_test.php'], $runner->run());
+        file_put_contents($directory . '/901_fail.php', '<?php return static function (\Core\Database $db): void { $db->query("INSERT INTO migration_probe VALUES (1)"); throw new \RuntimeException("forced"); };');
         throws(fn () => $runner->run());
         same([], $db->all('SELECT * FROM migration_probe'));
-        same(3, count($db->all('SELECT * FROM schema_migrations')));
+        same(5, count($db->all('SELECT * FROM schema_migrations')));
     } finally { ReleasePackage::removeTree($root); }
+});
+test('Migration 003: creates menu tables and converts the earlier header and footer settings', function () {
+    $db = database();
+    $db->query('DROP TABLE menu_item_labels'); $db->query('DROP TABLE menu_items');
+    locale($db); locale($db, 'zh', 'live', 0, 1);
+    $set = function ($key, $value, $locale = null) use ($db) { $db->upsert('settings', compact('key', 'value', 'locale'), ['key', 'locale_scope']); };
+    $set('nav_show_tags', '0'); $set('nav_posts', 'Blog', 'en'); $set('nav_posts', '博客', 'zh'); $set('nav_about', 'Me', 'en');
+    $set('header_links', "Projects | /en/projects\nBad | javascript:x\nGitHub | https://github.com/x", 'en');
+    $set('header_links', "项目 | /en/projects", 'zh'); $set('footer_links', 'Mail | mailto:a@b.com', 'en'); $set('site_title', 'Kept', 'en');
+    $migration = require dirname(__DIR__) . '/database/migrations/003_menus.php';
+    $migration($db);
+    $menus = new App\Repositories\Menus($db);
+    $header = $menus->rows('header'); $kinds = array_column($header, null, 'kind');
+    same(0, (int) $kinds['tags']['is_visible']); same(1, (int) $kinds['posts']['is_visible']);
+    same(['en' => 'Blog', 'zh' => '博客'], $kinds['posts']['labels']);
+    $links = array_values(array_filter($header, fn ($row) => $row['kind'] === 'link'));
+    same(['/en/projects', 'https://github.com/x'], array_column($links, 'url')); same(['en' => 'Projects', 'zh' => '项目'], $links[0]['labels']);
+    $footer = $menus->rows('footer'); same('Me', array_column($footer, null, 'kind')['about']['labels']['en']);
+    same('mailto:a@b.com', end($footer)['url']);
+    same(['site_title'], array_column($db->all('SELECT `key` FROM settings'), 'key'));
+    $migration($db); same(count($header) + count($footer), (int) $db->one('SELECT COUNT(*) AS n FROM menu_items')['n']);
 });
 test('Installer: service writes private quoted env, lock, lowercase admin and marks migrations', function () {
     $root = appFixture(false);
@@ -34,31 +55,47 @@ test('Installer: service writes private quoted env, lock, lowercase admin and ma
         same($password, Core\Env::load($root . '/.env')['DB_PASS']);
         same('éditor', $db->one('SELECT username FROM users')['username']);
         ok(password_verify('a long password', $db->one('SELECT password_hash FROM users')['password_hash']));
-        same(['en'], array_column($db->all('SELECT * FROM locales'), 'code'));
+        same(['en' => 'live', 'ms' => 'off', 'zh' => 'off'], array_column($db->all('SELECT code, status FROM locales ORDER BY code'), 'status', 'code'));
         same([], (new Migrator($db, $root . '/database/migrations'))->run());
-        [$headers] = fixtureRequest($root, '/install'); contains('404', $headers);
         throws(fn () => $installer->install(['driver' => 'sqlite', 'path' => $root . '/storage/meteor.sqlite'], 'https://meteor.example', 'Title', 'admin', 'a long password'));
     } finally { ReleasePackage::removeTree($root); }
 });
 test('Installer HTTP: first-run redirect, requirements, CSRF, connection test and complete installation', function () {
     $root = appFixture(false);
     try {
-        [$headers] = fixtureRequest($root, '/admin/updates'); contains('Location: /install', $headers);
-        [$headers, $html] = fixtureRequest($root, '/install');
+        [$headers] = fixtureRequest($root, '/admin/updates'); contains('Location: /', $headers); ok(!str_contains($headers, 'Location: /admin'));
+        [$headers] = fixtureRequest($root, '/install'); contains('Location: /', $headers);
+        [$headers, $html] = fixtureRequest($root, '/'); contains('action="/"', $html);
         contains("script-src 'none'", $headers); ok(!str_contains($html, '<script')); contains('ext-zip', $html);
         preg_match('/Set-Cookie: ([^;]+)/', $headers, $cookie);
         preg_match('/name="csrf_token" value="([^"]+)"/', $html, $token);
         ok(isset($token[1], $cookie[1]));
-        [$headers] = fixtureRequest($root, '/install', 'POST', ['action' => 'install'], $cookie[1]); contains('403', $headers);
-        $values = ['csrf_token' => $token[1], 'action' => 'test', 'driver' => 'sqlite', 'path' => 'storage/meteor.sqlite', 'db_password' => 'do-not-echo'];
-        [, $html] = fixtureRequest($root, '/install', 'POST', $values, $cookie[1]); contains('Connection successful', $html); ok(!str_contains($html, 'do-not-echo'));
+        [$headers] = fixtureRequest($root, '/', 'POST', ['action' => 'install'], $cookie[1]); contains('403', $headers);
+        ok(!preg_match('/name="(host|port)"/', $html));
+        $values = ['csrf_token' => $token[1], 'action' => 'test', 'db_driver' => 'sqlite', 'db_path' => 'storage/meteor.sqlite', 'db_password' => 'do-not-echo'];
+        [, $html] = fixtureRequest($root, '/', 'POST', $values, $cookie[1]); contains('Connection successful', $html); ok(!str_contains($html, 'do-not-echo'));
         $values = array_replace($values, ['action' => 'install', 'url' => 'https://meteor.example', 'title' => 'Test', 'username' => 'ADMIN', 'password' => 'long-password-here', 'confirm' => 'long-password-here']);
-        [$headers] = fixtureRequest($root, '/install', 'POST', $values, $cookie[1]); contains('Location: /admin/login', $headers);
-        [$headers] = fixtureRequest($root, '/install'); contains('404', $headers);
+        [$headers] = fixtureRequest($root, '/', 'POST', $values, $cookie[1]); contains('Location: /admin/login', $headers);
+        [$headers, $html] = fixtureRequest($root, '/'); ok(!str_contains($html, 'Install Meteor'));
         file_put_contents($root . '/storage/maintenance.flag', 'test');
         [$headers, $html] = fixtureRequest($root, '/en/'); contains('503', $headers); contains('Retry-After: 120', $headers); ok(!str_contains($html, '<script'));
         [$headers] = fixtureRequest($root, '/admin/updates'); contains('Location: /admin/login', $headers);
         [$headers, $html] = fixtureRequest($root, '/admin/login'); contains('Sign in', $html);
+    } finally { ReleasePackage::removeTree($root); }
+});
+test('Installer from .env: first visit installs, removes the admin password, bad settings show the form', function () {
+    $root = appFixture(false);
+    try {
+        file_put_contents($root . '/.env', "APP_URL=https://blog.example\nSITE_TITLE=\"My blog\"\nADMIN_USER=Owner\nADMIN_PASS=wrong\n");
+        [$headers, $html] = fixtureRequest($root, '/'); contains('Install from .env failed', $html); contains('Install Meteor', $html);
+        file_put_contents($root . '/.env', "APP_URL=https://blog.example\nSITE_TITLE=\"My blog\"\nADMIN_USER=Owner\nADMIN_PASS=\"env long password\"\n");
+        [$headers] = fixtureRequest($root, '/'); contains('Location: /admin/login', $headers);
+        $env = Core\Env::load($root . '/.env');
+        ok(!isset($env['ADMIN_USER']) && !isset($env['ADMIN_PASS'])); same('https://blog.example', $env['APP_URL']); same('blog.example', $env['WEBAUTHN_RP_ID']);
+        same(true, (new Installer($root))->installed());
+        $db = new Core\Database(['driver' => 'sqlite', 'path' => $root . '/storage/meteor.sqlite']);
+        ok(password_verify('env long password', $db->one('SELECT password_hash FROM users WHERE username = ?', ['owner'])['password_hash']));
+        same('My blog', $db->one("SELECT value FROM settings WHERE \"key\" = 'site_title'")['value']);
     } finally { ReleasePackage::removeTree($root); }
 });
 test('Packaging: CLI zip structure, manifest hashes, runtime and secret exclusions', function () {
@@ -73,19 +110,19 @@ test('Packaging: CLI zip structure, manifest hashes, runtime and secret exclusio
         $manifest = json_decode($zip->getFromName('meteor/manifest.json'), true);
         foreach ($manifest['files'] as $file => $hash) { same($hash, hash('sha256', $zip->getFromName('meteor/' . $file))); }
         foreach (['.env', 'storage/private.txt', 'public/uploads/private.txt', 'config/.env.private', 'tests/run.php', '.github/workflows/release.yml', 'dist/meteor-0.1.0.zip', 'app/.DS_Store'] as $file) { same(false, $zip->locateName('meteor/' . $file)); }
-        foreach (['bootstrap.php', 'index.php', '.htaccess', 'public/.htaccess', 'public/index.php', 'views/setup.php', 'config/config.php', 'config/.env.example', 'public/assets/style.css', 'storage/.gitkeep', 'public/uploads/.gitkeep'] as $file) { ok($zip->locateName('meteor/' . $file) !== false, $file); }
+        foreach (['bootstrap.php', 'index.php', '.htaccess', 'public/.htaccess', 'public/index.php', 'views/setup.php', 'config/config.php', 'config/.env.example', 'public/assets/style.css', 'storage/.gitkeep', 'public/uploads/.gitkeep', 'lang/en.php', 'lang/zh.json', 'lang/ms.json', 'database/migrations/003_menus.php', 'database/migrations/004_language_files_and_updates.php'] as $file) { ok($zip->locateName('meteor/' . $file) !== false, $file); }
         for ($i = 0; $i < $zip->numFiles; $i++) { ok(str_starts_with($zip->getNameIndex($i), 'meteor/')); }
         $zip->close(); contains(hash_file('sha256', $path), file_get_contents($path . '.sha256'));
         // A packaged tree is also an installable application.
         $fresh = $root . '/fresh'; mkdir($fresh); $zip->open($path); $zip->extractTo($fresh); $zip->close();
-        [$headers] = fixtureRequest($fresh . '/meteor', '/'); contains('Location: /install', $headers);
+        [, $html] = fixtureRequest($fresh . '/meteor', '/'); contains('Install Meteor', $html);
     } finally { ReleasePackage::removeTree($root); }
 });
 test('Unzipped folder as web root: rewrite into public/, setup help without rewrite or in a sub-folder', function () {
     $root = appFixture(false);
     try {
         // Root .htaccess maps /x to public/x, so SCRIPT_NAME carries the /public prefix.
-        [$headers] = fixtureRequest($root, '/', 'GET', [], '', ['SCRIPT_NAME' => '/public/index.php']); contains('Location: /install', $headers);
+        [, $html] = fixtureRequest($root, '/', 'GET', [], '', ['SCRIPT_NAME' => '/public/index.php']); contains('Install Meteor', $html);
         [$headers, $html] = fixtureRequest($root, '/meteor/', 'GET', [], '', ['SCRIPT_NAME' => '/meteor/public/index.php']);
         contains('Status: 503', $headers); contains('sub-folder (<code>/meteor</code>)', $html);
         [$headers, $html] = fixtureRequest($root, '/', 'GET', [], '', ['SCRIPT_FILENAME' => $root . '/index.php', 'SCRIPT_NAME' => '/index.php']);
@@ -104,7 +141,7 @@ test('Updater: apply, removed files, migrations, protected data, backup and rest
         file_put_contents($root . '/manifest.json', $oldManifest);
         file_put_contents($root . '/.env', 'secret env'); file_put_contents($root . '/storage/private', 'private'); file_put_contents($root . '/public/uploads/photo', 'image');
         $zip = releaseFixture($root, '0.2.0', ['storage/.gitkeep' => '', 'public/uploads/.gitkeep' => '',
-            'database/migrations/003_update.php' => '<?php return static function (\Core\Database $db): void { $db->query("CREATE TABLE update_probe (id INT)"); };']);
+            'database/migrations/900_update.php' => '<?php return static function (\Core\Database $db): void { $db->query("CREATE TABLE update_probe (id INT)"); };']);
         $updater = new Updater($root, $db); $updater->apply($zip, false, hash_file('sha256', $zip));
         same('0.2.0', Version::current($root)); same('<?php // new release', file_get_contents($root . '/app/example.php')); ok(!file_exists($root . '/app/obsolete.php'));
         same([], $db->all('SELECT * FROM update_probe'));
@@ -112,7 +149,7 @@ test('Updater: apply, removed files, migrations, protected data, backup and rest
         ok(!file_exists($root . '/storage/maintenance.flag')); same([], glob($root . '/storage/updates/staging-*'));
         same(1, count($updater->backups())); $updater->restore($updater->backups()[0]);
         same('0.1.0', Version::current($root)); same('old code', file_get_contents($root . '/app/example.php')); same('obsolete', file_get_contents($root . '/app/obsolete.php')); same($oldManifest, file_get_contents($root . '/manifest.json'));
-        ok(!is_file($root . '/database/migrations/003_update.php'));
+        ok(!is_file($root . '/database/migrations/900_update.php'));
         contains('success', file_get_contents($root . '/storage/logs/updates.log'));
         for ($i = 0; $i < 6; $i++) { $updater->apply(releaseFixture($root, '0.2.' . $i)); }
         same(5, count($updater->backups()));
@@ -173,7 +210,7 @@ final class FakeUpdateHttp implements HttpClient
         return $this->responses[$url] ?? throw new RuntimeException('Unexpected request');
     }
 }
-test('GitHub: fake latest and downloads, mandatory hash, redirect allow-list and credential boundaries', function () {
+test('GitHub: fake latest and downloads, mandatory hash, redirect allow-list and no credentials', function () {
     $root = appFixture();
     try {
         $bytes = file_get_contents(releaseFixture($root)); $hash = hash('sha256', $bytes);
@@ -184,11 +221,13 @@ test('GitHub: fake latest and downloads, mandatory hash, redirect allow-list and
         $fake = new FakeUpdateHttp([$latest => $response(json_encode(['tag_name' => 'v0.2.0', 'name' => '<release>', 'body' => '<script>notes</script>', 'assets' => [
             ['name' => 'meteor-0.2.0.zip', 'url' => $zipUrl], ['name' => 'meteor-0.2.0.zip.sha256', 'url' => $shaUrl]]])), $shaUrl => $response($hash . '  meteor-0.2.0.zip'),
             $zipUrl => ['status' => 302, 'headers' => ['location' => $object], 'body' => ''], $object => $response($bytes)]);
-        $github = new GitHubUpdates($fake); $release = $github->latest('owner/repo', 'private-token'); same('0.2.0', $release['version']);
-        same($hash, $github->download($release, $root . '/download.zip', 'private-token'));
+        $github = new GitHubUpdates($fake); $release = $github->latest('owner/repo'); same('0.2.0', $release['version']);
+        same($hash, $github->download($release, $root . '/download.zip'));
         same($hash, hash_file('sha256', $root . '/download.zip'));
-        contains('Authorization: Bearer private-token', implode('\n', $fake->calls[0][1]));
-        ok(!str_contains(implode('\n', $fake->calls[3][1]), 'private-token'));
+        foreach ($fake->calls as $call) { ok(!str_contains(implode("\n", $call[1]), 'Authorization')); }
+        same('JokerM7776/Meteor', GitHubUpdates::REPOSITORY);
+        throws(fn () => $github->latest(), RuntimeException::class);
+        same('https://api.github.com/repos/JokerM7776/Meteor/releases/latest', end($fake->calls)[0]);
         foreach (['http://github.com/file', 'https://evil.example/file', 'https://github.com.evil.example/file', 'https://github.com@evil.example/file', 'https://github.com:444/file', 'https://api.github.com/\\evil'] as $url) {
             $fake->responses[$zipUrl]['headers']['location'] = $url;
             throws(fn () => $github->download($release, $root . '/download.zip'));
@@ -223,22 +262,21 @@ test('Updater: expanded size limit rejects compressed bombs before extraction', 
         same([], glob($root . '/storage/updates/staging-*')); same('0.1.0', Version::current($root));
     } finally { ReleasePackage::removeTree($root); }
 });
-test('Admin updates HTTP: settings, secret redaction, password recheck and maintenance access', function () {
+test('Admin updates HTTP: official repository, password recheck and maintenance access', function () {
     $c = new AdminHttpClient();
     try {
         $token = $c->token(); $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']);
         $token = $c->token('/admin/updates');
-        [$h, $html] = $c->request('/admin/updates'); contains('Online checks are disabled', $html); contains('0.1.0', $html);
-        $c->request('/admin/updates', 'POST', ['csrf_token' => $token, 'action' => 'settings', 'repository' => 'owner/repo', 'token' => 'secret-do-not-echo']);
-        [$h, $html] = $c->request('/admin/updates'); contains('owner/repo', $html); ok(!str_contains($html, 'secret-do-not-echo'));
-        same('secret-do-not-echo', $c->db->one('SELECT value FROM settings WHERE `key` = ?', ['update_token'])['value']);
+        [$h, $html] = $c->request('/admin/updates'); contains('0.1.0', $html);
+        contains('href="https://github.com/JokerM7776/Meteor/releases"', $html); contains('value="check"', $html);
+        ok(!str_contains($html, 'name="repository"')); ok(!str_contains($html, 'name="token"'));
+        $c->request('/admin/updates', 'POST', ['csrf_token' => $token, 'action' => 'settings', 'repository' => 'owner/repo', 'token' => 'x']);
+        same(null, $c->db->one("SELECT value FROM settings WHERE `key` IN ('update_repository', 'update_token')"));
         $c->request('/admin/updates', 'POST', ['csrf_token' => $token, 'action' => 'upload', 'current_password' => 'incorrect']);
         [, $html] = $c->request('/admin/updates'); contains('Current password is incorrect', $html);
         same([], glob($c->root . '/storage/backups/*'));
         file_put_contents($c->root . '/storage/maintenance.flag', 'test');
         [$h, $html] = $c->request('/admin/updates'); contains('200 OK', $h); contains('Upload update zip', $html);
-        $c->request('/admin/updates', 'POST', ['csrf_token' => $token, 'action' => 'settings', 'repository' => '', 'clear_token' => '1']);
-        same('', $c->db->one('SELECT value FROM settings WHERE `key` = ?', ['update_token'])['value']);
     } finally { $c->close(); }
 });
 test('Updates view: release names and notes remain escaped plain text', function () {

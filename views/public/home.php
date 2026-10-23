@@ -4,7 +4,7 @@
 <p class="eyebrow"><?php $names = []; foreach ($live as $code) { $names[] = $registry[$code]['native_name']; } ?><?= e(implode(' · ', $names)) ?></p>
 <h1 class="max-w-[14ch] text-[44px] leading-none font-bold tracking-[-.035em] md:text-[80px]"><?= e($settings->label('home_heading')) ?></h1>
 <p class="max-w-[56ch] text-[17px] leading-relaxed md:text-[19px] text-slate-700 dark:text-slate-300"><?= e($settings->label('home_intro')) ?></p>
-<div class="flex flex-wrap gap-3 pt-2"><a class="button-primary" href="<?= e('/' . $locale . '/posts') ?>"><?= e(__('read_archive')) ?> →</a><?php if (!$preview): ?><a class="button-secondary hidden md:inline-flex" href="<?= e('/' . $locale . '/rss.xml') ?>"><?= e(__('language_rss', ['language' => $registry[$locale]['name']])) ?></a><?php endif ?></div>
+<div class="flex flex-wrap gap-3 pt-2"><a class="button-primary" href="<?= e('/' . $locale . '/posts') ?>"><?= e(__('read_archive')) ?> →</a><?php if (!$preview): ?><a class="button-secondary hidden md:inline-flex" href="<?= e('/' . $locale . '/rss.xml') ?>"><?= e(__('language_rss', ['language' => $registry[$locale]['native_name']])) ?></a><?php endif ?></div>
 </div></section>
 <?php if ($pinned): ?>
 <section aria-labelledby="pinned" class="mx-auto hidden max-w-[1120px] px-4 md:block pt-10 pb-6 md:px-6 md:pt-[72px]">

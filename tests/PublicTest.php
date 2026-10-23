@@ -124,7 +124,7 @@ test('Public: localized settings fallback and custom CSS response', function () 
     $db = $app['db'];
     foreach (['custom_css' => 'body { color: red; }', 'copyright' => '© Demo & Co'] as $key => $value) { $db->upsert('settings', compact('key', 'value') + ['locale' => null], ['key', 'locale_scope']); }
     $db->upsert('settings', ['key' => 'home_heading', 'locale' => 'en', 'value' => 'Default intro'], ['key', 'locale_scope']);
-    $db->upsert('settings', ['key' => 'nav_posts', 'locale' => 'zh', 'value' => '所有文章'], ['key', 'locale_scope']);
+    (new App\Services\MenuEditor($db))->save('header', ['items' => [$db->one("SELECT id FROM menu_items WHERE menu = 'header' AND kind = 'posts'")['id'] => ['labels' => ['zh' => '所有文章']]]]);
     $html = publicRequest($app, '/zh/'); contains('Default intro', $html); contains('所有文章', $html); contains('© Demo &amp; Co', $html);
     contains('href="/custom.css"', $html);
     same('body { color: red; }', publicRequest($app, '/custom.css'));
@@ -147,4 +147,49 @@ test('Public: configurable RTL and off locales, reserved pages and RSS limit', f
         $db->upsert('post_translations', ['post_id' => $id, 'locale' => 'en', 'title' => 'Extra ' . $n, 'summary' => '', 'content_md' => '', 'content_html' => '', 'toc_html' => '', 'status' => 'published'], ['post_id', 'locale']);
     }
     same(20, count(simplexml_load_string($app['feeds']->rss('en'))->channel->item));
+});
+test('Public: identity, header and footer customization without scripts', function () {
+    $app = publicApp(); $db = $app['db']; $db->query('DELETE FROM settings'); $db->query('DELETE FROM menu_items');
+    $_SERVER['REQUEST_URI'] = '/en/';
+    $html = publicRequest($app, '/en/'); contains('<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">', $html);
+    preg_match('~<header\b.*?</header>~s', $html, $header);
+    foreach (['/en/posts', '/en/tags', '/en/rss.xml'] as $path) { contains('href="' . $path . '"', $header[0]); }
+    contains('Site</h2>', $html); contains('href="/sitemap.xml"', $html);
+    $set = function ($key, $value, $locale = null) use ($db) { $db->upsert('settings', compact('key', 'value', 'locale'), ['key', 'locale_scope']); };
+    $icon = '/uploads/' . str_repeat('a', 32) . '.png'; $set('site_icon', $icon);
+    $set('site_title', 'Custom & title', 'en'); $set('site_tagline', 'A tagline', 'en');
+    $set('footer_text', 'Footer <text>', 'en'); $set('copyright', '© {year} Custom', 'en'); $set('footer_menu_heading', 'More & more', 'en');
+    $menus = new App\Repositories\Menus($db); $menus->ensureDefaults(); $editor = new App\Services\MenuEditor($db);
+    $editor->save('header', ['items' => ['new' => ['url' => '/{locale}/?a=1&b=2', 'labels' => ['en' => '<Header>']]]]);
+    $editor->save('header', ['items' => ['new' => ['url' => '/en/', 'labels' => ['zh' => '只在中文']]]]);
+    $editor->save('header', ['items' => ['new' => ['url' => '/{locale}/', 'sort_order' => '-1', 'labels' => ['en' => 'Here']]]]);
+    $editor->save('footer', ['items' => ['new' => ['url' => 'HTTPS://example.com/?a=1&b=2', 'labels' => ['en' => '<Footer>']]]]);
+    $db->query("UPDATE menu_items SET url = 'javascript:alert(1)' WHERE url = '/en/'");
+    $html = publicRequest($app, '/en/');
+    contains('<link rel="icon" href="' . $icon . '">', $html); contains('<link rel="apple-touch-icon" href="' . $icon . '">', $html);
+    same(2, substr_count($html, '<img src="' . $icon)); ok(!str_contains($html, 'viewBox="0 0 28 28"'));
+    contains('A tagline', $html); contains('Footer &lt;text&gt;', $html); contains('© ' . gmdate('Y') . ' Custom', $html); contains('More &amp; more</h2>', $html);
+    contains('&lt;Header&gt;', $html); contains('href="/en/?a=1&amp;b=2"', $html); contains('href="/en/" aria-current="page">Here', $html);
+    ok(strpos($html, '>Here<') < strpos($html, 'href="/en/posts"'), 'Order follows sort_order');
+    contains('rel="noopener">&lt;Footer&gt;', $html); ok(!str_contains($html, 'javascript:')); ok(!str_contains($html, '<script'));
+    $zh = publicRequest($app, '/zh/'); contains('href="/zh/?a=1&amp;b=2"', $zh); contains('&lt;Header&gt;', $zh); ok(!str_contains($zh, '只在中文'));
+    foreach (['header_show_title', 'header_show_switcher', 'footer_show_languages', 'footer_show_feeds', 'footer_show_site'] as $key) { $set($key, '0'); }
+    $db->query("UPDATE menu_items SET is_visible = 0 WHERE menu = 'header' AND kind <> 'link'");
+    $html = publicRequest($app, '/en/'); contains('<span class="sr-only">Custom &amp; title</span>', $html);
+    preg_match('~<header\b.*?</header>~s', $html, $header);
+    foreach (['/en/posts', '/en/tags', '/en/about', '/en/rss.xml', 'aria-label="Language"'] as $hidden) { ok(!str_contains($header[0], $hidden), $hidden); }
+    foreach (['Read in</h2>', 'Feeds</h2>', 'More &amp; more</h2>'] as $hidden) { ok(!str_contains($html, $hidden), $hidden); }
+    $set('site_icon', '/uploads/' . str_repeat('b', 32) . '.ico'); ok(!str_contains(publicRequest($app, '/en/'), 'apple-touch-icon'));
+    unset($_SERVER['REQUEST_URI']);
+});
+test('Public: menu built-ins for nav pages, About de-duplication and preview RSS', function () {
+    $app = publicApp(true); $db = $app['db'];
+    $db->query("UPDATE pages SET show_in_nav = 1, is_published = 1 WHERE slug = 'about'");
+    $db->query("UPDATE page_translations SET nav_label = 'Who we are', status = 'published' WHERE locale = 'en' AND page_id = (SELECT id FROM pages WHERE slug = 'about')");
+    $html = publicRequest($app, '/en/'); preg_match('~<header\b.*?</header>~s', $html, $header);
+    contains('Who we are', $header[0]); same(2, substr_count($header[0], 'href="/en/about"'));
+    preg_match('~<footer\b.*?</footer>~s', $html, $footer); contains('href="/en/about"', $footer[0]);
+    $db->query("UPDATE menu_items SET is_visible = 0 WHERE menu = 'header' AND kind = 'pages'");
+    preg_match('~<header\b.*?</header>~s', publicRequest($app, '/en/'), $header); ok(!str_contains($header[0], 'Who we are')); contains('href="/en/about"', $header[0]);
+    preg_match('~<header\b.*?</header>~s', publicRequest($app, '/ms/'), $header); ok(!str_contains($header[0], 'rss.xml'));
 });

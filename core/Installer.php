@@ -8,7 +8,7 @@ final class Installer
     public function requirements(): array
     {
         $checks = ['PHP >= 8.2' => version_compare(PHP_VERSION, '8.2', '>=')];
-        foreach (['pdo', 'openssl', 'mbstring', 'zip', 'curl'] as $extension) { $checks['ext-' . $extension] = extension_loaded($extension); }
+        foreach (['pdo', 'openssl', 'mbstring', 'intl', 'fileinfo', 'zip', 'curl'] as $extension) { $checks['ext-' . $extension] = extension_loaded($extension); }
         $checks['PDO MySQL or SQLite'] = extension_loaded('pdo_mysql') || extension_loaded('pdo_sqlite');
         foreach (['' => '.env location', '/storage' => 'storage', '/public/uploads' => 'public/uploads'] as $path => $label) { $checks['Writable ' . $label] = is_writable($this->root . $path); }
         return $checks;
@@ -20,6 +20,19 @@ final class Installer
             return new Database($config);
         }
         catch (\Throwable $e) { throw new \RuntimeException('Database connection failed. Check the driver, address, credentials and database permissions.', 0, $e); }
+    }
+    /**
+     * Installs from ADMIN_USER / ADMIN_PASS in .env, for hosts whose firewall blocks the setup form.
+     * The database settings come from the same .env. Both keys are removed from .env afterwards.
+     */
+    public function installFromEnv(string $fallbackUrl): bool
+    {
+        $env = Env::load($this->root . '/.env');
+        $get = static fn (string $key): string => getenv($key) === false ? (string) ($env[$key] ?? '') : (string) getenv($key);
+        if ($get('ADMIN_USER') === '' || $get('ADMIN_PASS') === '') { return false; }
+        $config = (static fn (string $file): array => require $file)($this->root . '/config/config.php');
+        $this->install($config['database'], $get('APP_URL') ?: $fallbackUrl, $get('SITE_TITLE') ?: 'Meteor', $get('ADMIN_USER'), $get('ADMIN_PASS'));
+        return true;
     }
     public function install(array $config, string $url, string $title, string $username, string $password): Database
     {
@@ -36,6 +49,7 @@ final class Installer
             if ($this->installed()) { throw new \RuntimeException('Meteor is already installed.'); }
             $env = ['APP_URL' => rtrim($url, '/'), 'DB_DRIVER' => $config['driver'], 'DB_PATH' => $config['path'] ?? '', 'DB_HOST' => $config['host'] ?? '', 'DB_PORT' => $config['port'] ?? '3306', 'DB_NAME' => $config['name'] ?? '', 'DB_USER' => $config['user'] ?? '', 'DB_PASS' => $config['password'] ?? '', 'WEBAUTHN_RP_ID' => parse_url($url, PHP_URL_HOST)];
             $env += Env::load($this->root . '/.env');
+            unset($env['ADMIN_USER'], $env['ADMIN_PASS']);
             $text = '';
             foreach ($env as $key => $value) { $text .= $key . '="' . strtr((string) $value, ['\\' => '\\\\', '"' => '\\"', "\n" => '\\n', "\r" => '\\r', "\t" => '\\t']) . "\"\n"; }
             $temp = $this->root . '/.env.install-' . bin2hex(random_bytes(8));
@@ -49,6 +63,8 @@ final class Installer
                     $db->query('INSERT INTO locales (code, name, native_name, status, is_default, sort_order, direction) VALUES (?, ?, ?, ?, ?, ?, ?)', ['en', 'English', 'English', 'live', 1, 0, 'ltr']);
                     $db->query('INSERT INTO users (username, password_hash) VALUES (?, ?)', [$username, password_hash($password, PASSWORD_DEFAULT)]);
                     $db->upsert('settings', ['key' => 'site_title', 'locale' => 'en', 'value' => $title], ['key', 'locale_scope']);
+                    (new \App\Repositories\Menus($db))->ensureDefaults();
+                    \App\Services\LanguagePacks::sync($db, $this->root . '/lang');
                     (new Migrator($db, $this->root . '/database/migrations'))->markAll();
                 };
                 if ($db->driver() === 'sqlite') { $db->transaction($create); } else { $create(); }

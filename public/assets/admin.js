@@ -1,4 +1,17 @@
 'use strict';
+// Big translation tables: send only the cells that changed, so the form stays far below
+// PHP's max_input_vars. Without JavaScript every cell is sent and the server still accepts it.
+(() => {
+  for (const form of document.querySelectorAll('form[data-changed-only]')) {
+    form.addEventListener('submit', () => {
+      for (const field of form.querySelectorAll('input[name^="strings["], textarea[name^="strings["]')) {
+        if (field.value === field.defaultValue && !field.hasAttribute('data-unsaved')) field.disabled = true;
+      }
+    });
+    // Re-enable after a back/forward cache restore.
+    window.addEventListener('pageshow', () => { for (const field of form.querySelectorAll('[disabled]')) field.disabled = false; });
+  }
+})();
 (() => {
   const login = document.getElementById('passkey-login');
   const add = document.getElementById('passkey-add');

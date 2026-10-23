@@ -18,9 +18,11 @@ a **zero-JavaScript public frontend**, and a small admin area where minimal JS i
    - `preview`: only signed-in admins can open its URLs; everyone else gets a 404.
    - `off`: hidden everywhere; translations are kept.
    The router builds its valid prefixes from this table. Order of the switcher = `sort_order`.
-   UI strings ("Read more" etc.) live in a `ui_strings` table (locale, key, value). `lang/en.php`
-   holds the built-in English defaults; a missing key falls back to the default locale, then to
-   `lang/en.php`, then to the key itself. Never assume `zh`/`ms` exist — they are only examples.
+   Interface text ("Read more" etc.): site edits in `ui_strings` (locale, key, value) → language
+   file `lang/<code>.json` → default locale → `lang/en.php` (built-in English, public keys only) →
+   the key. Bundled language files (`zh`, `ms`) are added as **Off**; only English is live after
+   install. Language files are JSON and can be exported/imported in admin. Never assume `zh`/`ms`
+   are enabled.
 2. **Database: MariaDB/MySQL is the primary target, SQLite must also work.** Use PDO only. Keep SQL
    to the portable subset. Ship `database/schema.mysql.sql` and `database/schema.sqlite.sql`
    (utf8mb4 / InnoDB on MySQL). No `ENUM` (use `VARCHAR` + `CHECK`); keep driver-specific SQL
@@ -32,8 +34,9 @@ a **zero-JavaScript public frontend**, and a small admin area where minimal JS i
    UP flag, and sign counter. The login page uses `autocomplete="username webauthn"` and a
    "Sign in with a passkey" button (small admin JS file, no libraries).
 4. **Admin pages** (see design): Login, Posts (translation matrix), Editor (side-by-side), Pages,
-   Categories & tags, **Languages**, Settings (site title / nav labels / UI strings per locale,
-   custom CSS), **Security** (change username, change password, list/add/rename/remove passkeys).
+   Categories & tags (table: one row per term, one column per language), **Languages**,
+   **Header & footer** (menu tables), Settings (site icon, site-text table, custom CSS; tab
+   *Interface text* = table of all languages), **Security** (change username, change password, list/add/rename/remove passkeys).
 5. **Styling: Tailwind CSS v4** via the standalone CLI (`tailwindcss`, already installed — no Node).
    Input `src/app.css`, output `public/assets/style.css` (minified, **committed** so deploys need no
    build step). Dark mode = Tailwind's default `dark:` variant (`prefers-color-scheme`).
@@ -78,7 +81,7 @@ a **zero-JavaScript public frontend**, and a small admin area where minimal JS i
 /core          Router, Database, Markdown, I18n, View, Csrf, Session, Auth, WebAuthn, Cbor, helpers
 /app           controllers (Public/*, Admin/*) and small repositories/services
 /views         public/ and admin/ PHP templates + layouts/partials
-/lang          en.php (built-in English UI defaults)
+/lang          en.php (built-in English UI text), <code>.json language files (zh, ms)
 /database      schema.mysql.sql, schema.sqlite.sql
 /bin           install.php (create schema + first admin + en locale), seed.php (demo content),
                build-css.sh

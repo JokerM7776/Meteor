@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace App\Controllers\Admin;
 use Core\{Auth, Csrf, Database, I18n, Session, View, WebAuthn};
-use App\Services\{Account, AdminSettings, ContentEditor, Languages, TaxonomyEditor};
+use App\Services\{Account, AdminSettings, ContentEditor, Languages, MenuEditor, TaxonomyEditor, UiStrings};
 
 final class AdminController
 {
@@ -16,8 +16,10 @@ final class AdminController
     }
     private function render(string $template, string $title, array $data = []): string
     {
+        $settings = new \App\Repositories\Settings($this->db, $this->i18n);
         $flash = $_SESSION['flash'] ?? ''; unset($_SESSION['flash']);
         return $this->view->render('admin/' . $template, $data + ['title' => $title, 'flash' => $flash, 'i18n' => $this->i18n,
+            'siteIcon' => $settings->icon(), 'siteTitle' => $settings->get('site_title', $this->i18n->defaultLocale(), 'Meteor'),
             'user' => $this->auth->user(), 'active' => $template, 'error' => ''], 'layouts/admin');
     }
     public function handle(string $path): string
@@ -57,30 +59,80 @@ final class AdminController
             if ($post) { (new ContentEditor($this->db))->delete($m[1] === 'pages', (int) $m[2]); return $this->go('/admin/' . $m[1], 'Deleted.'); }
             return $this->render('delete', 'Delete ' . ($m[1] === 'pages' ? 'page' : 'post'), ['action' => $path]);
         }
+        if (preg_match('~^/admin/taxonomy/(category|tag)/(\d+)/delete$~D', $path, $m)) {
+            $editor = new TaxonomyEditor($this->db);
+            $term = $editor->find($m[1], (int) $m[2]);
+            if (!$term) { http_response_code(404); return $this->render('message', 'Not found', ['message' => 'This term no longer exists.']); }
+            if ($post) { $editor->delete($m[1], (int) $m[2]); return $this->go('/admin/taxonomy', ucfirst($m[1]) . ' “' . $term['slug'] . '” deleted.'); }
+            return $this->render('taxonomy-delete', 'Delete ' . $m[1], ['kind' => $m[1], 'term' => $term, 'action' => $path]);
+        }
         if (in_array($path, ['/admin/posts', '/admin/pages'], true) && !$post) { return $this->matrix($path === '/admin/pages'); }
-        $section = match ($path) { '/admin/languages' => 'languages', '/admin/settings' => 'settings', '/admin/taxonomy' => 'taxonomy', '/admin/security' => 'security', default => '' };
+        if ($path === '/admin/languages/export' && !$post) {
+            $code = (string) ($_GET['code'] ?? '');
+            try { $json = (new UiStrings($this->db))->export($code); }
+            catch (\InvalidArgumentException $e) { http_response_code(404); return $this->render('message', 'Not found', ['message' => $e->getMessage()]); }
+            header('Content-Type: application/json; charset=UTF-8');
+            header('Content-Disposition: attachment; filename="meteor-language-' . $code . '.json"');
+            header('X-Content-Type-Options: nosniff');
+            return $json;
+        }
+        if ($path === '/admin/languages' && $post && ($_POST['action'] ?? '') === 'import') {
+            $file = $_FILES['language_file'] ?? [];
+            try {
+                if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'] ?? '') || ($file['size'] ?? 0) > \Core\LanguagePack::MAX_BYTES) {
+                    throw new \InvalidArgumentException('Choose a Meteor language file (.json, up to 256 KB).');
+                }
+                $message = (new UiStrings($this->db))->import((string) file_get_contents($file['tmp_name']), !empty($_POST['update_names']));
+            } catch (\InvalidArgumentException $e) { $message = $e->getMessage(); }
+            return $this->go('/admin/languages', $message);
+        }
+        $section = match ($path) { '/admin/languages' => 'languages', '/admin/menus' => 'menus', '/admin/settings' => 'settings', '/admin/strings' => 'strings', '/admin/taxonomy' => 'taxonomy', '/admin/security' => 'security', default => '' };
         if ($section !== '') {
             $error = ''; $old = $_SESSION['old'][$section] ?? []; unset($_SESSION['old'][$section]);
             if ($post) {
                 try {
                     match ($section) {
                         'languages' => (new Languages($this->db))->save($_POST['action'] ?? 'add', $_POST),
-                        'settings' => (new AdminSettings($this->db))->save($_POST['locale'] ?? '', $_POST),
+                        'settings' => (new AdminSettings($this->db))->save($_POST, $_FILES['site_icon'] ?? null),
+                        'strings' => $this->saveStrings(),
+                        'menus' => (new MenuEditor($this->db))->save((string) ($_POST['menu'] ?? ''), $_POST),
                         'taxonomy' => (new TaxonomyEditor($this->db))->save($_POST),
                         'security' => (new Account($this->db))->update($user, $_POST['action'] ?? '', $_POST),
                     };
-                    return $this->go($path . ($section === 'settings' ? '?locale=' . rawurlencode($_POST['locale']) : ''), $section === 'security' && ($_POST['action'] ?? '') === 'remove' ? 'Passkey removed. Password sign-in remains available.' : 'Changes saved.');
+                    return $this->go($path . $this->query($section), $section === 'security' && ($_POST['action'] ?? '') === 'remove' ? 'Passkey removed. Password sign-in remains available.' : 'Changes saved.');
                 } catch (\InvalidArgumentException $e) {
                     $safe = $_POST; foreach (['current_password', 'new_password', 'new_password_confirm'] as $key) { unset($safe[$key]); }
                     $_SESSION['old'][$section] = $safe;
-                    return $this->go($path . ($section === 'settings' ? '?locale=' . rawurlencode($_POST['locale'] ?? '') : ''), $e->getMessage());
+                    return $this->go($path . $this->query($section), $e->getMessage());
                 }
             }
             $locale = (string) ($_GET['locale'] ?? $this->i18n->defaultLocale());
             if (!isset($this->i18n->registry()[$locale])) { $locale = $this->i18n->defaultLocale(); }
-            return $this->render($section, ['taxonomy' => 'Categories & tags'][$section] ?? ucfirst($section), ['db' => $this->db, 'locale' => $locale, 'old' => $old]);
+            $data = ['db' => $this->db, 'locale' => $locale, 'old' => $old];
+            if ($section === 'menus') {
+                $menus = new \App\Repositories\Menus($this->db); $menus->ensureDefaults();
+                $data['menus'] = ['header' => $menus->rows('header'), 'footer' => $menus->rows('footer')];
+            }
+            return $this->render($section, ['taxonomy' => 'Categories & tags', 'menus' => 'Header & footer', 'strings' => 'Interface text'][$section] ?? ucfirst($section), $data);
         }
         http_response_code(404); return $this->render('message', 'Not found', ['message' => 'This admin page does not exist.']);
+    }
+    /** Query string to return to after saving a section, so the admin lands on the same view. */
+    private function query(string $section): string
+    {
+        $keep = match ($section) { 'taxonomy' => ['q'], 'strings' => ['q', 'missing'], default => [] };
+        $query = [];
+        foreach ($keep as $key) { if (is_string($_GET[$key] ?? null) && trim($_GET[$key]) !== '') { $query[$key] = trim($_GET[$key]); } }
+        return $query ? '?' . http_build_query($query) : '';
+    }
+    private function saveStrings(): void
+    {
+        // PHP silently drops fields past max_input_vars; refuse rather than save half a table.
+        $limit = (int) ini_get('max_input_vars');
+        if ($limit > 0 && count($_POST, COUNT_RECURSIVE) >= $limit - 1) {
+            throw new \InvalidArgumentException('Too many fields to save at once. Filter the table (search or “Only rows with missing text”) and save again.');
+        }
+        (new UiStrings($this->db))->save(is_array($_POST['strings'] ?? null) ? $_POST['strings'] : []);
     }
     private function passkey(string $path, ?array $user, bool $post): string
     {

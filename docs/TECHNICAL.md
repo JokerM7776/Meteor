@@ -30,16 +30,42 @@ Accept-Language negotiation. Configure these options in `/admin/languages`.
 `php bin/seed.php` adds seven English demo posts, categories, tags and an About page.
 `php bin/seed.php --demo-locales` also adds live Chinese and preview Malay, with sample
 translations. Reruns update the demo rows by slug without duplicating them; use this
-only in development because edited demo content is replaced. Existing locale statuses
-are preserved. Preview access requires a valid signed-in admin session (user ID and
+only in development because edited demo content is replaced. Languages the installer added
+as Off are switched to the demo status; other existing statuses are preserved. Preview access requires a valid signed-in admin session (user ID and
 matching session version), and preview locales never appear in feeds or SEO alternates.
 
-Settings use keys `site_title`, `home_heading`, `home_intro`, `nav_posts`, `nav_tags`,
-`nav_about`, `nav_rss`, `language_label`, and `copyright`. Localized values fall back
+Per-language settings are `site_title`, `site_tagline`, `home_heading`, `home_intro`,
+`footer_text`, `copyright`, `language_label` and `footer_menu_heading`. Admin → Settings
+edits them as one table (rows = keys, columns = languages); a save changes only the
+cells it posts, and an empty cell deletes that row. The copyright token `{year}` is
+replaced with the current UTC year. Footer text defaults to `footer_description`. Localized values fall back
 to the default locale, then a global row, then the built-in UI text. `language_label`
 controls the compact header label; native names remain in translation bars and footers.
 Global `posts_per_page` defaults to 10, and `custom_css` is served at `/custom.css`
 with a five-minute cache and ETag. The layout links it only when non-empty.
+
+Global identity settings are `site_icon`, `header_show_icon`, `header_show_title`,
+`header_show_switcher`, `footer_show_languages`, `footer_show_feeds`, and
+`footer_show_site` (the footer menu column). Toggles default on; at least the header
+icon or title must remain visible.
+Site icons accept PNG/JPG/WebP/ICO up to 1 MB, validated by MIME and image data
+(or the ICO header). Random upload names are cleaned up after replacement/removal;
+failed database saves remove the new upload. The default is `/assets/favicon.svg`.
+Header and footer menus live in `menu_items` (menu `header`|`footer`, kind, url,
+sort_order, is_visible) and `menu_item_labels` (item, locale, label). Each menu holds
+every built-in kind once — `posts`, `tags`, `about`, `pages` (expands to published pages
+with “Show in navigation”), `rss` (hidden on preview locales), `sitemap` — which can be
+hidden and reordered but not removed, plus up to 30 rows in total including custom
+`link` rows. Built-in labels fall back to the UI string in that language; link labels
+fall back to the default language, and a link with neither is not shown. `{locale}` in
+a link URL becomes the current language code. Only single-slash root paths, fragments,
+HTTP(S) and mailto are allowed (`SiteLinks::validUrl`), checked on save and on render.
+The built-in About link is skipped when the same menu shows an `about` nav page.
+Admin → Header & footer edits both menus as tables (one column per language); rows and
+languages missing from a post are left unchanged. Migration `003_menus` creates the tables
+and converts the earlier `nav_show_*`, `nav_*` label and `header_links`/`footer_links`
+settings. Categories & tags are also tables: each row is its own form (HTML `form`
+attribute), so saving a row never posts the rest; deletion goes through a confirmation page.
 
 Route registration lives in `app/routes.php`; repositories and public controllers live
 under `app/`. Internal URLs are root-relative; `APP_URL` supplies canonical, hreflang,
@@ -99,9 +125,26 @@ attestation and supports ES256 and RS256. Admin JavaScript is limited to WebAuth
 
 Posts and Pages have a per-language matrix, search and pagination. The editor saves
 Markdown and compiles HTML/TOC on save; translation publication and shared site
-visibility are separate controls. Languages start in Preview. Empty settings and
-UI strings fall back to the default locale and then built-in English. Custom CSS
-is served as a stylesheet, never injected into HTML.
+visibility are separate controls. Languages start in Preview. Empty settings fall
+back to the default locale and then built-in English. Custom CSS is served as a
+stylesheet, never injected into HTML.
+
+Interface text has three layers: site edits in `ui_strings` → the language file
+`lang/<code>.json` → the default language → `lang/en.php` → the key. `lang/en.php` lists
+only keys the public pages use, each in one group of `App\Services\UiStrings::GROUPS`.
+A language file is JSON (never PHP, so importing cannot run code):
+`{"meteor_language_pack": 1, "code", "name", "native_name", "direction", "strings": {key: text}}`,
+up to 256 KB; unknown keys and texts whose `{placeholders}` differ from English are
+skipped (`Core\LanguagePack`). Admin → Settings → Interface text edits all languages in one
+table; a cell equal to the language file is not stored, so file improvements still arrive
+with updates, and cells that were not posted (or did not change) are left alone. The admin
+script posts only edited cells; the server refuses a post that reaches `max_input_vars`.
+Languages → *Download file* exports a language's own text; *Import a language file* stores
+the differences as site edits and adds an unknown language as Off.
+Bundled files are added as **Off** languages once: by the installer, by migration `004`,
+and after every update/`bin/migrate.php` (`App\Services\LanguagePacks::sync`). Offered codes
+are remembered in the global setting `language_packs_known`, so a deleted language is not
+re-added. `{language}` placeholders receive the language's native name.
 
 Cover uploads require PHP fileinfo, writable `public/uploads`, `upload_max_filesize`
 of at least `5M`, and `post_max_size` large enough for the file plus form text (for
@@ -136,7 +179,9 @@ The root index.php and .htaccess are managed release files, so updaters before t
 change reject the new zips ("Unsafe manifest path"); update those installs once by
 unzipping over them.
 
-Open the site to reach /install. The installer checks PHP >= 8.2, PDO and an
+Open the site root (/) to reach the installer; every other URL redirects there until
+Meteor is installed. It lives at / rather than /install because host firewalls such as
+Imunify360 commonly block /install paths. The installer checks PHP >= 8.2, PDO and an
 available database driver, OpenSSL, mbstring, zip, curl and writable locations.
 Choose MariaDB/MySQL (create an empty database first) or a persistent SQLite file
 outside public/. SQLite's parent directory must exist and be writable. Test the
@@ -146,7 +191,12 @@ are never filled back into the page, so re-enter one after testing a connection.
 
 The web and CLI installers use the same service. Installation creates English,
 a lowercase admin username, hashed password, migration history, a mode-0600 .env
-and storage/installed.lock. It redirects to sign-in; /install then returns 404.
+and storage/installed.lock. It redirects to sign-in; / then serves the site.
+
+Install from .env (no form): when .env sets ADMIN_USER and ADMIN_PASS, the first GET of /
+installs with the .env database settings, APP_URL (else the request's address) and
+SITE_TITLE (default "Meteor"), removes ADMIN_USER and ADMIN_PASS from .env and redirects to
+sign-in. If it fails, the form is shown with the error.
 Until both .env and the lock exist, non-asset requests redirect to the installer.
 Install promptly before exposing an unconfigured site to other users.
 
@@ -164,11 +214,10 @@ cannot be rolled back, and filesystem writes cannot share a database transaction
 
 ## Online and manual updates
 
-Open **Admin → Updates**. Set a GitHub repository as owner/name; leaving it empty
-disables online checking. A private repository may need a fine-grained GitHub
-token with repository contents read access. Tokens are stored in the database,
-never displayed, and only sent to api.github.com. Blank keeps the saved token;
-the remove checkbox clears it.
+Open **Admin → Updates**. Online updates always come from the public official
+repository `JokerM7776/Meteor` (`Core\GitHubUpdates::REPOSITORY`); no token is
+sent. Migration `004` removes the old `update_repository` / `update_token` settings.
+Manual zip upload stays available for any trusted release.
 
 Check for updates to see the latest version, release date and plain-text notes.
 Download and install fetches the latest release again, downloads its matching zip

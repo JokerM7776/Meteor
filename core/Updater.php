@@ -131,6 +131,7 @@ final class Updater
             }
             foreach ($removed as $path) { $this->delete($path); }
             (new Migrator($this->db, $this->root . '/database/migrations'))->run();
+            \App\Services\LanguagePacks::sync($this->db, $this->root . '/lang');
             if (function_exists('opcache_reset')) { opcache_reset(); }
             $this->log('update ' . $manifest['version'], 'success'); $this->prune();
         } catch (\Throwable $error) {

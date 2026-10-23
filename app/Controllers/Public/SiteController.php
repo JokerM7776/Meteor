@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace App\Controllers\Public;
 
-use App\Repositories\{Posts, Pages, Taxonomy, Settings};
+use App\Repositories\{Menus, Posts, Pages, Taxonomy, Settings};
 use Core\{Database, I18n, View};
 
 final class SiteController
@@ -11,12 +11,14 @@ final class SiteController
     public Pages $pages;
     public Taxonomy $taxonomy;
     public Settings $settings;
+    public Menus $menus;
     public function __construct(Database $db, private I18n $i18n, private View $view, private bool $admin = false)
     {
         $this->posts = new Posts($db);
         $this->pages = new Pages($db);
         $this->taxonomy = new Taxonomy($db);
         $this->settings = new Settings($db, $i18n);
+        $this->menus = new Menus($db);
     }
     public function render(string $template, string $locale, array $data = [], int $status = 200): string
     {
@@ -36,10 +38,13 @@ final class SiteController
         foreach ($this->i18n->enabledLocales($this->admin) as $code) {
             $switcher[$code] = '/' . $code . (in_array($code, array_column($translations, 'code'), true) ? $suffix : '/');
         }
+        $menu = ['locale' => $locale, 'default' => $this->i18n->defaultLocale(), 'preview' => $preview, 'active' => $data['active'] ?? '',
+            'navPages' => array_values(array_filter($this->pages->published($locale), fn ($p) => (bool) $p['show_in_nav'])),
+            'path' => (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), 'translate' => fn (string $key) => $this->i18n->translate($key)];
         return $this->view->render('public/' . $template, $data + [
             'i18n' => $this->i18n, 'settings' => $this->settings, 'view' => $this->view,
             'locale' => $locale, 'registry' => $this->i18n->registry(), 'preview' => $preview,
-            'navPages' => array_filter($this->pages->published($locale), fn ($p) => (bool) $p['show_in_nav']),
+            'headerLinks' => $this->menus->links('header', $menu), 'footerLinks' => $this->menus->links('footer', $menu),
             'live' => $this->i18n->enabledLocales(), 'switcher' => $switcher,
             'alternates' => $preview || $status !== 200 ? [] : $alternates,
             'canonical' => $status === 200 ? '/' . $locale . $suffix : null,
@@ -91,7 +96,7 @@ final class SiteController
         $suffix = '/' . $kind . ($slug !== null ? '/' . rawurlencode($slug) : '');
         return $this->render('archive', $locale, compact('categories', 'tags', 'selected', 'groups', 'page', 'totalPages', 'suffix') + [
             'title' => $selected['name'] ?? __($kind === 'tags' ? 'tags' : 'archive'), 'active' => $kind === 'tags' ? 'tags' : 'posts',
-            'description' => __('archive_description', ['language' => $this->i18n->registry()[$locale]['name']]),
+            'description' => __('archive_description', ['language' => $this->i18n->registry()[$locale]['native_name']]),
             'canonical' => '/' . $locale . $suffix . ((int) $page > 1 ? '?page=' . $page : ''),
         ]);
     }

@@ -22,7 +22,6 @@ final class CurlHttpClient implements HttpClient
             },
         ]);
         $result = curl_exec($handle); $status = curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
-        curl_close($handle);
         if ($overflow) { throw new \RuntimeException('Download exceeds the size limit.'); }
         if ($result === false) { throw new \RuntimeException('GitHub request failed. Check network access and try again.'); }
         return ['status' => $status, 'headers' => $responseHeaders, 'body' => $body];

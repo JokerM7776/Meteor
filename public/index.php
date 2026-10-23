@@ -6,7 +6,7 @@ if (PHP_SAPI === 'cli-server') {
     $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     $file = is_string($path) ? realpath(__DIR__ . rawurldecode($path)) : false;
     if ($file && str_starts_with($file, __DIR__ . DIRECTORY_SEPARATOR) && is_file($file)
-        && preg_match('/\.(?:css|png|jpe?g|gif|webp|ico|woff2?)$/i', $file)) {
+        && preg_match('/\.(?:css|svg|png|jpe?g|gif|webp|ico|woff2?)$/i', $file)) {
         return false;
     }
 }
@@ -33,13 +33,13 @@ try {
     }
     $installer = new Core\Installer($root);
     if (!$installer->installed() && !str_starts_with($requestPath, '/assets/')) {
-        if ($requestPath !== '/install') { header('Location: /install', true, 302); exit; }
+        // The installer lives at / because host firewalls (e.g. Imunify360) often block /install.
+        if ($requestPath !== '/') { header('Location: /', true, 302); exit; }
         header('Cache-Control: no-store');
         Core\Session::start('meteor_session', !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
         echo (new App\Controllers\InstallController($root, $installer))->handle();
         exit;
     }
-    if ($requestPath === '/install') { http_response_code(404); echo 'Not found'; exit; }
     if (is_file($root . '/storage/maintenance.flag') && !$adminRequest) {
         http_response_code(503); header('Retry-After: 120'); header('Cache-Control: no-store');
         if ($_SERVER['REQUEST_METHOD'] !== 'HEAD') { echo 'Meteor is being updated. Please try again shortly.'; }

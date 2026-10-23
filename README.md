@@ -42,12 +42,18 @@ Check PHP with `php -v` and `php -m`.
      `example.com/meteor/`. A help page is shown if it is opened from a sub-folder.
    - **Nginx** never reads `.htaccess`, so there the document root **must** be `meteor/public`.
 4. If you use MariaDB/MySQL, [create an empty database and user](#3-create-the-database).
-5. Open your site in a browser. You are taken to **`/install`**, which:
+5. Open your site in a browser. Until Meteor is installed, the home page is the installer, which:
    - checks PHP requirements and folder permissions,
    - asks for the database (MariaDB/MySQL or SQLite) with a **Test connection** button,
    - asks for the site URL and title,
    - asks you to **choose the admin username and password** (12+ characters).
-6. Sign in at **`/admin/login`**. The installer locks itself afterwards (`/install` returns 404).
+6. Sign in at **`/admin/login`**. The installer locks itself afterwards.
+
+   **Form blocked by your host?** (for example a bare "403 Forbidden" from a firewall such as
+   Imunify360). Install from a file instead: copy `config/.env.example` to `.env` next to
+   `VERSION`, fill in `APP_URL` and the database settings, uncomment `ADMIN_USER` and `ADMIN_PASS`
+   with your chosen login, and open the site once. Meteor installs itself, deletes `ADMIN_USER`
+   and `ADMIN_PASS` from `.env`, and sends you to the sign-in page.
 
 > **There is no default username or password.** You choose them during installation.
 > Forgot the password? See [Reset an admin password](#8-reset-an-admin-password).
@@ -141,9 +147,20 @@ for uploading update zips allow `upload_max_filesize = 50M` and `post_max_size =
 ## 6. Using Meteor
 
 - **Admin:** `/admin` — Posts (translation matrix), Pages, Categories & tags, **Languages**,
-  Settings, **Security**, **Updates**.
+  **Header & footer**, Settings, **Security**, **Updates**.
 - **Add a language:** Admin → Languages → *Add a language*. It starts in **Preview**; translate,
   then click **Go live**. English is the default language.
+- **Customize the site:** Admin → Settings — upload an icon and edit the title, tagline, home
+  intro, footer text and copyright for every language in one table.
+- **Interface text and language files:** Admin → Settings → *Interface text* — every menu label,
+  button and heading in one table, one column per language. Meteor ships language files for
+  简体中文 (`zh`) and Bahasa Melayu (`ms`) in `lang/`; they start **Off** — switch one to Preview or
+  Live under Languages. Languages → *Download file* exports a language as JSON to share with
+  another site, and *Import a language file* brings one in (a new language is added as Off).
+- **Header and footer:** Admin → Header & footer — show, hide and reorder the built-in links,
+  add your own links with a label per language, and choose which footer columns to show.
+- **Categories & tags:** one table row per term with a column per language, so missing
+  translations stand out; each row saves on its own.
 - **Passkeys:** Admin → Security → *Add a passkey*. Requires HTTPS (or `localhost`) and correct
   `APP_URL` / `WEBAUTHN_RP_ID`. Password sign-in always stays available as a fallback.
 - **Change username or password:** Admin → Security. Changing the password signs out other sessions.
@@ -151,8 +168,9 @@ for uploading update zips allow `upload_max_filesize = 50M` and `post_max_size =
 
 ## 7. Updating
 
-- **Online:** Admin → Updates → enter the GitHub repository as `owner/name` → *Check for updates*
-  → *Download and install*. The checksum is verified and your password is required.
+- **Online:** Admin → Updates → *Check for updates* → *Download and install*. Releases come from the
+  official repository, [github.com/JokerM7776/Meteor](https://github.com/JokerM7776/Meteor/releases);
+  the checksum is verified and your password is required.
 - **Manual:** Admin → Updates → *Upload update zip*, or from the shell:
   `php bin/update.php /path/to/meteor-<version>.zip`
 
@@ -203,8 +221,9 @@ publishes a GitHub Release tagged `v<version>`. Setup once:
 
 1. Push the repository to GitHub.
 2. *Settings → Actions → General → Workflow permissions* → **Read and write permissions**.
-3. In your Meteor admin, *Updates* → set the repository to `owner/name`
-   (a private repository also needs a fine-grained token with read access to contents).
+
+Every Meteor site checks `JokerM7776/Meteor` (`Core\GitHubUpdates::REPOSITORY`) for updates; a fork
+that publishes its own releases changes that constant.
 
 Bump the major/minor part of `VERSION` (e.g. `0.2.0`) to start a new release series.
 

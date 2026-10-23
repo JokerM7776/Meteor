@@ -9,7 +9,10 @@ final class I18n
     private string $default;
     private string $current;
 
-    public function __construct(Database $db, private array $builtins)
+    private array $packs = [];
+
+    /** Text comes from: site edits (ui_strings) → the language file lang/<code>.json → default language → built-in English. */
+    public function __construct(Database $db, private array $builtins, ?string $packDirectory = null)
     {
         foreach ($db->all('SELECT * FROM locales ORDER BY sort_order, code') as $locale) {
             $this->locales[$locale['code']] = $locale;
@@ -20,12 +23,19 @@ final class I18n
         }
         $this->default = (string) array_key_first($defaults);
         $this->current = $this->default;
+        foreach (array_keys($this->locales) as $code) {
+            $this->packs[$code] = LanguagePack::bundled((string) $code, $builtins, $packDirectory)['strings'] ?? [];
+            $this->strings[$code] = $this->packs[$code];
+        }
         foreach ($db->all('SELECT locale, `key`, value FROM ui_strings') as $row) {
             $this->strings[$row['locale']][$row['key']] = $row['value'];
         }
     }
 
     public function registry(): array { return $this->locales; }
+    public function builtins(): array { return $this->builtins; }
+    /** Text from the bundled language file of a language, without site edits. */
+    public function packText(string $locale, string $key): ?string { return $this->packs[$locale][$key] ?? null; }
     public function defaultLocale(): string { return $this->default; }
     public function locale(): string { return $this->current; }
     public function direction(): string { return $this->locales[$this->current]['direction']; }
@@ -45,12 +55,18 @@ final class I18n
 
     public function translate(string $key, array $params = []): string
     {
-        $text = $this->strings[$this->current][$key] ?? $this->strings[$this->default][$key] ?? $this->builtins[$key] ?? $key;
+        $text = $this->translateFor($this->current, $key);
         $replace = [];
         foreach ($params as $name => $value) {
             $replace['{' . $name . '}'] = (string) $value;
         }
         return strtr($text, $replace);
+    }
+
+    /** The raw text of a key in any language, with the usual fallback chain and no placeholder replacement. */
+    public function translateFor(string $locale, string $key): string
+    {
+        return $this->strings[$locale][$key] ?? $this->strings[$this->default][$key] ?? $this->builtins[$key] ?? $key;
     }
 
     public function negotiate(string $header): string

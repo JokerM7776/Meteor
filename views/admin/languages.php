@@ -26,7 +26,7 @@
 <table class="w-full text-left text-sm">
 <thead class="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
 <tr>
-<?php foreach (['Order', 'Language', 'Status', 'Posts translated', 'UI strings', 'Actions'] as $heading): ?>
+<?php foreach (['Order', 'Language', 'Status', 'Posts translated', 'Interface text', 'Actions'] as $heading): ?>
 <th class="px-4 py-3">
 <?= e($heading) ?>
 </th>
@@ -34,7 +34,7 @@
 </tr>
 </thead>
 <tbody>
-<?php $builtin = require dirname(__DIR__, 2) . '/lang/en.php'; $totalPosts = $db->one('SELECT COUNT(*) AS n FROM posts')['n']; foreach ($i18n->registry() as $code => $language): $translated = $db->one('SELECT COUNT(*) AS n FROM post_translations WHERE locale = ?', [$code])['n']; $strings = array_column($db->all('SELECT `key` FROM ui_strings WHERE locale = ? AND value <> ?', [$code, '']), 'key'); ?>
+<?php $uiStrings = new \App\Services\UiStrings($db); $builtin = $uiStrings->builtins(); $overrides = $uiStrings->overrides(); $totalPosts = $db->one('SELECT COUNT(*) AS n FROM posts')['n']; foreach ($i18n->registry() as $code => $language): $translated = $db->one('SELECT COUNT(*) AS n FROM post_translations WHERE locale = ?', [$code])['n']; $ownText = count($uiStrings->own($code, $overrides)); ?>
 <tr class="border-t border-slate-200 dark:border-slate-800">
 <td class="px-4 py-4">
 <form method="post" class="flex gap-1">
@@ -61,8 +61,9 @@
 <td class="px-4 py-4 font-mono text-xs">
 <?= e($translated) ?> / <?= e($totalPosts) ?>
 </td>
-<td class="px-4 py-4 font-mono text-xs">
-<?= e($code === 'en' ? count($builtin) : count(array_intersect(array_keys($builtin), $strings))) ?> / <?= e(count($builtin)) ?>
+<td class="px-4 py-4">
+<span class="block font-mono text-xs"><?= e($ownText) ?> / <?= e(count($builtin)) ?></span>
+<span class="flex flex-wrap gap-x-3 text-sm"><a class="inline-flex min-h-11 items-center text-orange-700 dark:text-orange-400" href="/admin/strings">Edit<span class="sr-only"> interface text</span></a><a class="inline-flex min-h-11 items-center text-orange-700 dark:text-orange-400" href="/admin/languages/export?code=<?= e(rawurlencode($code)) ?>" download>Download file<span class="sr-only"> for <?= e($language['name']) ?></span></a></span>
 </td>
 <td class="px-4 py-4">
 <details>
@@ -123,7 +124,7 @@
 <?= \Core\Csrf::field() ?>
 <input type="hidden" name="action" value="add">
 <h2 class="text-xl font-bold">Add a language</h2>
-<p class="text-sm text-slate-600 dark:text-slate-400">It starts in Preview. Missing interface text falls back to the default language, then English.</p>
+<p class="text-sm text-slate-600 dark:text-slate-400">It starts in Preview. Missing interface text falls back to the default language, then English. Languages that ship with Meteor are already in the list above, switched Off.</p>
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 <?php foreach (['code' => 'Code', 'native_name' => 'Name in that language', 'name' => 'Name in English'] as $key => $label): ?>
 <label class="field">
@@ -139,6 +140,17 @@
 </div>
 <div class="flex justify-end">
 <button class="btn-primary">+ Add language</button>
+</div>
+</form>
+<form method="post" enctype="multipart/form-data" class="panel space-y-4">
+<?= \Core\Csrf::field() ?>
+<input type="hidden" name="action" value="import">
+<h2 class="text-xl font-bold">Import a language file</h2>
+<p class="text-sm text-slate-600 dark:text-slate-400">A Meteor language file (.json) holds the interface text of one language — download one from the table above to share it with another site. A new language is added as Off. Text that matches the built-in file is not stored, so later updates can still improve it.</p>
+<div class="flex flex-wrap items-end gap-5">
+<label class="field">Language file<input type="file" name="language_file" accept=".json,application/json" required></label>
+<label class="flex min-h-11 items-center gap-2"><input type="checkbox" name="update_names" value="1">Also update the names and text direction of an existing language</label>
+<button class="btn">Import</button>
 </div>
 </form>
 </div>
