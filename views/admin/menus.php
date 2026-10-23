@@ -1,5 +1,6 @@
 <?php
 $locales = $i18n->registry(); $default = $i18n->defaultLocale();
+$tab = ($_GET['tab'] ?? '') === 'footer' ? 'footer' : 'header';
 $globals = array_column($db->all('SELECT `key`, value FROM settings WHERE locale_scope = ?', ['']), 'value', 'key');
 $headings = array_column($db->all('SELECT locale, value FROM settings WHERE `key` = ? AND locale IS NOT NULL', ['footer_menu_heading']), 'value', 'locale');
 $toggle = function (string $key, string $label) use ($old, $globals): void { ?>
@@ -12,8 +13,9 @@ $toggle = function (string $key, string $label) use ($old, $globals): void { ?>
 <h1 class="text-[32px] font-bold tracking-tight">Header &amp; footer</h1>
 <p class="text-slate-600 dark:text-slate-400">Choose what appears in the header and footer, in which order, and what each link says in every language. An empty label uses the text shown in grey.</p>
 </header>
-
-<form method="post" class="space-y-4" aria-labelledby="header-heading">
+<?php $tabs = ['/admin/menus' => 'Header', '/admin/menus?tab=footer' => 'Footer']; $tabCurrent = $tab === 'footer' ? '/admin/menus?tab=footer' : '/admin/menus'; $tabsLabel = 'Header & footer sections'; $tabCounts = []; require __DIR__ . '/tabs.php'; ?>
+<?php if ($tab === 'header'): ?>
+<form method="post" action="/admin/menus" class="space-y-4" aria-labelledby="header-heading">
 <?= \Core\Csrf::field() ?>
 <input type="hidden" name="menu" value="header">
 <section class="panel space-y-4">
@@ -27,8 +29,8 @@ $toggle = function (string $key, string $label) use ($old, $globals): void { ?>
 <button class="btn-primary">Save header</button>
 </section>
 </form>
-
-<form method="post" class="space-y-4" aria-labelledby="footer-heading">
+<?php else: ?>
+<form method="post" action="/admin/menus?tab=footer" class="space-y-4" aria-labelledby="footer-heading">
 <?= \Core\Csrf::field() ?>
 <input type="hidden" name="menu" value="footer">
 <section class="panel space-y-4">
@@ -64,4 +66,5 @@ $toggle = function (string $key, string $label) use ($old, $globals): void { ?>
 <button class="btn-primary">Save footer</button>
 </section>
 </form>
+<?php endif ?>
 </div>

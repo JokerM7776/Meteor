@@ -11,8 +11,8 @@ if (PHP_SAPI === 'cli-server') {
     }
 }
 $adminRequest = preg_match('~^/admin(?:/|$)~', rawurldecode((string) parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH))) === 1;
-$scriptPolicy = $adminRequest ? "'self'" : "'none'";
-header("Content-Security-Policy: default-src 'self'; script-src $scriptPolicy; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https:; base-uri 'self'; form-action 'self'; frame-ancestors 'none'");
+require_once dirname(__DIR__) . '/core/helpers.php';
+header('Content-Security-Policy: ' . security_policy($adminRequest ? "'self'" : "'none'"));
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Content-Type: text/html; charset=UTF-8');

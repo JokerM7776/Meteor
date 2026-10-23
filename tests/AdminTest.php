@@ -163,3 +163,29 @@ test('Admin: taxonomy rows save independently and keep other languages', functio
     $editor->save(['kind' => 'tag', 'slug' => 'php', 'names' => ['en' => 'PHP', 'ja' => 'ピーエイチピー']]);
     same(1, count($editor->rows('tag', 'ピーエイチ'))); same(0, count($editor->rows('tag', 'nothing'))); same(1, count($editor->rows('category', 'COD')));
 });
+test('Admin: Turnstile keys are checked with Cloudflare and tokens verified', function () {
+    $db = database(); locale($db); $calls = [];
+    $reply = ['success' => false, 'error-codes' => ['invalid-input-secret']];
+    $send = function (string $url, array $fields) use (&$calls, &$reply): ?array { $calls[] = [$url, $fields]; return $reply; };
+    $guard = new App\Services\LoginProtection($db, true, $send);
+    ok($guard->passes('', '1.2.3.4'), 'Off means no check');
+    throws(fn () => $guard->save(['turnstile_enabled' => '1', 'turnstile_site_key' => '0x4AAAAAAAsite']), InvalidArgumentException::class);
+    throws(fn () => $guard->save(['turnstile_enabled' => '0', 'turnstile_site_key' => 'bad key!']), InvalidArgumentException::class);
+    throws(fn () => $guard->save(['turnstile_enabled' => '1', 'turnstile_site_key' => '0x4AAAAAAAsite', 'turnstile_secret_key' => '0x4AAAAAAAwrong']), InvalidArgumentException::class);
+    same('https://challenges.cloudflare.com/turnstile/v0/siteverify', $calls[0][0]); same('0x4AAAAAAAwrong', $calls[0][1]['secret']); ok(!$guard->active());
+    $reply = null;
+    throws(fn () => $guard->save(['turnstile_enabled' => '1', 'turnstile_site_key' => '0x4AAAAAAAsite', 'turnstile_secret_key' => '0x4AAAAAAAgood']), InvalidArgumentException::class);
+    $reply = ['success' => false, 'error-codes' => ['invalid-input-response']];
+    $guard->save(['turnstile_enabled' => '1', 'turnstile_site_key' => '0x4AAAAAAAsite', 'turnstile_secret_key' => '0x4AAAAAAAgood']);
+    ok($guard->active()); same('0x4AAAAAAAsite', $guard->siteKey());
+    // An empty secret field keeps the saved one.
+    $guard->save(['turnstile_enabled' => '1', 'turnstile_site_key' => '0x4AAAAAAAsite', 'turnstile_secret_key' => '']); same('0x4AAAAAAAgood', $guard->values()['secret']);
+    $calls = [];
+    ok(!$guard->passes('', '1.2.3.4')); ok(!$guard->passes(str_repeat('a', 2049), '1.2.3.4')); same([], $calls);
+    ok(!$guard->passes('token', '1.2.3.4'));
+    $reply = ['success' => true]; ok($guard->passes('token', '1.2.3.4'));
+    same(['secret' => '0x4AAAAAAAgood', 'response' => 'token', 'remoteip' => '1.2.3.4'], $calls[1][1]);
+    $reply = null; ok(!$guard->passes('token', '1.2.3.4'), 'Unreachable Cloudflare fails closed');
+    $off = new App\Services\LoginProtection($db, false, $send); ok(!$off->active()); ok($off->passes('', '1.2.3.4'));
+    $guard->save(['turnstile_enabled' => '0', 'turnstile_site_key' => '0x4AAAAAAAsite']); ok(!$guard->active());
+});

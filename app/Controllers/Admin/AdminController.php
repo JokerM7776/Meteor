@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace App\Controllers\Admin;
 use Core\{Auth, Csrf, Database, I18n, Session, View, WebAuthn};
-use App\Services\{Account, AdminSettings, Appearance, Author, ContentEditor, HomePage, Languages, MenuEditor, TaxonomyEditor, UiStrings};
+use App\Services\{Account, AdminSettings, Appearance, Author, ContentEditor, HomePage, Languages, LoginProtection, MenuEditor, TaxonomyEditor, UiStrings};
 
 final class AdminController
 {
@@ -40,11 +40,15 @@ final class AdminController
         if ($json) { return $this->passkey($path, $user, $post); }
         if ($path === '/admin/login') {
             if ($user) { return $this->go('/admin/posts'); }
+            $protection = $this->protection();
             if ($post) {
+                if (!$protection->passes((string) ($_POST['cf-turnstile-response'] ?? ''), $_SERVER['REMOTE_ADDR'] ?? '')) { return $this->go('/admin/login', 'Complete the security check and try again.'); }
                 if ($this->auth->password((string) ($_POST['username'] ?? ''), (string) ($_POST['password'] ?? ''), $_SERVER['REMOTE_ADDR'] ?? '')) { return $this->go('/admin/posts', 'Welcome back.'); }
                 return $this->go('/admin/login', 'Unable to sign in. Check your credentials or try again later.');
             }
-            return $this->render('login', 'Sign in');
+            if (!$protection->active()) { return $this->render('login', 'Sign in', ['turnstileKey' => '']); }
+            header('Content-Security-Policy: ' . security_policy("'self' " . \Core\Turnstile::ORIGIN, \Core\Turnstile::ORIGIN));
+            return $this->render('login', 'Sign in', ['turnstileKey' => $protection->siteKey()]);
         }
         if ($path === '/admin/logout' && $post) { Session::logout(); return $this->go('/admin/login', 'Signed out.'); }
         if ($path === '/admin') { return $this->go('/admin/posts'); }
@@ -82,7 +86,7 @@ final class AdminController
             $editor = new TaxonomyEditor($this->db);
             $term = $editor->find($m[1], (int) $m[2]);
             if (!$term) { http_response_code(404); return $this->render('message', 'Not found', ['message' => 'This term no longer exists.']); }
-            if ($post) { $editor->delete($m[1], (int) $m[2]); return $this->go('/admin/taxonomy', ucfirst($m[1]) . ' “' . $term['slug'] . '” deleted.'); }
+            if ($post) { $editor->delete($m[1], (int) $m[2]); return $this->go('/admin/taxonomy' . ($m[1] === 'tag' ? '?tab=tags' : ''), ucfirst($m[1]) . ' “' . $term['slug'] . '” deleted.'); }
             return $this->render('taxonomy-delete', 'Delete ' . $m[1], ['kind' => $m[1], 'term' => $term, 'action' => $path]);
         }
         if (in_array($path, ['/admin/posts', '/admin/pages'], true) && !$post) { return $this->matrix($path === '/admin/pages'); }
@@ -117,14 +121,14 @@ final class AdminController
                         'strings' => $this->saveStrings(),
                         'menus' => (new MenuEditor($this->db))->save((string) ($_POST['menu'] ?? ''), $_POST),
                         'taxonomy' => (new TaxonomyEditor($this->db))->save($_POST),
-                        'security' => (new Account($this->db))->update($user, $_POST['action'] ?? '', $_POST),
+                        'security' => (new Account($this->db, $this->protection()))->update($user, $_POST['action'] ?? '', $_POST),
                         'home' => (new HomePage($this->db))->save($_POST),
                         'author' => (new Author($this->db))->save($_POST),
                         'appearance' => (new Appearance($this->db))->save($_POST),
                     };
                     return $this->go($path . $this->query($section), $section === 'security' && ($_POST['action'] ?? '') === 'remove' ? 'Passkey removed. Password sign-in remains available.' : 'Changes saved.');
                 } catch (\InvalidArgumentException $e) {
-                    $safe = $_POST; foreach (['current_password', 'new_password', 'new_password_confirm'] as $key) { unset($safe[$key]); }
+                    $safe = $_POST; foreach (['current_password', 'new_password', 'new_password_confirm', 'turnstile_secret_key'] as $key) { unset($safe[$key]); }
                     $_SESSION['old'][$section] = $safe;
                     return $this->go($path . $this->query($section), $e->getMessage());
                 }
@@ -132,6 +136,7 @@ final class AdminController
             $locale = (string) ($_GET['locale'] ?? $this->i18n->defaultLocale());
             if (!isset($this->i18n->registry()[$locale])) { $locale = $this->i18n->defaultLocale(); }
             $data = ['db' => $this->db, 'locale' => $locale, 'old' => $old, 'settings' => new \App\Repositories\Settings($this->db, $this->i18n)];
+            if ($section === 'security') { $data['protection'] = $this->protection(); }
             if ($section === 'menus') {
                 $menus = new \App\Repositories\Menus($this->db); $menus->ensureDefaults();
                 $data['menus'] = ['header' => $menus->rows('header'), 'footer' => $menus->rows('footer')];
@@ -148,10 +153,11 @@ final class AdminController
         }
         http_response_code(404); return $this->render('message', 'Not found', ['message' => 'This admin page does not exist.']);
     }
+    private function protection(): LoginProtection { return new LoginProtection($this->db, $this->config['turnstile'] ?? true); }
     /** Query string to return to after saving a section, so the admin lands on the same view. */
     private function query(string $section): string
     {
-        $keep = match ($section) { 'taxonomy' => ['q'], 'strings' => ['q', 'missing'], default => [] };
+        $keep = match ($section) { 'taxonomy' => ['tab', 'q'], 'menus' => ['tab'], 'strings' => ['q', 'missing'], default => [] };
         $query = [];
         foreach ($keep as $key) { if (is_string($_GET[$key] ?? null) && trim($_GET[$key]) !== '') { $query[$key] = trim($_GET[$key]); } }
         return $query ? '?' . http_build_query($query) : '';

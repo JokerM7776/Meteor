@@ -16,6 +16,10 @@
 </label>
 <label class="field">Password<input name="password" type="password" autocomplete="current-password" required>
 </label>
+<?php if ($turnstileKey !== ''): ?>
+<div class="cf-turnstile min-h-[65px]" data-sitekey="<?= e($turnstileKey) ?>" data-theme="auto" data-size="flexible"></div>
+<?php endif ?>
 <button type="submit" class="btn">Sign in with password</button>
 </form>
+<?php if ($turnstileKey !== ''): ?><script src="<?= e(\Core\Turnstile::SCRIPT) ?>" async defer></script><?php endif ?>
 <a href="/<?= e($i18n->defaultLocale()) ?>/" class="flex min-h-11 items-center justify-center text-sm text-slate-600 dark:text-slate-400">← Back to the site</a>

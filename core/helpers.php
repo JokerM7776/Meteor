@@ -50,3 +50,10 @@ function asset(string $path): string
     $mtime = @filemtime(dirname(__DIR__) . '/public/' . $path);
     return '/' . $path . ($mtime ? '?v=' . $mtime : '');
 }
+
+// Content-Security-Policy header value. Public pages pass "'none'" for scripts.
+function security_policy(string $scripts, string $frames = ''): string
+{
+    return "default-src 'self'; script-src $scripts; " . ($frames !== '' ? "frame-src $frames; " : '')
+        . "style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https:; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+}

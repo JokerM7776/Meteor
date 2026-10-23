@@ -5,7 +5,7 @@ use Core\Database;
 
 final class Account
 {
-    public function __construct(private Database $db) {}
+    public function __construct(private Database $db, private ?LoginProtection $protection = null) {}
     public function update(array $user, string $action, array $input): void
     {
         if ($action !== 'rename' && !password_verify($input['current_password'] ?? '', $user['password_hash'])) { throw new \InvalidArgumentException('Current password is incorrect.'); }
@@ -18,6 +18,8 @@ final class Account
             if (mb_strlen($password) < 12 || strlen($password) > 72 || str_contains($password, "\0") || $password !== ($input['new_password_confirm'] ?? '')) { throw new \InvalidArgumentException('Passwords must match and contain at least 12 characters (at most 72 bytes).'); }
             $this->db->query('UPDATE users SET password_hash = ?, password_changed_at = ?, session_version = session_version + 1 WHERE id = ?', [password_hash($password, PASSWORD_DEFAULT), gmdate('Y-m-d H:i:s'), $user['id']]);
             $_SESSION['session_version'] = (int) $this->db->one('SELECT session_version FROM users WHERE id = ?', [$user['id']])['session_version'];
+        } elseif ($action === 'turnstile') {
+            ($this->protection ?? new LoginProtection($this->db))->save($input);
         } elseif ($action === 'rename' || $action === 'remove') {
             if (!$this->db->one('SELECT id FROM passkeys WHERE id = ? AND user_id = ?', [$input['id'] ?? 0, $user['id']])) { throw new \InvalidArgumentException('Passkey not found.'); }
             if ($action === 'rename') {

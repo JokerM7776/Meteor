@@ -196,15 +196,18 @@ test('Admin HTTP: header & footer page, settings sheet and taxonomy rows', funct
         $token = $c->token('/admin/menus');
         [$h, $html] = $c->request('/admin/menus'); contains('200 OK', $h);
         contains('href="/admin/menus" aria-current="page"', $html); contains('<span lang="ja"', $html); contains('ja · preview', $html);
-        contains('name="footer_menu_heading[ja]"', $html); same(10, (int) $c->db->one('SELECT COUNT(*) AS n FROM menu_items')['n']);
+        contains('href="/admin/menus?tab=footer" class=', $html); ok(!str_contains($html, 'name="footer_menu_heading[ja]"'), 'Footer belongs to its own tab');
+        [, $html] = $c->request('/admin/menus?tab=footer'); contains('href="/admin/menus?tab=footer" class="-mb-px', $html); contains('aria-current="page">Footer', $html);
+        contains('name="footer_menu_heading[ja]"', $html); ok(!str_contains($html, 'name="header_show_switcher"')); same(10, (int) $c->db->one('SELECT COUNT(*) AS n FROM menu_items')['n']);
         $posts = $c->db->one("SELECT id FROM menu_items WHERE menu = 'header' AND kind = 'posts'")['id'];
         [$h] = $c->request('/admin/menus', 'POST', ['csrf_token' => $token, 'menu' => 'header', 'header_show_switcher' => '0',
             'items' => [$posts => ['sort_order' => '9', 'visible' => '1', 'labels' => ['en' => 'Journal']], 'new' => ['url' => '/{locale}/now', 'labels' => ['en' => 'Now', 'ja' => '']]]]);
         contains('303', $h);
         [, $html] = $c->request('/en/'); preg_match('~<header\b.*?</header>~s', $html, $header);
         contains('href="/en/now">Now', $header[0]); contains('>Journal</a>', $header[0]); ok(!str_contains($header[0], 'aria-label="Language"'));
-        $c->request('/admin/menus', 'POST', ['csrf_token' => $token, 'menu' => 'footer', 'items' => ['new' => ['url' => 'javascript:alert(1)', 'labels' => ['en' => 'Keep <me>']]]]);
-        [, $html] = $c->request('/admin/menus'); contains('Footer menu, new link: use a URL', $html); contains('value="javascript:alert(1)"', $html); contains('value="Keep &lt;me&gt;"', $html);
+        [$h] = $c->request('/admin/menus?tab=footer', 'POST', ['csrf_token' => $token, 'menu' => 'footer', 'items' => ['new' => ['url' => 'javascript:alert(1)', 'labels' => ['en' => 'Keep <me>']]]]);
+        contains('Location: /admin/menus?tab=footer', $h);
+        [, $html] = $c->request('/admin/menus?tab=footer'); contains('Footer menu, new link: use a URL', $html); contains('value="javascript:alert(1)"', $html); contains('value="Keep &lt;me&gt;"', $html);
         same(null, $c->db->one("SELECT id FROM menu_items WHERE url LIKE 'javascript%'"));
         // Site text: one cell changes, the other language stays.
         $token = $c->token('/admin/settings');
@@ -218,13 +221,17 @@ test('Admin HTTP: header & footer page, settings sheet and taxonomy rows', funct
         $c->request('/admin/taxonomy', 'POST', ['csrf_token' => $token, 'kind' => 'category', 'id' => '0', 'action' => 'save', 'slug' => 'notes', 'sort_order' => '2', 'names' => ['en' => 'Notes']]);
         $tag = (int) $c->db->one('SELECT id FROM tags')['id'];
         [, $html] = $c->request('/admin/taxonomy');
-        contains('<form id="term-tag-' . $tag . '"', $html); contains('form="term-tag-' . $tag . '" name="names[ja]"', $html); contains('form="term-category-new"', $html);
+        contains('form="term-category-new"', $html); ok(!str_contains($html, 'term-tag-'), 'Tags belong to their own tab'); contains('Tags<span class="ml-1.5 font-mono text-xs font-normal text-slate-500">1</span>', $html);
+        [, $html] = $c->request('/admin/taxonomy?tab=tags');
+        contains('<form id="term-tag-' . $tag . '"', $html); contains('form="term-tag-' . $tag . '" name="names[ja]"', $html); ok(!str_contains($html, 'term-category-'));
+        contains('action="/admin/taxonomy?tab=tags"', $html);
         ok(!str_contains($html, 'Delete and detach'));
-        $c->request('/admin/taxonomy?q=php', 'POST', ['csrf_token' => $token, 'kind' => 'tag', 'id' => (string) $tag, 'action' => 'save', 'slug' => 'php-lang', 'names' => ['en' => 'PHP language']]);
+        [$h] = $c->request('/admin/taxonomy?tab=tags&q=php', 'POST', ['csrf_token' => $token, 'kind' => 'tag', 'id' => (string) $tag, 'action' => 'save', 'slug' => 'php-lang', 'names' => ['en' => 'PHP language']]);
+        contains('Location: /admin/taxonomy?tab=tags&q=php', $h);
         same('PHP 日本', $c->db->one("SELECT name FROM tag_translations WHERE locale = 'ja'")['name']); same('php-lang', $c->db->one('SELECT slug FROM tags')['slug']);
         [, $html] = $c->request('/admin/taxonomy?q=notes'); contains('value="notes"', $html); ok(!str_contains($html, 'value="php-lang"'));
         [, $html] = $c->request('/admin/taxonomy/tag/' . $tag . '/delete'); contains('Delete tag “PHP language”?', $html); same(1, (int) $c->db->one('SELECT COUNT(*) AS n FROM tags')['n']);
-        [$h] = $c->request('/admin/taxonomy/tag/' . $tag . '/delete', 'POST', ['csrf_token' => $token]); contains('Location: /admin/taxonomy', $h);
+        [$h] = $c->request('/admin/taxonomy/tag/' . $tag . '/delete', 'POST', ['csrf_token' => $token]); contains('Location: /admin/taxonomy?tab=tags', $h);
         same(0, (int) $c->db->one('SELECT COUNT(*) AS n FROM tags')['n']);
         [$h] = $c->request('/admin/taxonomy/tag/' . $tag . '/delete'); contains('404', $h);
     } finally { $c->close(); }
@@ -255,5 +262,29 @@ test('Admin HTTP: interface text table, language file download and import', func
         same('off', $c->db->one("SELECT status FROM locales WHERE code = 'fr'")['status']); same('Articles', $c->db->one("SELECT value FROM ui_strings WHERE locale = 'fr'")['value']);
         $c->request('/admin/languages', 'POST', ['csrf_token' => $token, 'action' => 'import'], false, null, ['field' => 'language_file', 'filename' => 'x.json', 'bytes' => '<?php echo 1;']);
         [, $html] = $c->request('/admin/languages'); contains('not a valid Meteor language file', $html);
+    } finally { $c->close(); }
+});
+test('Admin HTTP: Cloudflare Turnstile settings and sign-in check', function () {
+    $c = new AdminHttpClient();
+    try {
+        [, $html] = $c->request('/admin/login'); ok(!str_contains($html, 'cf-turnstile'), 'Off by default');
+        $token = $c->token(); $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']);
+        $token = $c->token('/admin/security');
+        [, $html] = $c->request('/admin/security'); contains('Sign-in check · Cloudflare Turnstile', $html); contains('name="turnstile_site_key"', $html);
+        [$h] = $c->request('/admin/security', 'POST', ['csrf_token' => $token, 'action' => 'turnstile', 'turnstile_enabled' => '0', 'turnstile_site_key' => '0x4AAAAAAAsitekey', 'turnstile_secret_key' => '0x4AAAAAAAsecret', 'current_password' => 'wrong']);
+        [, $html] = $c->request('/admin/security'); contains('Current password is incorrect.', $html); ok(!str_contains($html, '0x4AAAAAAAsecret'), 'Secret must not be kept in the form');
+        $c->request('/admin/security', 'POST', ['csrf_token' => $token, 'action' => 'turnstile', 'turnstile_enabled' => '0', 'turnstile_site_key' => '0x4AAAAAAAsitekey', 'turnstile_secret_key' => '0x4AAAAAAAsecret', 'current_password' => 'a long password']);
+        same('0x4AAAAAAAsecret', $c->db->one("SELECT value FROM settings WHERE `key` = 'turnstile_secret_key'")['value']);
+        [, $html] = $c->request('/admin/security'); contains('value="0x4AAAAAAAsitekey"', $html); contains('Saved · leave empty to keep', $html); ok(!str_contains($html, '0x4AAAAAAAsecret'));
+        // Turn it on directly: saving through the form would ask Cloudflare to confirm the secret.
+        $c->db->query("UPDATE settings SET value = '1' WHERE `key` = 'turnstile_enabled'");
+        $c->request('/admin/logout', 'POST', ['csrf_token' => $token]);
+        [$h, $html] = $c->request('/admin/login'); contains('data-sitekey="0x4AAAAAAAsitekey"', $html); contains('<script src="https://challenges.cloudflare.com/turnstile/v0/api.js"', $html);
+        contains("script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com;", $h); same(1, substr_count($h, 'Content-Security-Policy'));
+        $token = $c->token();
+        [$h] = $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']); contains('Location: /admin/login', $h);
+        [, $html] = $c->request('/admin/login'); contains('Complete the security check and try again.', $html);
+        same(0, (int) $c->db->one('SELECT COUNT(*) AS n FROM login_attempts')['n']);
+        [$h] = $c->request('/admin/passkey/login/options', 'POST', [], true, $token); contains('200 OK', $h);
     } finally { $c->close(); }
 });

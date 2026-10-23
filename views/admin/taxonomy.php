@@ -2,6 +2,10 @@
 $locales = $i18n->registry();
 $q = trim((string) ($_GET['q'] ?? ''));
 $editor = new \App\Services\TaxonomyEditor($db);
+$kind = ($_GET['tab'] ?? '') === 'tags' ? 'tag' : 'category';
+$heading = $kind === 'tag' ? 'Tags' : 'Categories';
+$here = static fn (string $tab, string $q): string => '/admin/taxonomy' . (($query = http_build_query(array_filter(['tab' => $tab, 'q' => $q], 'strlen'))) !== '' ? '?' . $query : '');
+$tab = $kind === 'tag' ? 'tags' : '';
 ?>
 <div class="space-y-6">
 <header class="flex flex-wrap items-end justify-between gap-4">
@@ -11,20 +15,24 @@ $editor = new \App\Services\TaxonomyEditor($db);
 </div>
 <form method="get" class="flex gap-2" role="search">
 <label class="sr-only" for="term-search">Search slugs and names</label>
+<?php if ($tab !== ''): ?><input type="hidden" name="tab" value="<?= e($tab) ?>"><?php endif ?>
 <input id="term-search" type="search" name="q" value="<?= e($q) ?>" placeholder="Search slugs and names" class="w-64">
 <button class="btn">Search</button>
-<?php if ($q !== ''): ?><a class="btn" href="/admin/taxonomy">Clear</a><?php endif ?>
+<?php if ($q !== ''): ?><a class="btn" href="<?= e($here($tab, '')) ?>">Clear</a><?php endif ?>
 </form>
 </header>
-<?php foreach (['category' => 'Categories', 'tag' => 'Tags'] as $kind => $heading):
-    $rows = $editor->rows($kind, $q);
-    $missing = [];
-    foreach ($rows as $row) { foreach ($locales as $code => $language) { if (($row['names'][$code] ?? '') === '') { $missing[$code] = ($missing[$code] ?? 0) + 1; } } }
-    $rows[] = ['id' => 0, 'slug' => '', 'sort_order' => '', 'names' => [], 'post_count' => null];
-    $oldRow = ($old['kind'] ?? '') === $kind ? $old : [];
+<?php
+$all = ['category' => $editor->rows('category', $q), 'tag' => $editor->rows('tag', $q)];
+$tabs = [$here('', $q) => 'Categories', $here('tags', $q) => 'Tags']; $tabCurrent = $here($tab, $q); $tabsLabel = 'Term types';
+$tabCounts = [$here('', $q) => count($all['category']), $here('tags', $q) => count($all['tag'])];
+require __DIR__ . '/tabs.php';
+$rows = $all[$kind];
+$missing = [];
+foreach ($rows as $row) { foreach ($locales as $code => $language) { if (($row['names'][$code] ?? '') === '') { $missing[$code] = ($missing[$code] ?? 0) + 1; } } }
+$rows[] = ['id' => 0, 'slug' => '', 'sort_order' => '', 'names' => [], 'post_count' => null];
+$oldRow = ($old['kind'] ?? '') === $kind ? $old : [];
 ?>
-<section class="space-y-3" aria-labelledby="<?= e($kind) ?>-heading">
-<h2 id="<?= e($kind) ?>-heading" class="text-xl font-bold"><?= e($heading) ?> <span class="font-mono text-sm font-normal text-slate-500">· <?= e(count($rows) - 1) ?></span></h2>
+<section class="space-y-3" aria-label="<?= e($heading) ?>">
 <div class="sheet">
 <table>
 <caption class="sr-only"><?= e($heading) ?></caption>
@@ -52,7 +60,7 @@ $editor = new \App\Services\TaxonomyEditor($db);
 <?php endforeach ?>
 <td class="sheet-center font-mono text-slate-600 dark:text-slate-300"><span class="inline-flex min-h-11 items-center"><?= $row['post_count'] === null ? '' : e($row['post_count']) ?></span></td>
 <td class="sheet-end">
-<form id="<?= e($form) ?>" method="post" action="/admin/taxonomy<?= $q !== '' ? '?q=' . e(rawurlencode($q)) : '' ?>" class="flex justify-end gap-2">
+<form id="<?= e($form) ?>" method="post" action="<?= e($here($tab, $q)) ?>" class="flex justify-end gap-2">
 <?= \Core\Csrf::field() ?>
 <input type="hidden" name="kind" value="<?= e($kind) ?>">
 <input type="hidden" name="id" value="<?= e($row['id']) ?>">
@@ -66,5 +74,4 @@ $editor = new \App\Services\TaxonomyEditor($db);
 </table>
 </div>
 </section>
-<?php endforeach ?>
 </div>

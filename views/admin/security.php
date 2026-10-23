@@ -42,6 +42,34 @@
 </div>
 </form>
 </div>
+<?php $turnstile = $protection->values(); $turnstileOld = ($old['action'] ?? '') === 'turnstile' ? $old : []; $turnstileOn = $protection->active(); ?>
+<form class="panel flex flex-col gap-4" method="post" action="/admin/security" aria-labelledby="turnstile-heading">
+<?= \Core\Csrf::field() ?>
+<input type="hidden" name="action" value="turnstile">
+<input type="hidden" name="username" value="<?= e($user['username']) ?>" autocomplete="username">
+<div class="flex items-center justify-between gap-4">
+<h2 id="turnstile-heading" class="text-xl font-bold">Sign-in check · Cloudflare Turnstile</h2>
+<span class="status-chip <?= $turnstileOn ? 'bg-slate-900 text-white dark:bg-slate-700' : 'border border-dashed border-slate-400 text-slate-600 dark:text-slate-300' ?>"><?= $turnstileOn ? 'On' : 'Off' ?></span>
+</div>
+<p class="max-w-4xl text-sm text-slate-600 dark:text-slate-400">Shows a Cloudflare check on the password form of the sign-in page to stop bots. Passkey sign-in skips it. Create a widget for this site’s domain in Cloudflare → Turnstile, then copy its keys here.</p>
+<?php if (!$protection->allowed()): ?>
+<p class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">TURNSTILE=off is set in .env, so the sign-in page skips the check. Remove that line to use the settings below.</p>
+<?php endif ?>
+<input type="hidden" name="turnstile_enabled" value="0">
+<label class="flex min-h-11 items-center gap-3"><input type="checkbox" name="turnstile_enabled" value="1" <?= ($turnstileOld['turnstile_enabled'] ?? ($turnstile['enabled'] ? '1' : '0')) === '1' ? 'checked' : '' ?>>Show Turnstile on the sign-in page</label>
+<div class="grid gap-4 sm:grid-cols-3">
+<label class="field">Site key<input name="turnstile_site_key" maxlength="200" autocomplete="off" spellcheck="false" class="font-mono" value="<?= e($turnstileOld['turnstile_site_key'] ?? $turnstile['site_key']) ?>">
+</label>
+<label class="field">Secret key<input type="password" name="turnstile_secret_key" maxlength="200" autocomplete="off" spellcheck="false" class="font-mono" placeholder="<?= $turnstile['secret'] !== '' ? 'Saved · leave empty to keep' : '' ?>">
+</label>
+<label class="field">Current password<input type="password" name="current_password" autocomplete="current-password" required>
+</label>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-400">Meteor asks Cloudflare to confirm the secret key when you turn the check on. Locked out by a wrong site key? Sign in with a passkey, or add TURNSTILE=off to .env.</p>
+<div class="mt-auto flex justify-end">
+<button class="btn">Save sign-in check</button>
+</div>
+</form>
 <section class="space-y-3" aria-labelledby="passkeys-heading">
 <?php $keys = $db->all('SELECT * FROM passkeys WHERE user_id = ? ORDER BY created_at DESC, id DESC', [$user['id']]); ?>
 <div class="flex flex-wrap items-baseline justify-between gap-x-4">

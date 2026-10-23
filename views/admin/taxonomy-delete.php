@@ -5,6 +5,6 @@
 <form method="post" action="<?= e($action) ?>" class="flex gap-4">
 <?= \Core\Csrf::field() ?>
 <button class="btn bg-red-700 text-white" type="submit">Delete <?= e($kind) ?></button>
-<a href="/admin/taxonomy" class="btn">Cancel</a>
+<a href="/admin/taxonomy<?= $kind === 'tag' ? '?tab=tags' : '' ?>" class="btn">Cancel</a>
 </form>
 </section>
