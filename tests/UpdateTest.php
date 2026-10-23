@@ -236,6 +236,10 @@ test('GitHub: fake latest and downloads, mandatory hash, redirect allow-list and
         $fake->responses[$shaUrl] = $response(str_repeat('0', 64)); $fake->responses[$zipUrl] = $response($bytes);
         throws(fn () => $github->download($release, $root . '/download.zip'));
         throws(fn () => $github->download(['version' => '0.2.0', 'assets' => []], $root . '/download.zip'));
+        $cdn = 'https://release-assets.githubusercontent.com/github-production-release-asset/1/abc?sp=r&sig=x%2By%3D';
+        $fake->responses[$shaUrl] = $response($hash); $fake->responses[$zipUrl] = ['status' => 302, 'headers' => ['location' => $cdn], 'body' => '']; $fake->responses[$cdn] = $response($bytes);
+        same($hash, $github->download($release, $root . '/download.zip'));
+        throws(fn () => GitHubUpdates::validateUrl('https://release-assets.githubusercontent.com.evil.example/file'));
     } finally { ReleasePackage::removeTree($root); }
 });
 test('Updater: complete generated release replaces a temporary app and executes its migration', function () {

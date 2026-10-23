@@ -5,12 +5,14 @@ final class GitHubUpdates
 {
     /** Official Meteor releases. The repository is public, so no token is needed. */
     public const REPOSITORY = 'JokerM7776/Meteor';
+    /** GitHub serves release downloads from the CDN hosts after a redirect. */
+    public const HOSTS = ['api.github.com', 'github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com'];
     public function __construct(private HttpClient $http) {}
     public static function validateUrl(string $url): void
     {
         $parts = parse_url($url);
         if (!$parts || ($parts['scheme'] ?? '') !== 'https'
-            || !in_array($parts['host'] ?? '', ['api.github.com', 'github.com', 'objects.githubusercontent.com'], true)
+            || !in_array($parts['host'] ?? '', self::HOSTS, true)
             || isset($parts['user']) || isset($parts['pass']) || isset($parts['fragment']) || (isset($parts['port']) && $parts['port'] !== 443)
             || preg_match('/[\\\\\x00-\x20\x7f]/', $url)) { throw new \RuntimeException('Update URL is not on the HTTPS GitHub allow-list.'); }
     }
