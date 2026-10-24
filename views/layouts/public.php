@@ -26,21 +26,22 @@
 <a class="sr-only focus:not-sr-only focus:inline-flex focus:self-start focus:min-h-11 focus:items-center" href="#main"><?= e(__('skip_content')) ?></a>
 <?php if (!empty($announcements)) { require __DIR__ . '/../partials/announcements.php'; } ?>
 <header class="<?= $is404 ? '[&]:bg-slate-900 [&]:text-slate-100 [&]:border-slate-800' : '' ?> border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-<div class="mx-auto flex max-w-[1120px] items-center justify-between gap-2 px-4 py-2 md:px-6 md:py-4">
+<div class="relative mx-auto flex max-w-[1120px] items-center justify-between gap-2 px-4 py-2 md:px-6 md:py-4">
 <a href="<?= e('/' . $locale . '/') ?>" class="flex min-h-11 items-center gap-2 text-xl font-bold tracking-tight md:text-2xl"><?php if ($settings->enabled('header_show_icon')) { require __DIR__ . '/../partials/mark.php'; } ?><span<?= !$settings->enabled('header_show_title') ? ' class="sr-only"' : '' ?>><?= e($settings->label('site_title')) ?></span></a>
 <div class="flex items-center gap-2 md:gap-6">
 <div class="hidden md:block"><?php require __DIR__ . '/../partials/nav.php' ?></div>
 <?php if ($settings->enabled('header_show_switcher')): $short = fn (string $code): string => $settings->get('language_label', $code, mb_strlen($registry[$code]['native_name']) <= 4 ? $registry[$code]['native_name'] : strtoupper($code)); ?>
-<?php if (count($switcher) <= 4): ?>
-<nav aria-label="<?= e(__('language')) ?>" class="flex flex-wrap gap-0.5 rounded-full border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-700 dark:bg-slate-950">
+<?php $pills = count($switcher) <= 4; if ($pills): ?>
+<nav aria-label="<?= e(__('language')) ?>" class="hidden gap-0.5 rounded-full border border-slate-200 bg-slate-50 p-0.5 md:flex dark:border-slate-700 dark:bg-slate-950">
 <?php foreach ($switcher as $code => $href): ?>
-<a href="<?= e($href) ?>" lang="<?= e($code) ?>" <?= $locale === $code ? 'aria-current="page"' : '' ?> class="<?= $locale === $code ? 'hidden md:inline-flex' : 'inline-flex' ?> min-h-11 min-w-11 items-center justify-center rounded-full px-2 text-xs font-semibold md:px-3.5 <?= $locale === $code ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-600 dark:text-slate-300' ?>"><?= e($short($code)) ?></a>
+<a href="<?= e($href) ?>" lang="<?= e($code) ?>" <?= $locale === $code ? 'aria-current="page"' : '' ?> class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3.5 text-xs font-semibold whitespace-nowrap <?= $locale === $code ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-600 dark:text-slate-300' ?>"><?= e($short($code)) ?></a>
 <?php endforeach ?>
 </nav>
-<?php else: // Many languages: one menu instead of a row that wraps. ?>
-<details class="relative">
-<summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 [&::-webkit-details-marker]:hidden"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 4 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.25 5.4 8S6.2 3.65 8 1.75"/></svg><span class="sr-only"><?= e(__('language')) ?>: </span><span lang="<?= e($locale) ?>"><?= e($short($locale)) ?></span><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></summary>
-<nav aria-label="<?= e(__('language')) ?>" class="absolute end-0 z-20 mt-2 max-h-[70vh] w-60 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+<?php endif // A menu on phones (and everywhere with many languages), so the header never wraps. ?>
+<details class="<?= $pills ? 'md:hidden' : 'md:relative' ?>">
+<summary class="flex size-11 cursor-pointer list-none items-center justify-center gap-2 rounded-lg text-slate-600 hover:bg-slate-100 md:w-auto md:rounded-full md:border md:border-slate-200 md:bg-slate-50 md:px-3 md:text-xs md:font-semibold md:text-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 md:dark:border-slate-700 md:dark:bg-slate-950 md:dark:text-slate-200 [&::-webkit-details-marker]:hidden" title="<?= e(__('language')) ?>"><svg width="20" height="20" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 4 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.25 5.4 8S6.2 3.65 8 1.75"/></svg><span class="sr-only"><?= e(__('language')) ?>: </span><span lang="<?= e($locale) ?>" class="sr-only md:not-sr-only md:whitespace-nowrap"><?= e($short($locale)) ?></span><svg class="hidden md:block" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></summary>
+<nav aria-label="<?= e(__('language')) ?>" class="absolute end-4 top-full z-20 mt-1 max-h-[70vh] w-60 md:end-0 md:top-auto md:mt-2 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+<p class="eyebrow px-3 pt-1 pb-2"><?= e(__('language')) ?></p>
 <ul>
 <?php foreach ($switcher as $code => $href): ?>
 <li><a href="<?= e($href) ?>" <?= $locale === $code ? 'aria-current="page"' : '' ?> class="flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm hover:bg-slate-100 aria-[current=page]:font-semibold dark:hover:bg-slate-800"><span lang="<?= e($code) ?>" dir="<?= e($registry[$code]['direction']) ?>"><?= e($registry[$code]['native_name']) ?></span><span class="font-mono text-xs text-slate-600 dark:text-slate-400"><?= $locale === $code ? '<span aria-hidden="true">✓</span>' : e($code) ?></span></a></li>
@@ -48,7 +49,6 @@
 </ul>
 </nav>
 </details>
-<?php endif ?>
 <?php endif ?>
 <?php if ($settings->enabled('header_show_search')): ?>
 <a href="<?= e('/' . $locale . '/search') ?>" aria-label="<?= e(__('search')) ?>" title="<?= e(__('search')) ?>" <?= $active === 'search' ? 'aria-current="page"' : '' ?> class="flex size-11 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 aria-[current=page]:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 dark:aria-[current=page]:bg-slate-800"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8.75" cy="8.75" r="5.5"/><path d="m13 13 4 4"/></svg></a>
@@ -59,7 +59,7 @@
 <?php foreach (['auto', 'light', 'dark'] as $option): ?><a rel="nofollow" href="<?= e('/theme?' . http_build_query(['set' => $option, 'back' => $back])) ?>" <?= $scheme === $option ? 'aria-current="true"' : '' ?> class="flex min-h-11 items-center justify-between rounded-lg px-3 text-sm hover:bg-slate-100 aria-[current=true]:font-semibold dark:hover:bg-slate-800"><?= e(__('scheme_' . $option)) ?><?php if ($scheme === $option): ?><span aria-hidden="true">✓</span><?php endif ?></a><?php endforeach ?>
 </div></details>
 <?php endif ?>
-<details class="relative md:hidden"><summary aria-label="<?= e(__('menu')) ?>" class="flex size-11 cursor-pointer list-none items-center [&::-webkit-details-marker]:hidden justify-center rounded-lg border border-slate-300 dark:border-slate-700"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></summary><div class="absolute end-0 z-20 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900"><?php require __DIR__ . '/../partials/nav.php' ?></div></details>
+<details class="relative md:hidden"><summary aria-label="<?= e(__('menu')) ?>" class="flex size-11 cursor-pointer list-none items-center [&::-webkit-details-marker]:hidden justify-center rounded-lg border border-slate-300 dark:border-slate-700"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></summary><div class="absolute end-0 z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900"><?php $navStacked = true; require __DIR__ . '/../partials/nav.php' ?></div></details>
 </div></div></header>
 <main id="main" class="flex-1"><?= $content ?></main>
 <?php

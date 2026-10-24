@@ -19,11 +19,14 @@ test('Admin HTTP: sign-in keeps the username, security headers, editor bars and 
             $c->db->query("INSERT INTO locales (code, name, native_name, status, sort_order) VALUES (?, ?, ?, 'live', 5)", [$code, $native, $native]);
         }
         [$h, $html] = $c->request('/en/');
-        contains('<span class="sr-only">Language: </span><span lang="en">en</span>', $html); contains('<span lang="fr" dir="ltr">Français</span>', $html);
+        contains('<details class="md:relative">', $html); ok(!str_contains($html, '<details class="md:hidden">'));
+        contains('<span class="sr-only">Language: </span><span lang="en" class="sr-only md:not-sr-only md:whitespace-nowrap">en</span>', $html); contains('<span lang="fr" dir="ltr">Français</span>', $html);
         contains('href="/en/" aria-current="page"', $html); ok(!str_contains($html, '<script'));
         contains('Strict-Transport-Security: max-age=31536000', $h); contains('Cross-Origin-Opener-Policy: same-origin', $h); contains('Permissions-Policy: camera=()', $h);
         $c->db->query("UPDATE locales SET status = 'off' WHERE code IN ('de', 'es', 'it')");
-        [, $html] = $c->request('/en/'); ok(!str_contains($html, 'sr-only">Language: </span>')); contains('lang="fr"', $html);
+        // Few languages: pills from the md breakpoint up, the same menu on phones so the header never wraps.
+        [, $html] = $c->request('/en/'); contains('<details class="md:hidden">', $html); ok(!str_contains($html, '<details class="md:relative">'));
+        contains('href="/fr/" lang="fr"', $html); contains('<span lang="fr" dir="ltr">Français</span>', $html);
         // A failed sign-in keeps the username (escaped) once and focuses the password.
         $token = $c->token();
         $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'Editor<x>', 'password' => 'wrong']);
