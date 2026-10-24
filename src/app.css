@@ -15,12 +15,29 @@
   --color-meteor: var(--color-orange-500);
 }
 
+@layer base {
+  /* JetBrains Mono joins pairs like == and ~~ into one symbol; code must show what to type. */
+  code, kbd, pre, samp, .font-mono { font-variant-ligatures: none; }
+}
+
 @layer components {
+  /* Chip rows that fold to a few rows without JavaScript. Every chip is 2.75rem tall, so the
+     box shows --rows rows plus one row for "View all". That row only fits in the box when the
+     chips need more than --rows rows; otherwise the box is shorter and clips it away. */
+  .chip-rows { --rows: 3; position: relative; overflow: hidden; max-height: calc((var(--rows) + 1) * (2.75rem + var(--gap)) - var(--gap)); }
+  @media (width >= 48rem) { .chip-rows { --rows: 2; } }
+  .chip-more { position: absolute; inset-inline: 0; top: calc(var(--rows) * (2.75rem + var(--gap))); display: flex; height: 2.75rem; align-items: center; cursor: pointer; }
+  .chip-less { cursor: pointer; }
+  .chip-toggle:not(:checked) ~ .chip-less { display: none; }
+  .chip-toggle:checked + .chip-rows { max-height: none; }
+  .chip-toggle:checked + .chip-rows .chip-more { display: none; }
+  .chip-toggle:checked ~ .chip-less { display: inline-flex; }
+  .chip-toggle:focus-visible + .chip-rows .chip-more > span, .chip-toggle:focus-visible ~ .chip-less { outline: 2px solid var(--color-orange-500); outline-offset: 2px; }
   .eyebrow { @apply font-mono text-xs font-medium uppercase tracking-wider text-slate-600 dark:text-slate-400; }
   .accent { @apply text-orange-700 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-300; }
   .button-primary { @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-[10px] bg-slate-900 px-5 text-[15px] font-semibold whitespace-nowrap text-white dark:bg-slate-100 dark:text-slate-900; }
   .button-secondary { @apply inline-flex min-h-11 items-center justify-center rounded-[10px] border border-slate-300 bg-white px-4 text-[15px] font-medium whitespace-nowrap text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100; }
-  .tag { @apply inline-flex min-h-11 items-center rounded-md bg-slate-100 px-2.5 font-mono text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300; }
+  .tag { @apply inline-flex min-h-11 max-w-full items-center overflow-hidden whitespace-nowrap rounded-md bg-slate-100 px-2.5 font-mono text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300; }
   .button-secondary[aria-current="page"], .tag[aria-current="page"] { @apply bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900; }
   .prose-meteor { @apply font-serif text-[17px] leading-[1.85] text-slate-800 md:text-xl md:leading-[1.7] dark:text-slate-300; }
   .prose-meteor > * + * { @apply mt-5; }
@@ -93,7 +110,7 @@
   .admin .btn-danger { @apply border-red-700 bg-red-700 text-white hover:border-red-800 hover:bg-red-800; }
   .admin .btn-danger-outline { @apply border-slate-300 text-red-700 hover:border-red-700 dark:border-slate-600 dark:text-red-400 dark:hover:border-red-400; }
   .admin .panel { @apply rounded-[14px] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900; }
-  .admin .field { @apply flex flex-col gap-2 text-sm font-semibold; }
+  .admin .field { @apply flex min-w-0 flex-col gap-2 text-sm font-semibold; }
   .admin input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=color]), .admin textarea, .admin select { @apply min-h-11 min-w-0 rounded-[10px] border border-slate-500 bg-white px-3 py-2 text-base font-normal text-slate-900 focus:outline-2 focus:outline-slate-900 dark:border-slate-500 dark:bg-slate-950 dark:text-slate-100 dark:focus:outline-slate-300; }
   .admin input[type=checkbox], .admin input[type=radio] { @apply size-5 shrink-0 accent-orange-700; }
   .admin input[type=color] { @apply rounded-[10px] border border-slate-500 bg-white dark:border-slate-600 dark:bg-slate-950; }

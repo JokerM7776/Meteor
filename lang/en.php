@@ -92,6 +92,8 @@ return [
     'archive' => 'Archive',
     'archive_description' => 'Everything published in {language}, newest first.',
     'all' => 'All',
+    'view_all' => 'View all',
+    'show_less' => 'Show less',
     'newer' => 'Newer',
     'older' => 'Older',
     // Page not found

@@ -21,7 +21,7 @@
 <button class="btn">Save routing</button>
 </div>
 </form>
-<section class="overflow-x-auto rounded-[14px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+<section class="relative overflow-x-auto rounded-[14px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
 <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-4">
 <h2 class="text-xl font-bold">Your languages</h2>
 <form id="language-order" method="post" class="flex flex-wrap items-center gap-3" data-save-on-change>
@@ -123,7 +123,7 @@
 </dl>
 </section>
 <?php $catalog = new \App\Services\LanguageDownloads($db, new \Core\GitHubUpdates(new \Core\CurlHttpClient())); $checked = $catalog->catalog(); $available = $catalog->rows(); $repo = 'https://github.com/' . \Core\GitHubUpdates::REPOSITORY; ?>
-<section id="catalog" class="overflow-x-auto rounded-[14px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+<section id="catalog" class="relative overflow-x-auto rounded-[14px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
 <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-4">
 <div class="max-w-3xl">
 <h2 class="text-xl font-bold">Get languages</h2>

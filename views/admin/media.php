@@ -35,7 +35,7 @@ $isUpload = ($old['id'] ?? null) === null;
 <div class="flex flex-wrap items-center justify-between gap-4">
 <form method="get" action="/admin/media" class="flex flex-wrap items-center gap-2" role="search">
 <label class="sr-only" for="media-search">Search names, alt text, categories and tags</label>
-<input id="media-search" type="search" name="q" value="<?= e($q) ?>" placeholder="Search names, alt text and tags" class="w-72">
+<input id="media-search" type="search" name="q" value="<?= e($q) ?>" placeholder="Search names, alt text and tags" class="w-full sm:w-72">
 <label class="sr-only" for="media-category">Category</label>
 <select id="media-category" name="category">
 <option value="">All categories</option>

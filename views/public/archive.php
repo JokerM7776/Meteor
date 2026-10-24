@@ -1,9 +1,21 @@
 <div class="mx-auto flex max-w-[1120px] flex-col gap-10 px-4 py-10 md:gap-12 md:px-6 md:py-16">
 <header><h1 class="mb-4 text-[40px] leading-tight font-bold tracking-tighter md:text-6xl"><?= e($title) ?></h1><p class="font-serif text-xl text-slate-700 dark:text-slate-300"><?= e($description) ?></p></header>
 <div class="rounded-[14px] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-<div class="flex flex-wrap items-center gap-2"><span class="eyebrow w-24"><?= e(__('category')) ?></span><a class="button-secondary rounded-full" href="<?= e('/' . $locale . '/posts') ?>" <?= $selected === null ? 'aria-current="page"' : '' ?>><?= e(__('all')) ?></a>
-<?php foreach ($categories as $term): ?><a class="button-secondary rounded-full" href="<?= e('/' . $locale . '/categories/' . rawurlencode($term['slug'])) ?>" <?= $suffix === '/categories/' . rawurlencode($term['slug']) ? 'aria-current="page"' : '' ?>><?= e($term['name']) ?></a><?php endforeach ?></div>
-<div class="mt-4 flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-4 dark:border-slate-800"><span class="eyebrow w-24"><?= e(__('tags')) ?></span><?php foreach ($tags as $term): ?><a class="tag" href="<?= e('/' . $locale . '/tags/' . rawurlencode($term['slug'])) ?>" <?= $suffix === '/tags/' . rawurlencode($term['slug']) ? 'aria-current="page"' : '' ?>>#<?= e($term['name']) ?></a><?php endforeach ?></div>
+<?php
+// Each row of chips folds to three rows on phones and two from md up, with "View all" when more are hidden.
+$chipRows = function (string $id, string $label, string $gap, array $chips, string $extra = ''): void { ?>
+<div class="<?= e($extra) ?>"><input type="checkbox" id="<?= e($id) ?>" class="chip-toggle sr-only"><div class="chip-rows flex flex-wrap items-center <?= e($gap) ?>"><span class="eyebrow inline-flex min-h-11 w-24 items-center"><?= e($label) ?></span><?php foreach ($chips as $chip) { echo $chip; } ?>
+<label for="<?= e($id) ?>" class="chip-more bg-white dark:bg-slate-900"><span class="button-secondary rounded-full"><?= e(__('view_all')) ?> · <?= e(count($chips)) ?></span></label></div>
+<label for="<?= e($id) ?>" class="chip-less button-secondary mt-2 rounded-full"><?= e(__('show_less')) ?></label></div>
+<?php };
+$chip = fn (string $class, string $href, bool $current, string $text): string => '<a class="' . $class . '" href="' . e($href) . '"' . ($current ? ' aria-current="page"' : '') . '>' . e($text) . '</a>';
+$categoryChips = [$chip('button-secondary rounded-full', '/' . $locale . '/posts', $selected === null, __('all'))];
+foreach ($categories as $term) { $categoryChips[] = $chip('button-secondary rounded-full', '/' . $locale . '/categories/' . rawurlencode($term['slug']), $suffix === '/categories/' . rawurlencode($term['slug']), $term['name']); }
+$tagChips = [];
+foreach ($tags as $term) { $tagChips[] = $chip('tag', '/' . $locale . '/tags/' . rawurlencode($term['slug']), $suffix === '/tags/' . rawurlencode($term['slug']), '#' . $term['name']); }
+$chipRows('more-categories', __('category'), 'gap-2 [--gap:0.5rem]', $categoryChips);
+if ($tagChips) { $chipRows('more-tags', __('tags'), 'gap-1.5 [--gap:0.375rem]', $tagChips, 'mt-4 border-t border-slate-100 pt-4 dark:border-slate-800'); }
+?>
 </div>
 <?php foreach ($groups as $year => $months): ?><section class="flex flex-wrap gap-x-12 gap-y-6"><h2 class="w-40 text-5xl leading-none font-bold tracking-tight text-slate-500 dark:text-slate-500"><?= e($year) ?></h2><div class="min-w-0 flex-[999_1_560px] space-y-8">
 <?php foreach ($months as $month => $posts): ?><div><h3 class="eyebrow mb-2 text-orange-700 dark:text-orange-400"><?= e(localized_date($month . '-01', 'LLLL')) ?></h3>

@@ -13,10 +13,10 @@ $tab = $kind === 'tag' ? 'tags' : '';
 <h1 class="text-[32px] font-bold tracking-tight">Categories &amp; tags</h1>
 <p class="text-slate-600 dark:text-slate-400">One row per term, one column per language. Slugs are shared; each row saves on its own.</p>
 </div>
-<form method="get" class="flex gap-2" role="search">
+<form method="get" class="flex w-full gap-2 sm:w-auto" role="search">
 <label class="sr-only" for="term-search">Search slugs and names</label>
 <?php if ($tab !== ''): ?><input type="hidden" name="tab" value="<?= e($tab) ?>"><?php endif ?>
-<input id="term-search" type="search" name="q" value="<?= e($q) ?>" placeholder="Search slugs and names" class="w-64">
+<input id="term-search" type="search" name="q" value="<?= e($q) ?>" placeholder="Search slugs and names" class="min-w-0 flex-1 sm:w-64 sm:flex-none">
 <button class="btn">Search</button>
 <?php if ($q !== ''): ?><a class="btn" href="<?= e($here($tab, '')) ?>">Clear</a><?php endif ?>
 </form>

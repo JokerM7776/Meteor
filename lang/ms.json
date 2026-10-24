@@ -86,6 +86,8 @@
         "archive": "Arkib",
         "archive_description": "Semua yang diterbitkan dalam {language}, yang terbaharu dahulu.",
         "all": "Semua",
+        "view_all": "Lihat semua",
+        "show_less": "Tunjuk kurang",
         "newer": "Lebih baharu",
         "older": "Lebih lama",
         "not_found": "Halaman tidak ditemui",

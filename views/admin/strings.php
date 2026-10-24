@@ -20,7 +20,7 @@ $shown = 0;
 <?php require __DIR__ . '/settings-tabs.php'; ?>
 <form method="get" class="flex flex-wrap items-center gap-3" role="search">
 <label class="sr-only" for="string-search">Search interface text</label>
-<input id="string-search" type="search" name="q" value="<?= e($q) ?>" placeholder="Search keys and text" class="w-72">
+<input id="string-search" type="search" name="q" value="<?= e($q) ?>" placeholder="Search keys and text" class="w-full sm:w-72">
 <label class="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name="missing" value="1" <?= $onlyMissing ? 'checked' : '' ?>>Only rows with missing text</label>
 <button class="btn">Filter</button>
 <?php if ($q !== '' || $onlyMissing): ?><a class="btn" href="/admin/strings">Show all</a><?php endif ?>

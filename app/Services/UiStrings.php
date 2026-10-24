@@ -17,7 +17,7 @@ final class UiStrings
         'Articles & pages' => ['published', 'reading_minutes', 'on_this_page', 'translation', 'available_translations', 'category', 'more_posts', 'previous', 'next', 'footnotes', 'footnote_back'],
         'Search' => ['search', 'search_label', 'search_button', 'search_results', 'search_empty', 'search_hint'],
         'Comments' => ['comments', 'mentions', 'comment_leave', 'comment_name', 'comment_email', 'comment_website', 'comment_text', 'comment_submit', 'comment_reply', 'comment_replying', 'comment_cancel_reply', 'comment_pending', 'comment_published', 'comment_owner', 'comment_via', 'comment_error_name', 'comment_error_text', 'comment_error_email', 'comment_error_url', 'comment_error_rate', 'comment_error_check', 'comment_error_expired', 'comment_check_title', 'comment_check_text', 'comment_check_noscript', 'comments_closed', 'mention_like', 'mention_repost', 'mention_bookmark', 'mention_mention', 'back_to_post'],
-        'Archive' => ['archive', 'archive_description', 'all', 'newer', 'older'],
+        'Archive' => ['archive', 'archive_description', 'all', 'view_all', 'show_less', 'newer', 'older'],
         'Page not found' => ['not_found', 'not_found_heading', 'not_found_description', 'back_home', 'browse_archive'],
     ];
     private array $builtins;

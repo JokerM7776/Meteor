@@ -46,6 +46,17 @@ test('Public: all HTML routes render without scripts and with root-relative navi
         ok(!str_contains($html, 'href="/ms/'));
     }
 });
+test('Public: archive filters fold with a CSS-only View all toggle', function () {
+    $app = publicApp();
+    $html = publicRequest($app, '/en/posts');
+    contains('<input type="checkbox" id="more-tags" class="chip-toggle sr-only"><div class="chip-rows', $html);
+    contains('<label for="more-tags" class="chip-more', $html); contains('View all · 7</span>', $html); contains('View all · 5</span>', $html);
+    contains('<label for="more-categories" class="chip-less button-secondary mt-2 rounded-full">Show less</label>', $html);
+    contains('href="/en/posts" aria-current="page">All</a>', $html);
+    $html = publicRequest($app, '/en/tags/' . $app['site']->taxonomy->tags('en')[0]['slug']);
+    contains('class="tag" href="/en/tags/' . $app['site']->taxonomy->tags('en')[0]['slug'] . '" aria-current="page">#', $html);
+    ok(!str_contains(strtolower($html), '<script'));
+});
 test('Public: canonical, live alternates, translation switcher and metadata escaping', function () {
     $app = publicApp();
     $html = publicRequest($app, '/en/posts/building-a-zero-js-blog');

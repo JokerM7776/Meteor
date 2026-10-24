@@ -4,15 +4,15 @@
 <p class="text-slate-600 dark:text-slate-400">Current version: <span class="font-mono"><?= e(\Core\Version::current()) ?></span></p>
 </header>
 <?php foreach (['zip', 'curl'] as $ext): if (!extension_loaded($ext)): ?><p role="alert" class="rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">Enable <?= e('ext-' . $ext) ?> to update Meteor.</p><?php endif; endforeach ?>
-<div class="grid gap-6 xl:grid-cols-2">
+<div class="grid gap-6 xl:grid-cols-2 [&>*]:min-w-0">
 <section class="panel space-y-4" aria-labelledby="online-heading">
 <h2 id="online-heading" class="text-xl font-bold">Online update</h2>
 <form method="post"><?= \Core\Csrf::field() ?><button name="action" value="check" class="btn-primary">Check for updates</button></form>
 <?php if ($release): ?>
 <div class="space-y-2 border-t border-slate-200 pt-4 dark:border-slate-800">
 <h3 class="text-lg font-semibold"><?= e($release['name']) ?></h3>
-<p class="font-mono text-sm text-slate-600 dark:text-slate-400">Latest version: <?= e($release['version']) ?> · <?= e($release['date']) ?></p>
-<pre class="max-h-72 overflow-y-auto whitespace-pre-wrap break-words font-display text-sm"><?= e($release['notes']) ?></pre>
+<p class="font-mono text-sm wrap-anywhere text-slate-600 dark:text-slate-400">Latest version: <?= e($release['version']) ?> · <?= e($release['date']) ?></p>
+<pre class="max-h-72 overflow-y-auto whitespace-pre-wrap wrap-anywhere font-display text-sm"><?= e($release['notes']) ?></pre>
 </div>
 <form method="post" class="flex flex-wrap items-center gap-x-6 gap-y-2">
 <?= \Core\Csrf::field() ?><input type="hidden" name="action" value="online">

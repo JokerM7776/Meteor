@@ -86,6 +86,8 @@
         "archive": "归档",
         "archive_description": "以{language}发布的全部内容，最新的在前。",
         "all": "全部",
+        "view_all": "查看全部",
+        "show_less": "收起",
         "newer": "较新",
         "older": "较早",
         "not_found": "页面不存在",
