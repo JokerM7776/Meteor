@@ -63,6 +63,16 @@ test('Admin: the editor date sets the publish date of posts and the date of page
     $editor->save(false, $id, 'en', $base + ['date' => '']); same('2015-06-01 08:30:00', $db->one('SELECT published_at FROM posts WHERE id = ?', [$id])['published_at']);
     $editor->save(false, $id, 'en', $base + ['date' => '2999-01-01T00:00']); same([], (new App\Repositories\Posts($db))->published('en'));
     throws(fn () => $editor->save(false, $id, 'en', $base + ['date' => 'soon']), InvalidArgumentException::class);
+    // The field shows the date to the minute; saving it unchanged keeps the seconds, the creation date and the list order.
+    $first = $editor->save(false, 0, 'en', ['title' => 'First', 'content_md' => 'x', 'status' => 'published', 'is_published' => '1', 'date' => '2020-05-01T10:50:41']);
+    $db->query("UPDATE posts SET created_at = '2020-04-30 09:00:00' WHERE id = ?", [$first]);
+    $second = $editor->save(false, 0, 'en', ['title' => 'Second', 'content_md' => 'x', 'status' => 'published', 'is_published' => '1', 'date' => '2020-05-01T10:50:03']);
+    $editor->save(false, $first, 'en', ['title' => 'First, edited', 'content_md' => 'y', 'status' => 'published', 'is_published' => '1', 'date' => '2020-05-01T10:50']);
+    same(['published_at' => '2020-05-01 10:50:41', 'created_at' => '2020-04-30 09:00:00'], $db->one('SELECT published_at, created_at FROM posts WHERE id = ?', [$first]));
+    same([$first, $second], array_map('intval', array_column((new App\Repositories\Posts($db))->published('en'), 'id')));
+    $editor->save(false, $first, 'en', ['title' => 'First', 'content_md' => 'y', 'status' => 'published', 'is_published' => '1', 'date' => '2020-05-01T10:49']);
+    same('2020-05-01 10:49:00', $db->one('SELECT published_at FROM posts WHERE id = ?', [$first])['published_at']);
+    same([$second, $first], array_map('intval', array_column((new App\Repositories\Posts($db))->published('en'), 'id')));
     $page = $editor->save(true, 0, 'en', ['title' => 'About us', 'content_md' => 'Hi', 'status' => 'published', 'is_published' => '1', 'date' => '2010-01-02T03:04']);
     same('2010-01-02 03:04:00', $db->one('SELECT created_at FROM pages WHERE id = ?', [$page])['created_at']);
     $draft = $editor->save(false, 0, 'en', ['title' => 'Draft', 'content_md' => 'x', 'status' => 'draft']); same(null, $db->one('SELECT published_at FROM posts WHERE id = ?', [$draft])['published_at']);

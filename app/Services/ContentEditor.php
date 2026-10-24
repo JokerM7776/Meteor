@@ -29,6 +29,10 @@ final class ContentEditor
         foreach ($tags as $tag) { if (mb_strlen($tag) > 191) { throw new \InvalidArgumentException('Tag names must be at most 191 characters.'); } }
         $cover = $page ? null : $this->cover($input, $old);
         $date = self::date($input['date'] ?? '');
+        // The field shows the stored date to the minute; saving it unchanged keeps the exact stored time,
+        // so editing a post does not move it in the lists or change its creation date.
+        $stored = $old[$page ? 'created_at' : 'published_at'] ?? null;
+        if ($date !== null && $stored !== null && $date === substr((string) $stored, 0, 16) . ':00') { $date = null; }
         $result = $this->db->transaction(function () use ($page, $id, $locale, $input, $old, $table, $translations, $foreign, $slug, $title, $status, $category, $tags, $cover, $date) {
             $now = gmdate('Y-m-d H:i:s');
             $extended = isset($input['markdown_extended']) ? 1 : 0;
