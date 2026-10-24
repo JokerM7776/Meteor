@@ -5,8 +5,9 @@ final class GitHubUpdates
 {
     /** Official Meteor releases. The repository is public, so no token is needed. */
     public const REPOSITORY = 'JokerM7776/Meteor';
-    /** GitHub serves release downloads from the CDN hosts after a redirect. */
-    public const HOSTS = ['api.github.com', 'github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com'];
+    /** GitHub serves release downloads from the CDN hosts after a redirect; raw serves language files. */
+    public const HOSTS = ['api.github.com', 'github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com', 'raw.githubusercontent.com'];
+    public const BRANCH = 'main';
     public function __construct(private HttpClient $http) {}
     public static function validateUrl(string $url): void
     {
@@ -41,6 +42,12 @@ final class GitHubUpdates
         if (!preg_match('/^\d+\.\d+\.\d+$/D', $version)) { throw new \RuntimeException('Release has an invalid version tag.'); }
         return ['version' => $version, 'name' => (string) ($release['name'] ?? ''), 'date' => (string) ($release['published_at'] ?? ''),
             'notes' => (string) ($release['body'] ?? ''), 'assets' => $release['assets'] ?? []];
+    }
+    /** A language file or the language index from the main branch (lang/<file>.json). */
+    public function language(string $file, int $limit): string
+    {
+        if (!preg_match('~^[a-z0-9-]{2,40}\.json$~D', $file)) { throw new \InvalidArgumentException('Invalid language file name.'); }
+        return $this->fetch('https://raw.githubusercontent.com/' . self::REPOSITORY . '/' . self::BRANCH . '/lang/' . $file, $limit, true);
     }
     public function download(array $release, string $destination): string
     {

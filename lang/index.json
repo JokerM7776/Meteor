@@ -1,0 +1,21 @@
+{
+    "meteor_language_index": 1,
+    "languages": {
+        "ms": {
+            "name": "Malay",
+            "native_name": "Bahasa Melayu",
+            "direction": "ltr",
+            "texts": 46,
+            "sha256": "29e93db5d3303654e9ed2460f1924ea057be1f730d22fbbe7250b5dd4a5adeeb",
+            "updated": "2026-10-24T08:49:50Z"
+        },
+        "zh-hans": {
+            "name": "Chinese (Simplified)",
+            "native_name": "简体中文",
+            "direction": "ltr",
+            "texts": 46,
+            "sha256": "d399098cfb027ba82a9ed1a30577b97b3c83a94aff6691f7905d857bee16b78f",
+            "updated": "2026-10-24T08:49:50Z"
+        }
+    }
+}

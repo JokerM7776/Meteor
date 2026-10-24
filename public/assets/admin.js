@@ -621,22 +621,34 @@ for (const field of document.querySelectorAll('[data-media-field]')) {
   setMode(initial);
 })();
 
-// Editor header: the language select opens another translation; ask first when there are unsaved edits.
+// Editor: unsaved-changes status, a warning before leaving, Ctrl+S / Cmd+S to save, and the
+// language select, which opens another translation (asking first when there are unsaved edits).
 (() => {
+  const form = document.getElementById('translation');
+  const state = document.querySelector('[data-save-state]');
+  let dirty = false, leaving = false;
+  if (form && state) {
+    const mark = () => { if (dirty) return; dirty = true; state.textContent = 'Unsaved changes'; state.dataset.dirty = '1'; };
+    form.addEventListener('input', mark);
+    form.addEventListener('change', mark);
+    form.addEventListener('submit', () => { leaving = true; state.textContent = 'Saving…'; state.dataset.dirty = '0'; });
+    window.addEventListener('beforeunload', event => { if (dirty && !leaving) { event.preventDefault(); event.returnValue = ''; } });
+    document.addEventListener('keydown', event => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.key.toLowerCase() !== 's') return;
+      event.preventDefault();
+      const buttons = [...document.querySelectorAll('[data-save-default]')];
+      const button = buttons.find(item => item.offsetParent !== null) || buttons[0];
+      if (button && !leaving) form.requestSubmit(button);
+    });
+  }
   const switcher = document.querySelector('[data-language-switch]');
   if (!switcher) return;
   const select = switcher.elements.locale;
-  const form = document.getElementById('translation');
-  let dirty = false, current = select.value;
+  let current = select.value;
   switcher.querySelector('[data-language-go]').hidden = true;
-  if (form) {
-    form.addEventListener('input', () => { dirty = true; });
-    form.addEventListener('change', () => { dirty = true; });
-    form.addEventListener('submit', () => { dirty = false; });
-  }
   select.addEventListener('change', () => {
     if (dirty && !window.confirm('Switch language? Unsaved changes in this language will be lost.')) { select.value = current; return; }
-    current = select.value;
+    current = select.value; leaving = true;
     switcher.submit();
   });
 })();
@@ -681,8 +693,56 @@ for (const field of document.querySelectorAll('[data-media-field]')) {
     if (form) form.dispatchEvent(new Event('input', {bubbles: true}));
     live.textContent = `Moved ${row.dataset.name || 'row'} to position ${rows.indexOf(row) + 1} of ${rows.length}.`;
   };
+  // A click without dragging opens a Move menu, so rows can also be moved with a single pointer (WCAG 2.5.7).
+  const menu = document.createElement('div');
+  menu.className = 'move-menu'; menu.setAttribute('role', 'menu'); menu.hidden = true;
+  document.body.append(menu);
+  let menuFor = null, dragged = false;
+  const closeMenu = refocus => {
+    if (!menuFor) return;
+    menu.hidden = true; menuFor.setAttribute('aria-expanded', 'false');
+    if (refocus) menuFor.focus();
+    menuFor = null;
+  };
+  const moveTo = (body, row, position) => {
+    const others = rowsOf(body).filter(item => item !== row);
+    if (position >= others.length) others[others.length - 1].after(row); else others[position].before(row);
+    changed(body, row);
+  };
+  const openMenu = handle => {
+    const body = handle.closest('tbody'), row = handle.closest('tr'), rows = rowsOf(body), index = rows.indexOf(row);
+    menu.replaceChildren();
+    const used = new Set([index]);
+    for (const [label, position] of [['Move up', index - 1], ['Move down', index + 1], ['Move to top', 0], ['Move to bottom', rows.length - 1]]) {
+      if (position < 0 || position >= rows.length || used.has(position)) continue;
+      used.add(position);
+      const item = document.createElement('button');
+      item.type = 'button'; item.setAttribute('role', 'menuitem'); item.textContent = label;
+      item.addEventListener('click', () => { moveTo(body, row, position); closeMenu(true); });
+      menu.append(item);
+    }
+    const box = handle.getBoundingClientRect();
+    menu.style.top = `${box.bottom + window.scrollY + 4}px`;
+    menu.style.left = `${box.left + window.scrollX}px`;
+    menu.hidden = false; menuFor = handle; handle.setAttribute('aria-expanded', 'true');
+    menu.querySelector('button')?.focus();
+  };
+  menu.addEventListener('keydown', event => {
+    const items = [...menu.querySelectorAll('button')], index = items.indexOf(document.activeElement);
+    if (event.key === 'Escape') { event.preventDefault(); closeMenu(true); }
+    else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); items[(index + (event.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length]?.focus(); }
+    else if (event.key === 'Tab') closeMenu(false);
+  });
+  document.addEventListener('pointerdown', event => { if (menuFor && !menu.contains(event.target) && event.target.closest('[data-drag-handle]') !== menuFor) closeMenu(false); });
   for (const body of bodies) {
-    for (const handle of body.querySelectorAll('[data-drag-handle]')) handle.hidden = false;
+    for (const handle of body.querySelectorAll('[data-drag-handle]')) {
+      handle.hidden = false;
+      handle.setAttribute('aria-haspopup', 'menu'); handle.setAttribute('aria-expanded', 'false');
+      handle.addEventListener('click', () => {
+        if (dragged) { dragged = false; return; }
+        if (menuFor === handle) closeMenu(true); else { closeMenu(false); openMenu(handle); }
+      });
+    }
     body.addEventListener('keydown', event => {
       const handle = event.target.closest('[data-drag-handle]');
       if (!handle || !['ArrowUp', 'ArrowDown'].includes(event.key)) return;
@@ -700,6 +760,7 @@ for (const field of document.querySelectorAll('[data-media-field]')) {
       event.preventDefault();
       const row = handle.closest('tr');
       const start = rowsOf(body).indexOf(row);
+      dragged = false;
       // Listen on the window: moving the row in the DOM drops any pointer capture.
       const pointer = event.pointerId;
       row.classList.add('is-dragging');
@@ -720,7 +781,7 @@ for (const field of document.querySelectorAll('[data-media-field]')) {
         window.removeEventListener('pointercancel', end);
         row.classList.remove('is-dragging');
         document.body.classList.remove('select-none');
-        if (rowsOf(body).indexOf(row) !== start) changed(body, row);
+        if (rowsOf(body).indexOf(row) !== start) { dragged = true; changed(body, row); }
       };
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', end);

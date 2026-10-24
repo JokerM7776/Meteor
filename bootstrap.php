@@ -7,6 +7,7 @@ $GLOBALS['config'] = $config;
 $db = new Core\Database($config['database']);
 $secure = parse_url($config['app_url'], PHP_URL_SCHEME) === 'https'
     || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+if ($secure && PHP_SAPI !== 'cli') { header('Strict-Transport-Security: max-age=31536000'); }
 $adminRequest = preg_match('~^/admin(?:/|$)~', rawurldecode((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH))) === 1;
 if ($adminRequest || isset($_COOKIE[$config['session_name']])) {
     Core\Session::start($config['session_name'], $secure);

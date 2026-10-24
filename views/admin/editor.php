@@ -7,7 +7,18 @@ $publicUrl = '/' . $locale . ($page ? '/' : '/posts/') . rawurlencode((string) (
 $isPublic = $id && !empty($item['is_published']) && ($ts[$locale]['status'] ?? '') === 'published'
     && ($page || (($item['published_at'] ?? null) !== null && $item['published_at'] <= gmdate('Y-m-d H:i:s')));
 ?>
-<div class="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+<?php
+$state = $ts[$locale]['status'] ?? 'missing';
+$savedAt = $ts[$locale]['updated_at'] ?? null;
+// One pair of save buttons per breakpoint: in the top bar from md up, in the bottom bar on phones.
+$saveButtons = function (string $extra) use ($state): string {
+    $live = $state === 'published';
+    // Ctrl+S keeps the current state: it updates a published translation and saves anything else as a draft.
+    return '<button form="translation" name="status" value="draft" class="btn ' . $extra . '" title="' . ($live ? 'Save and take this translation off the site' : 'Save without publishing (Ctrl+S)') . '"' . ($live ? '' : ' data-save-default') . '>' . ($live ? 'Unpublish' : 'Save draft') . '</button>'
+        . '<button form="translation" name="status" value="published" class="btn bg-orange-700 text-white hover:border-orange-800 hover:bg-orange-800 ' . $extra . '" title="' . ($live ? 'Save the published translation (Ctrl+S)' : 'Save and publish') . '"' . ($live ? ' data-save-default' : '') . '>' . ($live ? 'Update' : 'Publish') . '</button>';
+};
+?>
+<div class="editor-top flex flex-wrap items-end justify-between gap-x-6 gap-y-4 md:sticky md:top-0 md:z-30">
 <div>
 <a class="inline-flex min-h-11 items-center text-sm text-orange-700 dark:text-orange-400" href="/admin/<?= $page ? 'pages' : 'posts' ?>">← All <?= $page ? 'pages' : 'posts' ?></a>
 <h1 class="text-2xl font-bold"><?= e($title) ?></h1>
@@ -18,18 +29,18 @@ $isPublic = $id && !empty($item['is_published']) && ($ts[$locale]['status'] ?? '
 <input type="hidden" name="kind" value="<?= e($kind) ?>">
 <input type="hidden" name="from" value="<?= e($base) ?>">
 <label class="sr-only" for="editor-language">Language</label>
-<select id="editor-language" name="locale" class="w-full min-w-0 sm:w-auto sm:min-w-56">
-<?php foreach ($registry as $code => $language): if ($language['status'] === 'off') { continue; } $state = $ts[$code]['status'] ?? 'missing'; ?>
-<option value="<?= e($code) ?>" lang="<?= e($code) ?>" <?= $code === $locale ? 'selected' : '' ?>><?= e($language['native_name'] . ' · ' . ucfirst($state) . ($code === $base ? ' · base' : '')) ?></option>
+<select id="editor-language" name="locale" class="w-full min-w-0 sm:w-auto sm:min-w-56" aria-describedby="editor-language-hint">
+<?php foreach ($registry as $code => $language): if ($language['status'] === 'off') { continue; } $optionState = $ts[$code]['status'] ?? 'missing'; ?>
+<option value="<?= e($code) ?>" lang="<?= e($code) ?>" <?= $code === $locale ? 'selected' : '' ?>><?= e($language['native_name'] . ' · ' . ucfirst($optionState) . ($code === $base ? ' · base' : '')) ?></option>
 <?php endforeach ?>
 </select>
+<span id="editor-language-hint" class="sr-only">Choosing a language opens it.</span>
 <button class="btn" data-language-go>Open</button>
 </form>
 <?php if ($isPublic): ?>
 <a class="btn" href="<?= e($publicUrl) ?>" target="_blank" rel="noopener">View ↗<span class="sr-only"> (opens in a new tab)</span></a>
 <?php endif ?>
-<button form="translation" name="status" value="draft" class="btn">Save draft</button>
-<button form="translation" name="status" value="published" class="btn bg-orange-700 text-white hover:border-orange-800 hover:bg-orange-800">Publish</button>
+<?= $saveButtons('hidden md:inline-flex') ?>
 </div>
 </div>
 <?php if ($error): ?>
@@ -39,7 +50,7 @@ $isPublic = $id && !empty($item['is_published']) && ($ts[$locale]['status'] ?? '
 <form id="translation" method="post" action="<?= e($target) ?>">
 <?= \Core\Csrf::field() ?>
 <details class="panel mb-5" <?= !$id || $error ? 'open' : '' ?>>
-<summary class="min-h-11 cursor-pointer font-semibold">Shared settings <span class="font-normal text-slate-500">· applies to all languages</span>
+<summary class="min-h-11 cursor-pointer font-semibold">Shared settings <span class="font-normal text-slate-500 dark:text-slate-400">· applies to all languages</span>
 </summary>
 <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 <div class="field" data-slug-field data-base-title="<?= e($baseTitle) ?>" data-is-base="<?= $locale === $base ? '1' : '0' ?>">
@@ -141,11 +152,23 @@ $fieldHint = 'Shown on cards and at the top of the post.'; $pickerTitle = 'Choos
 </div>
 </div>
 </div>
-<p class="border-t border-slate-200 px-5 py-3 text-xs text-slate-500 dark:border-slate-800">Visual and Markdown edit the same text. HTML and table of contents are compiled when you save.</p>
+<p class="border-t border-slate-200 px-5 py-3 text-xs text-slate-500 dark:text-slate-400 dark:border-slate-800">Visual and Markdown edit the same text. HTML and table of contents are compiled when you save.</p>
 </section>
 </div>
 </form>
+<?php $deleteUrl = '/admin/' . ($page ? 'pages' : 'posts') . '/' . $id . '/delete'; $deleteLabel = 'Delete ' . ($page ? 'page' : 'post') . '…'; ?>
 <?php if ($id): ?>
-<a class="mt-6 inline-flex min-h-11 items-center text-sm text-red-700 dark:text-red-400" href="/admin/<?= $page ? 'pages' : 'posts' ?>/<?= e($id) ?>/delete">Delete <?= $page ? 'page' : 'post' ?>…</a>
+<a class="mt-6 inline-flex min-h-11 items-center text-sm text-red-700 md:hidden dark:text-red-400" href="<?= e($deleteUrl) ?>"><?= e($deleteLabel) ?></a>
 <?php endif ?>
+<div class="editor-bottom sticky bottom-0 z-30 flex flex-wrap items-center justify-between gap-x-6 gap-y-2" role="region" aria-label="Save status">
+<p class="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+<span class="status-chip <?= $state === 'published' ? 'bg-slate-900 text-white dark:bg-slate-700' : ($state === 'draft' ? 'bg-amber-100 text-amber-950' : 'border border-dashed border-slate-500 text-slate-700 dark:text-slate-300') ?>"><?= e($state === 'published' ? '✓ Published' : ($state === 'draft' ? '◐ Draft' : 'Not saved yet')) ?><span class="sr-only"> · <?= e($registry[$locale]['name']) ?></span></span>
+<span class="text-slate-600 dark:text-slate-400" data-save-state data-saved="<?= $savedAt && !$error ? '1' : '0' ?>" aria-live="polite"><?= $error ? 'Not saved: fix the problem above.' : ($savedAt ? 'Saved ' . e(substr((string) $savedAt, 0, 16)) . ' UTC' : 'Not saved yet') ?></span>
+<span class="hidden text-xs text-slate-600 lg:inline dark:text-slate-400"><kbd class="font-mono">Ctrl</kbd>+<kbd class="font-mono">S</kbd> <?= $state === 'published' ? 'updates' : 'saves a draft' ?></span>
+</p>
+<div class="flex items-center gap-3">
+<?php if ($id): ?><a class="hidden min-h-11 items-center text-sm text-red-700 md:inline-flex dark:text-red-400" href="<?= e($deleteUrl) ?>"><?= e($deleteLabel) ?></a><?php endif ?>
+<?= $saveButtons('md:hidden') ?>
+</div>
+</div>
 <?php require __DIR__ . '/media-picker.php'; require __DIR__ . '/link-dialog.php'; ?>

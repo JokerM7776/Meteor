@@ -19,9 +19,12 @@ a **zero-JavaScript public frontend**, and a small admin area where minimal JS i
    - `off`: hidden everywhere; translations are kept.
    The router builds its valid prefixes from this table. Order of the switcher = `sort_order`.
    Interface text ("Read more" etc.): site edits in `ui_strings` (locale, key, value) → language
-   file `lang/<code>.json` → default locale → `lang/en.php` (built-in English, public keys only) →
-   the key. Bundled language files (`zh`, `ms`) are added as **Off**; only English is live after
-   install. Language files are JSON and can be exported/imported in admin. Never assume `zh`/`ms`
+   file (`storage/lang/<code>.json` downloaded from the GitHub catalog wins over the bundled
+   `lang/<code>.json`) → default locale → `lang/en.php` (built-in English, public keys only) →
+   the key. Bundled language files (`zh-hans`, `ms`) are added as **Off**; only English is live
+   after install. Language files are JSON and can be exported/imported in admin; `lang/index.json`
+   is the catalog (rebuilt by `php bin/lang.php index` and by CI on `main`). Old sites may still use
+   the code `zh`, which reads `zh-hans.json` (`LanguagePack::RENAMED`). Never assume `zh-hans`/`ms`
    are enabled.
 2. **Database: MariaDB/MySQL is the primary target, SQLite must also work.** Use PDO only. Keep SQL
    to the portable subset. Ship `database/schema.mysql.sql` and `database/schema.sqlite.sql`

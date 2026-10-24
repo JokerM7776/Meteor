@@ -50,7 +50,7 @@ $shown = 0;
 <tr><th scope="rowgroup" colspan="<?= e(count($locales) + 1) ?>" class="sheet-group"><span class="sticky left-3"><?= e($group) ?></span></th></tr>
 <?php foreach ($rows as $key): $long = mb_strlen($builtins[$key]) > 60; ?>
 <tr>
-<th scope="row" class="sheet-key"><span class="font-mono text-xs text-slate-500"><?= e($key) ?></span><span class="block font-normal"><?= e($builtins[$key]) ?></span></th>
+<th scope="row" class="sheet-key"><span class="font-mono text-xs text-slate-500 dark:text-slate-400"><?= e($key) ?></span><span class="block font-normal"><?= e($builtins[$key]) ?></span></th>
 <?php foreach ($locales as $code => $language): $value = $posted[$code][$key] ?? $own[$code][$key] ?? ''; $unsaved = isset($posted[$code][$key]) && $posted[$code][$key] !== ($own[$code][$key] ?? '') ? ' data-unsaved' : ''; $name = 'strings[' . $code . '][' . $key . ']'; $aria = $key . ', ' . $language['name']; ?>
 <td><?php if ($long): ?><textarea name="<?= e($name) ?>" lang="<?= e($code) ?>" dir="<?= e($language['direction']) ?>" rows="3" maxlength="2000" placeholder="<?= e($fallback($key)) ?>" aria-label="<?= e($aria) ?>"<?= $unsaved ?>><?= e($value) ?></textarea>
 <?php else: ?><input name="<?= e($name) ?>" lang="<?= e($code) ?>" dir="<?= e($language['direction']) ?>" maxlength="2000" value="<?= e($value) ?>" placeholder="<?= e($fallback($key)) ?>" aria-label="<?= e($aria) ?>"<?= $unsaved ?>><?php endif ?></td>
@@ -64,7 +64,7 @@ $shown = 0;
 <?php if (!$shown): ?><p class="text-slate-600 dark:text-slate-400">No interface text matches this filter.</p><?php endif ?>
 <div class="flex flex-wrap items-center gap-4">
 <button class="btn-primary">Save interface text</button>
-<p class="text-sm text-slate-500">Keep placeholders such as {language} or {minutes}. To share a language, download its file on <a class="text-orange-700 underline dark:text-orange-400" href="/admin/languages">Languages</a>.</p>
+<p class="text-sm text-slate-500 dark:text-slate-400">Keep placeholders such as {language} or {minutes}. To share a language, download its file on <a class="text-orange-700 underline dark:text-orange-400" href="/admin/languages">Languages</a>.</p>
 </div>
 </form>
 </div>

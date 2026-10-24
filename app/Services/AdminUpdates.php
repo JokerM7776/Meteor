@@ -49,6 +49,16 @@ final class AdminUpdates
                 $updater->apply($destination, $allow, $checksum);
             } finally { if (is_file($destination)) { unlink($destination); } }
         } else { throw new \InvalidArgumentException('Unknown update action.'); }
-        unset($_SESSION['update_release']); return 'Update installed successfully.';
+        unset($_SESSION['update_release']); return 'Update installed successfully.' . $this->missingText();
+    }
+    /** Names the public languages that lack interface text the new version added. */
+    private function missingText(): string
+    {
+        $strings = new UiStrings($this->db); $overrides = $strings->overrides(); $total = count($strings->builtins()); $names = [];
+        foreach ($this->db->all("SELECT code, name FROM locales WHERE status <> 'off' ORDER BY sort_order, code") as $row) {
+            $missing = $total - count($strings->own($row['code'], $overrides));
+            if ($missing > 0) { $names[] = $row['name'] . ' (' . $missing . ')'; }
+        }
+        return $names ? ' Interface text is missing in ' . implode(', ', $names) . '. Check Languages → Get languages, or fill it in under Settings → Interface text.' : '';
     }
 }

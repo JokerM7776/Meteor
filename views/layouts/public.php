@@ -28,12 +28,25 @@
 <a href="<?= e('/' . $locale . '/') ?>" class="flex min-h-11 items-center gap-2 text-xl font-bold tracking-tight md:text-2xl"><?php if ($settings->enabled('header_show_icon')) { require __DIR__ . '/../partials/mark.php'; } ?><span<?= !$settings->enabled('header_show_title') ? ' class="sr-only"' : '' ?>><?= e($settings->label('site_title')) ?></span></a>
 <div class="flex items-center gap-2 md:gap-6">
 <div class="hidden md:block"><?php require __DIR__ . '/../partials/nav.php' ?></div>
-<?php if ($settings->enabled('header_show_switcher')): ?>
+<?php if ($settings->enabled('header_show_switcher')): $short = fn (string $code): string => $settings->get('language_label', $code, mb_strlen($registry[$code]['native_name']) <= 4 ? $registry[$code]['native_name'] : strtoupper($code)); ?>
+<?php if (count($switcher) <= 4): ?>
 <nav aria-label="<?= e(__('language')) ?>" class="flex flex-wrap gap-0.5 rounded-full border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-700 dark:bg-slate-950">
 <?php foreach ($switcher as $code => $href): ?>
-<a href="<?= e($href) ?>" lang="<?= e($code) ?>" <?= $locale === $code ? 'aria-current="page"' : '' ?> class="<?= $locale === $code ? 'hidden md:inline-flex' : 'inline-flex' ?> min-h-11 items-center rounded-full px-2 text-xs font-semibold md:px-3.5 <?= $locale === $code ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-600 dark:text-slate-300' ?>"><?= e($settings->get('language_label', $code, mb_strlen($registry[$code]['native_name']) <= 4 ? $registry[$code]['native_name'] : strtoupper($code))) ?></a>
+<a href="<?= e($href) ?>" lang="<?= e($code) ?>" <?= $locale === $code ? 'aria-current="page"' : '' ?> class="<?= $locale === $code ? 'hidden md:inline-flex' : 'inline-flex' ?> min-h-11 min-w-11 items-center justify-center rounded-full px-2 text-xs font-semibold md:px-3.5 <?= $locale === $code ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-600 dark:text-slate-300' ?>"><?= e($short($code)) ?></a>
 <?php endforeach ?>
 </nav>
+<?php else: // Many languages: one menu instead of a row that wraps. ?>
+<details class="relative">
+<summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 [&::-webkit-details-marker]:hidden"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 4 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.25 5.4 8S6.2 3.65 8 1.75"/></svg><span class="sr-only"><?= e(__('language')) ?>: </span><span lang="<?= e($locale) ?>"><?= e($short($locale)) ?></span><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></summary>
+<nav aria-label="<?= e(__('language')) ?>" class="absolute end-0 z-20 mt-2 max-h-[70vh] w-60 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+<ul>
+<?php foreach ($switcher as $code => $href): ?>
+<li><a href="<?= e($href) ?>" <?= $locale === $code ? 'aria-current="page"' : '' ?> class="flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm hover:bg-slate-100 aria-[current=page]:font-semibold dark:hover:bg-slate-800"><span lang="<?= e($code) ?>" dir="<?= e($registry[$code]['direction']) ?>"><?= e($registry[$code]['native_name']) ?></span><span class="font-mono text-xs text-slate-600 dark:text-slate-400"><?= $locale === $code ? '<span aria-hidden="true">✓</span>' : e($code) ?></span></a></li>
+<?php endforeach ?>
+</ul>
+</nav>
+</details>
+<?php endif ?>
 <?php endif ?>
 <?php if ($themeSwitch): $back = (string) ($_SERVER['REQUEST_URI'] ?? '/'); ?>
 <details class="relative"><summary aria-label="<?= e(__('color_scheme')) ?>" title="<?= e(__('color_scheme')) ?>" class="flex size-11 cursor-pointer list-none items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 [&::-webkit-details-marker]:hidden"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.75a7.25 7.25 0 0 1 0 14.5z" fill="currentColor"/></svg></summary>

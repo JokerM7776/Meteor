@@ -4,7 +4,7 @@
 <h2 id="link-heading" class="text-lg font-bold">Link</h2>
 <label class="field">Address<input type="text" inputmode="url" name="url" required placeholder="https://… or /en/posts/…" spellcheck="false" autocomplete="off" data-link-url></label>
 <label class="field">Text<input name="text" data-link-text></label>
-<p class="text-xs text-slate-500">Use https://, http://, mailto: or a path such as /en/about.</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">Use https://, http://, mailto: or a path such as /en/about.</p>
 <div class="flex flex-wrap justify-end gap-3">
 <button type="button" class="btn me-auto text-red-700 dark:text-red-400" data-link-remove>Remove link</button>
 <button type="button" class="btn" data-close>Cancel</button>

@@ -33,7 +33,7 @@ test('Public: default seed is English only, idempotent and compiled', function (
 });
 test('Public: all HTML routes render without scripts and with root-relative navigation', function () {
     $app = publicApp();
-    $routes = ['/en/', '/en/posts', '/en/tags', '/en/about', '/zh/', '/zh/about'];
+    $routes = ['/en/', '/en/posts', '/en/tags', '/en/about', '/zh-hans/', '/zh-hans/about'];
     foreach ($app['site']->posts->published('en') as $post) { $routes[] = '/en/posts/' . $post['slug']; }
     foreach ($app['site']->taxonomy->categories('en') as $term) { $routes[] = '/en/categories/' . $term['slug']; }
     foreach ($app['site']->taxonomy->tags('en') as $term) { $routes[] = '/en/tags/' . $term['slug']; }
@@ -50,14 +50,14 @@ test('Public: canonical, live alternates, translation switcher and metadata esca
     $app = publicApp();
     $html = publicRequest($app, '/en/posts/building-a-zero-js-blog');
     contains('<link rel="canonical" href="https://meteor.example/en/posts/building-a-zero-js-blog">', $html);
-    contains('hreflang="zh" href="https://meteor.example/zh/posts/building-a-zero-js-blog"', $html);
+    contains('hreflang="zh-hans" href="https://meteor.example/zh-hans/posts/building-a-zero-js-blog"', $html);
     contains('hreflang="x-default" href="https://meteor.example/en/posts/building-a-zero-js-blog"', $html);
-    contains('href="/zh/posts/building-a-zero-js-blog" lang="zh"', $html);
+    contains('href="/zh-hans/posts/building-a-zero-js-blog" lang="zh-hans"', $html);
     ok(!str_contains($html, 'hreflang="ms"'));
     $html = publicRequest($app, '/en/posts/markdown-parser-150-lines');
-    contains('href="/zh/" lang="zh"', $html);
-    ok(!str_contains($html, 'hreflang="zh"'));
-    $html = publicRequest($app, '/zh/about');
+    contains('href="/zh-hans/" lang="zh-hans"', $html);
+    ok(!str_contains($html, 'hreflang="zh-hans"'));
+    $html = publicRequest($app, '/zh-hans/about');
     contains('hreflang="en" href="https://meteor.example/en/about"', $html);
     $app['db']->query('UPDATE post_translations SET title = ?, summary = ? WHERE locale = ?', ['<script>alert("x")</script>', '<script>summary</script>', 'en']);
     $html = publicRequest($app, '/en/posts/building-a-zero-js-blog');
@@ -74,8 +74,8 @@ test('Public: preview/off/draft visibility and same-locale neighbors', function 
     ok(!str_contains($html, 'hreflang=')); ok(!str_contains($html, '/ms/rss.xml'));
     contains('rel="prev" href="/ms/posts/compile-markdown-on-save"', $html);
     publicRequest($app, '/ms/rss.xml'); same(404, http_response_code());
-    $app['db']->query("UPDATE post_translations SET status = 'draft' WHERE locale = ? AND post_id = ?", ['zh', 1]);
-    publicRequest($app, '/zh/posts/building-a-zero-js-blog'); same(404, http_response_code());
+    $app['db']->query("UPDATE post_translations SET status = 'draft' WHERE locale = ? AND post_id = ?", ['zh-hans', 1]);
+    publicRequest($app, '/zh-hans/posts/building-a-zero-js-blog'); same(404, http_response_code());
     $app['db']->query("UPDATE posts SET is_published = 0 WHERE id = ?", [1]);
     publicRequest($app, '/en/posts/building-a-zero-js-blog'); same(404, http_response_code());
     $app['db']->query('UPDATE posts SET published_at = ? WHERE id = ?', ['2999-01-01 00:00:00', 2]);
@@ -105,16 +105,16 @@ test('Public: XML RSS and sitemap contain only published live translations', fun
     $xml = simplexml_load_string($sitemap); ok($xml !== false); same(16, count($xml->url));
     ok(!str_contains($sitemap, '/ms/')); contains('xhtml:link', $sitemap);
     $xml->registerXPathNamespace('h', 'http://www.w3.org/1999/xhtml'); ok(count($xml->xpath('//h:link[@hreflang="x-default"]')) > 0);
-    $app['db']->query("UPDATE post_translations SET status = 'draft' WHERE locale = ?", ['zh']);
-    same(0, count(simplexml_load_string(publicRequest($app, '/zh/rss.xml'))->channel->item));
+    $app['db']->query("UPDATE post_translations SET status = 'draft' WHERE locale = ?", ['zh-hans']);
+    same(0, count(simplexml_load_string(publicRequest($app, '/zh-hans/rss.xml'))->channel->item));
 });
 test('Public: localized 404s, reserved page slugs and trailing slash redirects', function () {
     $app = publicApp();
-    $html = publicRequest($app, '/zh/no/such/page'); same(404, http_response_code()); contains('页面不存在', $html); contains('<html lang="zh"', $html);
+    $html = publicRequest($app, '/zh-hans/no/such/page'); same(404, http_response_code()); contains('页面不存在', $html); contains('<html lang="zh-hans"', $html);
     foreach (['/unknown/path', '/en/assets', '/en/rss.xml/no', '/en/404', '/en/posts/a%2fb'] as $path) {
         $html = publicRequest($app, $path); same(404, http_response_code()); contains('This page burned up on entry.', $html);
     }
-    foreach (['/en' => '/en/', '/zh' => '/zh/', '/en/posts/' => '/en/posts', '/en/about/?x=1' => '/en/about?x=1', '/en/posts/test/' => '/en/posts/test'] as $from => $to) {
+    foreach (['/en' => '/en/', '/zh-hans' => '/zh-hans/', '/en/posts/' => '/en/posts', '/en/about/?x=1' => '/en/about?x=1', '/en/posts/test/' => '/en/posts/test'] as $from => $to) {
         $route = $app['router']->match('GET', $from); same(301, $route['status']); same($to, $route['location']);
     }
     same(404, $app['router']->match('GET', '/ms')['status']);
@@ -124,8 +124,8 @@ test('Public: localized settings fallback and custom CSS response', function () 
     $db = $app['db'];
     foreach (['custom_css' => 'body { color: red; }', 'copyright' => '© Demo & Co'] as $key => $value) { $db->upsert('settings', compact('key', 'value') + ['locale' => null], ['key', 'locale_scope']); }
     $db->upsert('settings', ['key' => 'home_heading', 'locale' => 'en', 'value' => 'Default intro'], ['key', 'locale_scope']);
-    (new App\Services\MenuEditor($db))->save('header', ['items' => [$db->one("SELECT id FROM menu_items WHERE menu = 'header' AND kind = 'posts'")['id'] => ['labels' => ['zh' => '所有文章']]]]);
-    $html = publicRequest($app, '/zh/'); contains('Default intro', $html); contains('所有文章', $html); contains('© Demo &amp; Co', $html);
+    (new App\Services\MenuEditor($db))->save('header', ['items' => [$db->one("SELECT id FROM menu_items WHERE menu = 'header' AND kind = 'posts'")['id'] => ['labels' => ['zh-hans' => '所有文章']]]]);
+    $html = publicRequest($app, '/zh-hans/'); contains('Default intro', $html); contains('所有文章', $html); contains('© Demo &amp; Co', $html);
     contains('href="/custom.css"', $html);
     same('body { color: red; }', publicRequest($app, '/custom.css'));
     $_SERVER['HTTP_IF_NONE_MATCH'] = '"' . hash('sha256', 'body { color: red; }') . '"';
@@ -134,10 +134,10 @@ test('Public: localized settings fallback and custom CSS response', function () 
 test('Public: configurable RTL and off locales, reserved pages and RSS limit', function () {
     $app = publicApp(); $db = $app['db'];
     $db->upsert('locales', ['code' => 'ar', 'name' => 'Arabic', 'native_name' => 'العربية', 'status' => 'live', 'direction' => 'rtl'], ['code']);
-    $db->query("UPDATE locales SET status = 'off' WHERE code = ?", ['zh']);
+    $db->query("UPDATE locales SET status = 'off' WHERE code = ?", ['zh-hans']);
     $i18n = new Core\I18n($db, require dirname(__DIR__) . '/lang/en.php'); $GLOBALS['i18n'] = $i18n;
     $site = new App\Controllers\Public\SiteController($db, $i18n, $app['view'], true);
-    $html = $site->home('ar'); contains('<html lang="ar" dir="rtl" data-theme="auto">', $html); ok(!str_contains($html, '/zh/'));
+    $html = $site->home('ar'); contains('<html lang="ar" dir="rtl" data-theme="auto">', $html); ok(!str_contains($html, '/zh-hans/'));
     $db->upsert('pages', ['slug' => 'assets', 'base_locale' => 'en', 'is_published' => 1], ['slug']);
     $id = (int) $db->one('SELECT id FROM pages WHERE slug = ?', ['assets'])['id'];
     $db->upsert('page_translations', ['page_id' => $id, 'locale' => 'en', 'title' => 'Reserved', 'summary' => '', 'content_md' => '', 'content_html' => '', 'toc_html' => '', 'status' => 'published'], ['page_id', 'locale']);
@@ -161,7 +161,7 @@ test('Public: identity, header and footer customization without scripts', functi
     $set('footer_text', 'Footer <text>', 'en'); $set('copyright', '© {year} Custom', 'en'); $set('footer_menu_heading', 'More & more', 'en');
     $menus = new App\Repositories\Menus($db); $menus->ensureDefaults(); $editor = new App\Services\MenuEditor($db);
     $editor->save('header', ['items' => ['new' => ['url' => '/{locale}/?a=1&b=2', 'labels' => ['en' => '<Header>']]]]);
-    $editor->save('header', ['items' => ['new' => ['url' => '/en/', 'labels' => ['zh' => '只在中文']]]]);
+    $editor->save('header', ['items' => ['new' => ['url' => '/en/', 'labels' => ['zh-hans' => '只在中文']]]]);
     $editor->save('header', ['items' => ['new' => ['url' => '/{locale}/', 'sort_order' => '-1', 'labels' => ['en' => 'Here']]]]);
     $editor->save('footer', ['items' => ['new' => ['url' => 'HTTPS://example.com/?a=1&b=2', 'labels' => ['en' => '<Footer>']]]]);
     $db->query("UPDATE menu_items SET url = 'javascript:alert(1)' WHERE url = '/en/'");
@@ -172,7 +172,7 @@ test('Public: identity, header and footer customization without scripts', functi
     contains('&lt;Header&gt;', $html); contains('href="/en/?a=1&amp;b=2"', $html); contains('href="/en/" aria-current="page">Here', $html);
     ok(strpos($html, '>Here<') < strpos($html, 'href="/en/posts"'), 'Order follows sort_order');
     contains('rel="noopener">&lt;Footer&gt;', $html); ok(!str_contains($html, 'javascript:')); ok(!str_contains($html, '<script'));
-    $zh = publicRequest($app, '/zh/'); contains('href="/zh/?a=1&amp;b=2"', $zh); contains('&lt;Header&gt;', $zh); ok(!str_contains($zh, '只在中文'));
+    $zh = publicRequest($app, '/zh-hans/'); contains('href="/zh-hans/?a=1&amp;b=2"', $zh); contains('&lt;Header&gt;', $zh); ok(!str_contains($zh, '只在中文'));
     foreach (['header_show_title', 'header_show_switcher', 'footer_show_languages', 'footer_show_feeds', 'footer_show_site'] as $key) { $set($key, '0'); }
     $db->query("UPDATE menu_items SET is_visible = 0 WHERE menu = 'header' AND (kind <> 'link' OR page_id IS NOT NULL)");
     $html = publicRequest($app, '/en/'); contains('<span class="sr-only">Custom &amp; title</span>', $html);

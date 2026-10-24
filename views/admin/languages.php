@@ -50,7 +50,7 @@
 <input type="hidden" form="language-order" name="order[]" value="<?= e($code) ?>" data-sort-key>
 <div>
 <span class="font-semibold" lang="<?= e($code) ?>"><?= e($language['native_name']) ?></span>
-<span class="block text-xs text-slate-500"><?= e($language['name']) ?> · <?= e($code) ?><?= $language['is_default'] ? ' · Default' : '' ?></span>
+<span class="block text-xs text-slate-500 dark:text-slate-400"><?= e($language['name']) ?> · <?= e($code) ?><?= $language['is_default'] ? ' · Default' : '' ?></span>
 </div>
 </div>
 </td>
@@ -64,7 +64,7 @@
 </td>
 <td class="px-4 py-4">
 <span class="block font-mono text-xs"><?= e($ownText) ?> / <?= e(count($builtin)) ?></span>
-<span class="flex flex-wrap gap-x-3 text-sm"><a class="inline-flex min-h-11 items-center text-orange-700 dark:text-orange-400" href="/admin/strings">Edit<span class="sr-only"> interface text</span></a>
+<span class="flex flex-wrap gap-x-3 text-sm"><a class="inline-flex min-h-11 min-w-11 items-center text-orange-700 dark:text-orange-400" href="/admin/strings">Edit<span class="sr-only"> interface text</span></a>
 <a class="inline-flex min-h-11 items-center text-orange-700 dark:text-orange-400" href="/admin/languages/export?code=<?= e(rawurlencode($code)) ?>" download>Download file<span class="sr-only"> for <?= e($language['name']) ?></span></a></span>
 </td>
 <td class="px-4 py-4">
@@ -122,11 +122,69 @@
 </div>
 </dl>
 </section>
+<?php $catalog = new \App\Services\LanguageDownloads($db, new \Core\GitHubUpdates(new \Core\CurlHttpClient())); $checked = $catalog->catalog(); $available = $catalog->rows(); $repo = 'https://github.com/' . \Core\GitHubUpdates::REPOSITORY; ?>
+<section id="catalog" class="overflow-x-auto rounded-[14px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+<div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-4">
+<div class="max-w-3xl">
+<h2 class="text-xl font-bold">Get languages</h2>
+<p class="text-sm text-slate-600 dark:text-slate-400">Interface text translated by the Meteor community in the <a class="text-orange-700 underline dark:text-orange-400" href="<?= e($repo . '/tree/' . \Core\GitHubUpdates::BRANCH . '/lang') ?>">language catalog on GitHub</a>. Downloads bring new and corrected text without waiting for a Meteor update, and your own edits stay on top. Missing your language? <a class="text-orange-700 underline dark:text-orange-400" href="<?= e($repo . '/blob/' . \Core\GitHubUpdates::BRANCH . '/CONTRIBUTING.md#translating-meteor') ?>">Help translate</a>.</p>
+</div>
+<form method="post" class="flex flex-wrap items-center gap-3">
+<?= \Core\Csrf::field() ?>
+<input type="hidden" name="action" value="catalog">
+<?php if ($checked): ?><p class="text-sm text-slate-500 dark:text-slate-400">Checked <?= e(str_replace(['T', 'Z'], [' ', ' UTC'], substr($checked['checked_at'], 0, 16) . 'Z')) ?></p><?php endif ?>
+<button class="btn">Check for languages</button>
+</form>
+</div>
+<?php if (!$checked): ?>
+<p class="border-t border-slate-200 px-6 py-4 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-400">Meteor contacts GitHub only when you click <strong>Check for languages</strong>.</p>
+<?php elseif (!$available): ?>
+<p class="border-t border-slate-200 px-6 py-4 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-400">The catalog has no languages yet.</p>
+<?php else: ?>
+<table class="w-full text-left text-sm">
+<thead class="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+<tr>
+<?php foreach (['Language', 'Interface text', 'On this site', 'Updated', 'Action'] as $heading): ?>
+<th class="px-4 py-3"><?= e($heading) ?></th>
+<?php endforeach ?>
+</tr>
+</thead>
+<tbody>
+<?php foreach ($available as $code => $entry): ?>
+<tr class="border-t border-slate-200 dark:border-slate-800">
+<td class="px-4 py-3">
+<span class="font-semibold" lang="<?= e($code) ?>" dir="<?= e($entry['direction']) ?>"><?= e($entry['native_name']) ?></span>
+<span class="block text-xs text-slate-500 dark:text-slate-400"><?= e($entry['name']) ?> · <?= e($code) ?></span>
+</td>
+<td class="px-4 py-3 font-mono text-xs"><?= e(min($entry['texts'], count($builtin))) ?> / <?= e(count($builtin)) ?></td>
+<td class="px-4 py-3">
+<?php if ($entry['state'] === 'new'): ?><span class="text-slate-500 dark:text-slate-400">Not added</span>
+<?php elseif ($entry['state'] === 'update'): ?><span class="font-semibold text-orange-700 dark:text-orange-400">Newer text available</span>
+<?php else: ?><span>Up to date</span><?php endif ?>
+<?php if ($entry['site_code'] !== null && $entry['site_code'] !== $code): ?><span class="block text-xs text-slate-500 dark:text-slate-400">Your site uses the code <?= e($entry['site_code']) ?></span><?php endif ?>
+</td>
+<td class="px-4 py-3 font-mono text-xs"><?= e(substr($entry['updated'], 0, 10)) ?></td>
+<td class="px-4 py-3">
+<?php if ($entry['state'] !== 'current'): ?>
+<form method="post">
+<?= \Core\Csrf::field() ?>
+<input type="hidden" name="action" value="download">
+<input type="hidden" name="code" value="<?= e($code) ?>">
+<button class="btn"><?= $entry['state'] === 'new' ? 'Add' : 'Update' ?><span class="sr-only"> <?= e($entry['name']) ?></span></button>
+</form>
+<?php else: ?><span class="text-slate-500 dark:text-slate-400">—</span><?php endif ?>
+</td>
+</tr>
+<?php endforeach ?>
+</tbody>
+</table>
+<?php endif ?>
+</section>
 <form method="post" class="panel space-y-4">
 <?= \Core\Csrf::field() ?>
 <input type="hidden" name="action" value="add">
 <h2 class="text-xl font-bold">Add a language</h2>
-<p class="text-sm text-slate-600 dark:text-slate-400">It starts in Preview. Missing interface text falls back to the default language, then English. Languages that ship with Meteor are already in the list above, switched Off.</p>
+<p class="text-sm text-slate-600 dark:text-slate-400">It starts in Preview. Missing interface text falls back to the default language, then English. Languages that ship with Meteor are already in the list above, switched Off; more are under <a class="text-orange-700 underline dark:text-orange-400" href="#catalog">Get languages</a>.</p>
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 <?php foreach (['code' => 'Code', 'native_name' => 'Name in that language', 'name' => 'Name in English'] as $key => $label): ?>
 <label class="field">

@@ -17,11 +17,17 @@ final class Auth
         return $user;
     }
 
+    public const PER_ACCOUNT = 5;
+    public const PER_ADDRESS = 20;
+
+    /** Too many failures in 15 minutes: 5 for one username from an address, or 20 for any usernames from it. */
     public function limited(string $username, string $ip): bool
     {
-        $row = $this->db->one('SELECT COUNT(*) AS n FROM login_attempts WHERE ip_address = ? AND username = ? AND attempted_at >= ?',
-            [$ip, mb_strtolower($username), gmdate('Y-m-d H:i:s', time() - 900)]);
-        return (int) $row['n'] >= 5;
+        $since = gmdate('Y-m-d H:i:s', time() - 900);
+        $account = $this->db->one('SELECT COUNT(*) AS n FROM login_attempts WHERE ip_address = ? AND username = ? AND attempted_at >= ?', [$ip, mb_strtolower($username), $since]);
+        if ((int) $account['n'] >= self::PER_ACCOUNT) { return true; }
+        $address = $this->db->one('SELECT COUNT(*) AS n FROM login_attempts WHERE ip_address = ? AND attempted_at >= ?', [$ip, $since]);
+        return (int) $address['n'] >= self::PER_ADDRESS;
     }
 
     public function failure(string $username, string $ip): void

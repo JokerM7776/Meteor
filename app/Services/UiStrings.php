@@ -6,7 +6,7 @@ use Core\{Database, LanguagePack};
 /**
  * Interface text per language. A language's own text is its site edit (ui_strings) or else its
  * language file; English also falls back to lang/en.php. Site edits that equal the base text are
- * not stored, so improvements in shipped language files keep flowing in with updates.
+ * not stored, so improvements in shipped or downloaded language files keep flowing in.
  */
 final class UiStrings
 {
@@ -20,17 +20,17 @@ final class UiStrings
     ];
     private array $builtins;
 
-    public function __construct(private Database $db, private ?string $packDirectory = null)
+    public function __construct(private Database $db, private ?string $packDirectory = null, private ?string $downloadDirectory = null)
     {
         $this->builtins = require dirname(__DIR__, 2) . '/lang/en.php';
     }
 
     public function builtins(): array { return $this->builtins; }
 
-    /** Text a language has before site edits: its language file, plus lang/en.php for English. */
+    /** Text a language has before site edits: its language files, plus lang/en.php for English. */
     public function base(string $code): array
     {
-        $pack = LanguagePack::bundled($code, $this->builtins, $this->packDirectory)['strings'] ?? [];
+        $pack = LanguagePack::strings($code, $this->builtins, $this->packDirectory, $this->downloadDirectory);
         return $code === 'en' ? $pack + $this->builtins : $pack;
     }
 

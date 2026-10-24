@@ -36,7 +36,7 @@ $fieldHint = 'Square works best, at least 160 × 160 px.'; $pickerTitle = 'Choos
 <tbody>
 <?php foreach (Author::TEXT as $key => [$label, $hint, $max, $multiline]): ?>
 <tr>
-<th scope="row" class="sheet-key"><span class="font-semibold"><?= e($label) ?></span><span class="block text-xs text-slate-500"><?= e($hint) ?></span></th>
+<th scope="row" class="sheet-key"><span class="font-semibold"><?= e($label) ?></span><span class="block text-xs text-slate-500 dark:text-slate-400"><?= e($hint) ?></span></th>
 <?php foreach ($locales as $code => $language): $name = 'text[' . $key . '][' . $code . ']'; $aria = $label . ', ' . $language['name']; $fallback = $code === $i18n->defaultLocale() ? '' : ($text[$key][$i18n->defaultLocale()] ?? ''); ?>
 <td><?php if ($multiline): ?><textarea name="<?= e($name) ?>" lang="<?= e($code) ?>" rows="3" maxlength="<?= e($max) ?>" placeholder="<?= e($fallback) ?>" aria-label="<?= e($aria) ?>"><?= e($value($key, $code)) ?></textarea>
 <?php else: ?><input name="<?= e($name) ?>" lang="<?= e($code) ?>" maxlength="<?= e($max) ?>" value="<?= e($value($key, $code)) ?>" placeholder="<?= e($fallback) ?>" aria-label="<?= e($aria) ?>"><?php endif ?></td>

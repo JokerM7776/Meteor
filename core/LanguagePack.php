@@ -6,8 +6,11 @@ namespace Core;
  * A language file: interface text for one language as JSON, so it can ship with Meteor
  * (lang/<code>.json) or move between sites. JSON, never PHP, so importing one cannot run code.
  *
- * {"meteor_language_pack": 1, "code": "zh", "name": "Chinese (Simplified)", "native_name": "简体中文",
+ * {"meteor_language_pack": 1, "code": "zh-hans", "name": "Chinese (Simplified)", "native_name": "简体中文",
  *  "direction": "ltr", "strings": {"posts": "文章", ...}}
+ *
+ * Files downloaded from the language catalog on GitHub live in storage/lang/<code>.json, outside
+ * the code that updates replace.
  */
 final class LanguagePack
 {
@@ -15,7 +18,13 @@ final class LanguagePack
     public const MAX_BYTES = 262144;
     public const MAX_TEXT = 2000;
 
+    /** Codes whose language file was renamed. A site that still uses the old code keeps it (and its URLs) and reads the new file. */
+    public const RENAMED = ['zh' => 'zh-hans'];
+
     public static function directory(): string { return dirname(__DIR__) . '/lang'; }
+    public static function downloads(): string { return dirname(__DIR__) . '/storage/lang'; }
+    /** The language file a site language reads. */
+    public static function fileCode(string $code): string { return self::RENAMED[$code] ?? $code; }
 
     public static function validCode(string $code): bool
     {
@@ -63,27 +72,39 @@ final class LanguagePack
         return ['code' => $code, 'name' => trim($name), 'native_name' => trim($native), 'direction' => $direction, 'strings' => $strings, 'skipped' => $skipped];
     }
 
-    /** The bundled file for one language, or null. Broken bundled files are ignored. */
+    /** The bundled file for one site language, or null. Broken files are ignored. */
     public static function bundled(string $code, array $builtins, ?string $directory = null): ?array
     {
-        if (!self::validCode($code)) { return null; }
-        $file = ($directory ?? self::directory()) . '/' . $code . '.json';
-        if (!is_file($file)) { return null; }
-        try { $pack = self::parse((string) file_get_contents($file), $builtins); }
-        catch (\InvalidArgumentException) { return null; }
-        return $pack['code'] === $code ? $pack : null;
+        return self::file($directory ?? self::directory(), self::fileCode($code), $builtins);
     }
 
-    /** Every bundled language file, by code. */
+    /** Text from a language's files: a file downloaded from the catalog wins, the bundled file fills its gaps. */
+    public static function strings(string $code, array $builtins, ?string $directory = null, ?string $downloads = null): array
+    {
+        return (self::file($downloads ?? self::downloads(), self::fileCode($code), $builtins)['strings'] ?? [])
+            + (self::bundled($code, $builtins, $directory)['strings'] ?? []);
+    }
+
+    /** Every language file in a directory, by code. */
     public static function all(array $builtins, ?string $directory = null): array
     {
         $packs = [];
         foreach (glob(($directory ?? self::directory()) . '/*.json') ?: [] as $file) {
-            $pack = self::bundled(basename($file, '.json'), $builtins, $directory);
+            $pack = self::file(dirname($file), basename($file, '.json'), $builtins);
             if ($pack !== null) { $packs[$pack['code']] = $pack; }
         }
         ksort($packs);
         return $packs;
+    }
+
+    private static function file(string $directory, string $code, array $builtins): ?array
+    {
+        if (!self::validCode($code)) { return null; }
+        $file = $directory . '/' . $code . '.json';
+        if (!is_file($file)) { return null; }
+        try { $pack = self::parse((string) file_get_contents($file), $builtins); }
+        catch (\InvalidArgumentException) { return null; }
+        return $pack['code'] === $code ? $pack : null;
     }
 
     public static function encode(array $locale, array $strings): string

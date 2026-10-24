@@ -7,14 +7,14 @@
 <p class="text-center text-sm text-slate-600 dark:text-slate-400">Use Touch ID, Face ID, Windows Hello or a security key.</p>
 <p id="passkey-message" role="status" class="text-sm text-orange-700 dark:text-orange-400">
 </p>
-<div class="flex items-center gap-4 text-sm text-slate-500">
+<div class="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
 <hr class="flex-1 border-slate-200">or use your password<hr class="flex-1 border-slate-200">
 </div>
 
 <?= \Core\Csrf::field() ?>
-<label class="field">Username<input id="username" name="username" autocomplete="username webauthn" required maxlength="191">
+<label class="field">Username<input id="username" name="username" autocomplete="username webauthn" required maxlength="191" value="<?= e($username ?? '') ?>">
 </label>
-<label class="field">Password<input name="password" type="password" autocomplete="current-password" required>
+<label class="field">Password<input name="password" type="password" autocomplete="current-password" required<?= ($username ?? '') !== '' ? ' autofocus' : '' ?>>
 </label>
 <?php if ($turnstileKey !== ''): ?>
 <div class="cf-turnstile min-h-[65px]" data-sitekey="<?= e($turnstileKey) ?>" data-theme="auto" data-size="flexible"></div>

@@ -33,14 +33,14 @@ $rowName = $page ? $pageTitle : ($row['kind'] === 'link' ? (($row['labels'][$def
 <div class="min-w-0 flex-1">
 <?php if ($page): ?>
 <span class="block font-semibold text-slate-900 dark:text-slate-100"><?= e($pageTitle) ?></span>
-<span class="mt-0.5 block font-mono text-xs text-slate-500">Page · /{locale}/<?= e($page['slug']) ?><?= !$page['visible'] || !$page['published'] ? ' · not published yet' : '' ?></span>
+<span class="mt-0.5 block font-mono text-xs text-slate-500 dark:text-slate-400">Page · /{locale}/<?= e($page['slug']) ?><?= !$page['visible'] || !$page['published'] ? ' · not published yet' : '' ?></span>
 <a class="inline-flex min-h-11 items-center text-sm text-orange-700 underline dark:text-orange-400" href="/admin/editor?<?= e(http_build_query(['post' => $page['id'], 'locale' => $page['base'], 'kind' => 'page'])) ?>">Edit page<span class="sr-only"> <?= e($pageTitle) ?></span></a>
 <?php elseif ($row['kind'] === 'link'): ?>
 <label class="sr-only" for="<?= e($menu . '-url-' . $id) ?>">Link URL, row <?= e($index + 1) ?></label>
 <input id="<?= e($menu . '-url-' . $id) ?>" name="<?= e($name) ?>[url]" value="<?= e($o['url'] ?? $row['url']) ?>" placeholder="https://… or /{locale}/…" required>
 <?php else: ?>
 <span class="block font-semibold text-slate-900 dark:text-slate-100"><?= e($rowName) ?></span>
-<span class="mt-0.5 block font-mono text-xs text-slate-500"><?= $row['kind'] === 'pages' ? 'Pages with “Show in navigation”' : e(\App\Repositories\Menus::PATHS[$row['kind']] ?? '') ?></span>
+<span class="mt-0.5 block font-mono text-xs text-slate-500 dark:text-slate-400"><?= $row['kind'] === 'pages' ? 'Pages with “Show in navigation”' : e(\App\Repositories\Menus::PATHS[$row['kind']] ?? '') ?></span>
 <?php endif ?>
 </div>
 </div>

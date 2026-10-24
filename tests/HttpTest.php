@@ -32,7 +32,7 @@ test('HTTP via CGI: CSP, content types, redirects, HEAD and cache validators', f
         [$headers] = $request('/en/posts/?page=2'); contains('Location: /en/posts?page=2', $headers);
         [$headers] = $request('/en/rss.xml'); contains('application/rss+xml; charset=UTF-8', $headers);
         [$headers] = $request('/sitemap.xml'); contains('application/xml; charset=UTF-8', $headers);
-        [$headers, $body] = $request('/zh/missing'); contains('404 Not Found', $headers); contains('页面不存在', $body);
+        [$headers, $body] = $request('/zh-hans/missing'); contains('404 Not Found', $headers); contains('页面不存在', $body);
         [$headers] = $request('/ms/'); contains('404 Not Found', $headers);
         $db->query('INSERT INTO users (username, password_hash) VALUES (?, ?)', ['http-admin', 'unused-test-hash']);
         $sessionId = bin2hex(random_bytes(16));

@@ -5,7 +5,7 @@
 <img src="<?= e(MediaLibrary::url($row['thumb_name'] ?: $row['file_name'])) ?>" alt="" width="96" height="96" class="size-24 shrink-0 rounded-lg bg-slate-100 object-cover dark:bg-slate-800">
 <div class="min-w-0">
 <p class="truncate font-semibold"><?= e($row['original_name']) ?></p>
-<p class="font-mono text-xs text-slate-500"><?= e($row['width'] . '×' . $row['height']) ?> · <?= e(MediaLibrary::size((int) $row['size_bytes'])) ?> · <?= e(substr($row['created_at'], 0, 10)) ?></p>
+<p class="font-mono text-xs text-slate-500 dark:text-slate-400"><?= e($row['width'] . '×' . $row['height']) ?> · <?= e(MediaLibrary::size((int) $row['size_bytes'])) ?> · <?= e(substr($row['created_at'], 0, 10)) ?></p>
 </div>
 </div>
 <?php if ($usage): ?>

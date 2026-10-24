@@ -44,7 +44,7 @@ $isUpload = ($old['id'] ?? null) === null;
 <button class="btn">Filter</button>
 <?php if ($q !== '' || $category !== ''): ?><a class="btn" href="/admin/media">Show all</a><?php endif ?>
 </form>
-<p class="font-mono text-sm text-slate-500"><?= e($result['total']) ?> <?= $result['total'] === 1 ? 'image' : 'images' ?></p>
+<p class="font-mono text-sm text-slate-500 dark:text-slate-400"><?= e($result['total']) ?> <?= $result['total'] === 1 ? 'image' : 'images' ?></p>
 </div>
 
 <div class="sheet">
@@ -66,14 +66,14 @@ $isUpload = ($old['id'] ?? null) === null;
 <a href="<?= e(MediaLibrary::url($row['file_name'])) ?>" target="_blank" rel="noopener" class="shrink-0"><img src="<?= e(MediaLibrary::url($row['thumb_name'] ?: $row['file_name'])) ?>" alt="Open <?= e($label) ?>" width="56" height="56" loading="lazy" class="size-14 rounded-lg bg-slate-100 object-cover dark:bg-slate-800"></a>
 <span class="min-w-0">
 <span class="block truncate font-semibold text-slate-900 dark:text-slate-100" title="<?= e($label) ?>"><?= e($label) ?></span>
-<span class="mt-0.5 block font-mono text-xs text-slate-500"><?= e($row['width'] . '×' . $row['height']) ?> · <?= e($formats[$row['mime_type']] ?? $row['mime_type']) ?> · <?= e(MediaLibrary::size((int) $row['size_bytes'])) ?></span>
+<span class="mt-0.5 block font-mono text-xs text-slate-500 dark:text-slate-400"><?= e($row['width'] . '×' . $row['height']) ?> · <?= e($formats[$row['mime_type']] ?? $row['mime_type']) ?> · <?= e(MediaLibrary::size((int) $row['size_bytes'])) ?></span>
 </span>
 </span>
 </th>
 <td class="min-w-48"><input form="<?= e($form) ?>" name="alt" maxlength="255" value="<?= e($o['alt'] ?? $row['alt_text']) ?>" placeholder="Missing" aria-label="Alt text of <?= e($label) ?>"></td>
 <td class="min-w-40"><input form="<?= e($form) ?>" name="category" list="media-categories" maxlength="191" value="<?= e($o['category'] ?? $row['category']) ?>" aria-label="Category of <?= e($label) ?>"></td>
 <td class="min-w-48"><input form="<?= e($form) ?>" name="tags" maxlength="1500" value="<?= e($o['tags'] ?? implode(', ', $row['tags'])) ?>" aria-label="Tags of <?= e($label) ?>"></td>
-<td class="whitespace-nowrap font-mono text-xs text-slate-500"><?= e(substr($row['created_at'], 0, 10)) ?></td>
+<td class="whitespace-nowrap font-mono text-xs text-slate-500 dark:text-slate-400"><?= e(substr($row['created_at'], 0, 10)) ?></td>
 <td class="sheet-end">
 <form id="<?= e($form) ?>" method="post" action="<?= e($action) ?>" class="flex justify-end gap-2">
 <?= \Core\Csrf::field() ?>
@@ -85,7 +85,7 @@ $isUpload = ($old['id'] ?? null) === null;
 </tr>
 <?php endforeach ?>
 <?php if (!$rows): ?>
-<tr><td colspan="6" class="p-8 text-center text-slate-500"><?= $q !== '' || $category !== '' ? 'No images match this filter.' : 'No images yet. Upload one above, or from the editor.' ?></td></tr>
+<tr><td colspan="6" class="p-8 text-center text-slate-500 dark:text-slate-400"><?= $q !== '' || $category !== '' ? 'No images match this filter.' : 'No images yet. Upload one above, or from the editor.' ?></td></tr>
 <?php endif ?>
 </tbody>
 </table>

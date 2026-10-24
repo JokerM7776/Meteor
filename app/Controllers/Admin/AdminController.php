@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace App\Controllers\Admin;
 use Core\{Auth, Csrf, Database, I18n, Session, View, WebAuthn};
-use App\Services\{Account, AdminSettings, Appearance, Author, ContentEditor, HomePage, Languages, LoginProtection, MenuEditor, TaxonomyEditor, UiStrings};
+use App\Services\{Account, AdminSettings, Appearance, Author, ContentEditor, HomePage, LanguageDownloads, Languages, LoginProtection, MenuEditor, TaxonomyEditor, UiStrings};
 
 final class AdminController
 {
@@ -44,11 +44,13 @@ final class AdminController
             if ($post) {
                 if (!$protection->passes((string) ($_POST['cf-turnstile-response'] ?? ''), $_SERVER['REMOTE_ADDR'] ?? '')) { return $this->go('/admin/login', 'Complete the security check and try again.'); }
                 if ($this->auth->password((string) ($_POST['username'] ?? ''), (string) ($_POST['password'] ?? ''), $_SERVER['REMOTE_ADDR'] ?? '')) { return $this->go('/admin/posts', 'Welcome back.'); }
+                $_SESSION['login_username'] = mb_substr(trim((string) ($_POST['username'] ?? '')), 0, 191);
                 return $this->go('/admin/login', 'Unable to sign in. Check your credentials or try again later.');
             }
-            if (!$protection->active()) { return $this->render('login', 'Sign in', ['turnstileKey' => '']); }
+            $username = (string) ($_SESSION['login_username'] ?? ''); unset($_SESSION['login_username']);
+            if (!$protection->active()) { return $this->render('login', 'Sign in', ['turnstileKey' => '', 'username' => $username]); }
             header('Content-Security-Policy: ' . security_policy("'self' " . \Core\Turnstile::ORIGIN, \Core\Turnstile::ORIGIN));
-            return $this->render('login', 'Sign in', ['turnstileKey' => $protection->siteKey()]);
+            return $this->render('login', 'Sign in', ['turnstileKey' => $protection->siteKey(), 'username' => $username]);
         }
         if ($path === '/admin/logout' && $post) { Session::logout(); return $this->go('/admin/login', 'Signed out.'); }
         if ($path === '/admin') { return $this->go('/admin/posts'); }
@@ -108,6 +110,17 @@ final class AdminController
                 $message = (new UiStrings($this->db))->import((string) file_get_contents($file['tmp_name']), !empty($_POST['update_names']));
             } catch (\InvalidArgumentException $e) { $message = $e->getMessage(); }
             return $this->go('/admin/languages', $message);
+        }
+        if ($path === '/admin/languages' && $post && in_array($_POST['action'] ?? '', ['catalog', 'download'], true)) {
+            try {
+                $downloads = new LanguageDownloads($this->db, new \Core\GitHubUpdates(new \Core\CurlHttpClient()));
+                if ($_POST['action'] === 'download') { $message = $downloads->install((string) ($_POST['code'] ?? '')); }
+                else {
+                    $downloads->check(); $states = array_count_values(array_column($downloads->rows(), 'state'));
+                    $message = 'Language catalog checked: ' . ($states['new'] ?? 0) . ' to add, ' . ($states['update'] ?? 0) . ' with newer text.';
+                }
+            } catch (\InvalidArgumentException | \RuntimeException $e) { $message = $e->getMessage(); }
+            return $this->go('/admin/languages#catalog', $message);
         }
         $section = match ($path) { '/admin/languages' => 'languages', '/admin/menus' => 'menus', '/admin/settings' => 'settings', '/admin/strings' => 'strings', '/admin/taxonomy' => 'taxonomy', '/admin/security' => 'security',
             '/admin/home' => 'home', '/admin/author' => 'author', '/admin/appearance' => 'appearance', default => '' };

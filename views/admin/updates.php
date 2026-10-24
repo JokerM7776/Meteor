@@ -39,7 +39,7 @@
 </div>
 <section class="space-y-3" aria-labelledby="backups-heading">
 <div class="flex flex-wrap items-baseline justify-between gap-x-4">
-<h2 id="backups-heading" class="text-xl font-bold">Backups <span class="font-mono text-sm font-normal text-slate-500">· <?= e(count($backups)) ?></span></h2>
+<h2 id="backups-heading" class="text-xl font-bold">Backups <span class="font-mono text-sm font-normal text-slate-500 dark:text-slate-400">· <?= e(count($backups)) ?></span></h2>
 <p class="text-sm text-slate-600 dark:text-slate-400">A copy of the code is saved before every update. The last five are kept. Restoring code does not reverse database changes.</p>
 </div>
 <div class="sheet">
@@ -63,7 +63,7 @@
 </tr>
 <?php endforeach ?>
 <?php if (!$backups): ?>
-<tr><td colspan="5" class="p-8 text-center text-slate-500">No backups yet. One is made automatically before each update.</td></tr>
+<tr><td colspan="5" class="p-8 text-center text-slate-500 dark:text-slate-400">No backups yet. One is made automatically before each update.</td></tr>
 <?php endif ?>
 </tbody>
 </table>

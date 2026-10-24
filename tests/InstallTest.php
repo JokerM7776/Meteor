@@ -15,7 +15,7 @@ test('Installer: SQLite WAL, English-only seed, password hash and safe rerun', f
         [$status, $output] = $install(); same(0, $status); contains('Meteor installed', $output);
         $db = new Core\Database(['driver' => 'sqlite', 'path' => $path]);
         same('wal', $db->one('PRAGMA journal_mode')['journal_mode']);
-        same(['en' => 'live', 'ms' => 'off', 'zh' => 'off'], array_column($db->all('SELECT code, status FROM locales ORDER BY code'), 'status', 'code'));
+        same(['en' => 'live', 'ms' => 'off', 'zh-hans' => 'off'], array_column($db->all('SELECT code, status FROM locales ORDER BY code'), 'status', 'code'));
         same('1', $db->one('SELECT is_default FROM locales WHERE code = ?', ['en'])['is_default'] . '');
         $user = $db->one('SELECT * FROM users');
         same('test-admin', $user['username']); ok(password_verify($environment['ADMIN_PASS'], $user['password_hash']));

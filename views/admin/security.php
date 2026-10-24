@@ -73,7 +73,7 @@
 <section class="space-y-3" aria-labelledby="passkeys-heading">
 <?php $keys = $db->all('SELECT * FROM passkeys WHERE user_id = ? ORDER BY created_at DESC, id DESC', [$user['id']]); ?>
 <div class="flex flex-wrap items-baseline justify-between gap-x-4">
-<h2 id="passkeys-heading" class="text-xl font-bold">Passkeys <span class="font-mono text-sm font-normal text-slate-500">· <?= e(count($keys)) ?></span></h2>
+<h2 id="passkeys-heading" class="text-xl font-bold">Passkeys <span class="font-mono text-sm font-normal text-slate-500 dark:text-slate-400">· <?= e(count($keys)) ?></span></h2>
 <p class="text-sm text-slate-600 dark:text-slate-400">Sign in with Touch ID, Face ID, Windows Hello or a security key. Add one for each device you write on.</p>
 </div>
 <div class="sheet">
@@ -102,7 +102,7 @@
 </tr>
 <?php endforeach ?>
 <?php if (!$keys): ?>
-<tr><td colspan="4" class="p-8 text-center text-slate-500">No passkeys yet. Password sign-in is available.</td></tr>
+<tr><td colspan="4" class="p-8 text-center text-slate-500 dark:text-slate-400">No passkeys yet. Password sign-in is available.</td></tr>
 <?php endif ?>
 <tr><th scope="rowgroup" colspan="4" class="sheet-group"><span class="sticky left-4">Add a passkey</span></th></tr>
 <tr class="sheet-new">

@@ -221,7 +221,7 @@ test('Admin HTTP: header & footer page, settings sheet and taxonomy rows', funct
         $c->request('/admin/taxonomy', 'POST', ['csrf_token' => $token, 'kind' => 'category', 'id' => '0', 'action' => 'save', 'slug' => 'notes', 'sort_order' => '2', 'names' => ['en' => 'Notes']]);
         $tag = (int) $c->db->one('SELECT id FROM tags')['id'];
         [, $html] = $c->request('/admin/taxonomy');
-        contains('form="term-category-new"', $html); ok(!str_contains($html, 'term-tag-'), 'Tags belong to their own tab'); contains('Tags<span class="ml-1.5 font-mono text-xs font-normal text-slate-500">1</span>', $html);
+        contains('form="term-category-new"', $html); ok(!str_contains($html, 'term-tag-'), 'Tags belong to their own tab'); contains('Tags<span class="ml-1.5 font-mono text-xs font-normal text-slate-500 dark:text-slate-400">1</span>', $html);
         [, $html] = $c->request('/admin/taxonomy?tab=tags');
         contains('<form id="term-tag-' . $tag . '"', $html); contains('form="term-tag-' . $tag . '" name="names[ja]"', $html); ok(!str_contains($html, 'term-category-'));
         contains('action="/admin/taxonomy?tab=tags"', $html);

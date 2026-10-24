@@ -55,7 +55,7 @@ $toggle = function (string $key, string $label) use ($old, $globals): void { ?>
 <caption class="sr-only">Footer menu column heading</caption>
 <thead><tr><th scope="col" class="sheet-key">Text</th><?php $missing = []; foreach ($locales as $code => $language) { require __DIR__ . '/sheet-head.php'; } ?></tr></thead>
 <tbody><tr>
-<th scope="row" class="sheet-key"><span class="block font-semibold text-slate-900 dark:text-slate-100">Column heading</span><span class="mt-0.5 block text-xs text-slate-500">Shown above the footer menu.</span></th>
+<th scope="row" class="sheet-key"><span class="block font-semibold text-slate-900 dark:text-slate-100">Column heading</span><span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">Shown above the footer menu.</span></th>
 <?php foreach ($locales as $code => $language): ?>
 <td><input name="footer_menu_heading[<?= e($code) ?>]" lang="<?= e($code) ?>" maxlength="80" value="<?= e(($old['menu'] ?? '') === 'footer' ? ($old['footer_menu_heading'][$code] ?? '') : ($headings[$code] ?? '')) ?>" placeholder="<?= e($i18n->translateFor($code, 'site')) ?>" aria-label="<?= e($language['name']) ?> column heading"></td>
 <?php endforeach ?>

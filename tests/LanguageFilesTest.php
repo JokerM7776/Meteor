@@ -15,12 +15,14 @@ test('Language files: every built-in key is grouped once and bundled files are c
     $grouped = array_merge(...array_values(UiStrings::GROUPS));
     same(count($grouped), count(array_unique($grouped))); same([], array_values(array_diff(array_keys($builtins), $grouped))); same([], array_values(array_diff($grouped, array_keys($builtins))));
     $packs = LanguagePack::all($builtins);
-    same(['ms', 'zh'], array_keys($packs));
+    ok(isset($packs['ms'], $packs['zh-hans']));
+    // Contributed languages may be partial; the two maintained ones must cover every key.
     foreach ($packs as $code => $pack) {
-        same(0, $pack['skipped'], $code); same(array_keys($builtins), array_keys($pack['strings']));
+        same(0, $pack['skipped'], $code);
         same($pack, LanguagePack::parse((string) file_get_contents(dirname(__DIR__) . '/lang/' . $code . '.json'), $builtins));
+        if (in_array($code, ['ms', 'zh-hans'], true)) { same(array_keys($builtins), array_keys($pack['strings'])); }
     }
-    same('简体中文', $packs['zh']['native_name']); same('阅读约 {minutes} 分钟', $packs['zh']['strings']['reading_minutes']);
+    same('简体中文', $packs['zh-hans']['native_name']); same('阅读约 {minutes} 分钟', $packs['zh-hans']['strings']['reading_minutes']);
 });
 test('Language files: parser rejects bad files and skips unknown keys and broken placeholders', function () {
     $builtins = require dirname(__DIR__) . '/lang/en.php';
@@ -106,5 +108,5 @@ test('Language files: bundled languages are added once as Off and stay deleted',
     $db->upsert('settings', ['key' => 'update_token', 'locale' => null, 'value' => 'secret'], ['key', 'locale_scope']);
     (require dirname(__DIR__) . '/database/migrations/004_language_files_and_updates.php')($db);
     same(['language_packs_known'], array_column($db->all('SELECT `key` FROM settings'), 'key'));
-    same(['en', 'ms', 'zh'], array_column($db->all('SELECT code FROM locales ORDER BY code'), 'code'));
+    same(['en', 'ms', 'zh-hans'], array_column($db->all('SELECT code FROM locales ORDER BY code'), 'code'));
 });

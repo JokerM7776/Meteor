@@ -15,13 +15,13 @@ test('Migrator: ordered pending migrations, recorded history, failure transactio
     try {
         $directory = $root . '/database/migrations';
         $runner = new Migrator($db, $directory);
-        same(['001_published_at.php', '002_lowercase_usernames.php', '003_menus.php', '004_language_files_and_updates.php', '005_media.php', '006_page_links_and_site_text.php'], $runner->run()); same([], $runner->run());
+        same(['001_published_at.php', '002_lowercase_usernames.php', '003_menus.php', '004_language_files_and_updates.php', '005_media.php', '006_page_links_and_site_text.php', '007_chinese_simplified_code.php'], $runner->run()); same([], $runner->run());
         file_put_contents($directory . '/900_test.php', '<?php return static function (\Core\Database $db): void { $db->query("CREATE TABLE migration_probe (id INT)"); };');
         same(['900_test.php'], $runner->run());
         file_put_contents($directory . '/901_fail.php', '<?php return static function (\Core\Database $db): void { $db->query("INSERT INTO migration_probe VALUES (1)"); throw new \RuntimeException("forced"); };');
         throws(fn () => $runner->run());
         same([], $db->all('SELECT * FROM migration_probe'));
-        same(7, count($db->all('SELECT * FROM schema_migrations')));
+        same(8, count($db->all('SELECT * FROM schema_migrations')));
     } finally { ReleasePackage::removeTree($root); }
 });
 test('Migration 003: creates menu tables and converts the earlier header and footer settings', function () {
@@ -55,7 +55,7 @@ test('Installer: service writes private quoted env, lock, lowercase admin and ma
         same($password, Core\Env::load($root . '/.env')['DB_PASS']);
         same('éditor', $db->one('SELECT username FROM users')['username']);
         ok(password_verify('a long password', $db->one('SELECT password_hash FROM users')['password_hash']));
-        same(['en' => 'live', 'ms' => 'off', 'zh' => 'off'], array_column($db->all('SELECT code, status FROM locales ORDER BY code'), 'status', 'code'));
+        same(['en' => 'live', 'ms' => 'off', 'zh-hans' => 'off'], array_column($db->all('SELECT code, status FROM locales ORDER BY code'), 'status', 'code'));
         same([], (new Migrator($db, $root . '/database/migrations'))->run());
         throws(fn () => $installer->install(['driver' => 'sqlite', 'path' => $root . '/storage/meteor.sqlite'], 'https://meteor.example', 'Title', 'admin', 'a long password'));
     } finally { ReleasePackage::removeTree($root); }
@@ -110,7 +110,7 @@ test('Packaging: CLI zip structure, manifest hashes, runtime and secret exclusio
         $manifest = json_decode($zip->getFromName('meteor/manifest.json'), true);
         foreach ($manifest['files'] as $file => $hash) { same($hash, hash('sha256', $zip->getFromName('meteor/' . $file))); }
         foreach (['.env', 'storage/private.txt', 'public/uploads/private.txt', 'config/.env.private', 'tests/run.php', '.github/workflows/release.yml', 'dist/meteor-0.1.0.zip', 'app/.DS_Store'] as $file) { same(false, $zip->locateName('meteor/' . $file)); }
-        foreach (['bootstrap.php', 'index.php', '.htaccess', 'public/.htaccess', 'public/index.php', 'views/setup.php', 'config/config.php', 'config/.env.example', 'public/assets/style.css', 'storage/.gitkeep', 'public/uploads/.gitkeep', 'lang/en.php', 'lang/zh.json', 'lang/ms.json', 'database/migrations/003_menus.php', 'database/migrations/004_language_files_and_updates.php'] as $file) { ok($zip->locateName('meteor/' . $file) !== false, $file); }
+        foreach (['bootstrap.php', 'index.php', '.htaccess', 'public/.htaccess', 'public/index.php', 'views/setup.php', 'config/config.php', 'config/.env.example', 'public/assets/style.css', 'storage/.gitkeep', 'public/uploads/.gitkeep', 'lang/en.php', 'lang/zh-hans.json', 'lang/index.json', 'lang/ms.json', 'database/migrations/003_menus.php', 'database/migrations/004_language_files_and_updates.php'] as $file) { ok($zip->locateName('meteor/' . $file) !== false, $file); }
         for ($i = 0; $i < $zip->numFiles; $i++) { ok(str_starts_with($zip->getNameIndex($i), 'meteor/')); }
         $zip->close(); contains(hash_file('sha256', $path), file_get_contents($path . '.sha256'));
         // A packaged tree is also an installable application.

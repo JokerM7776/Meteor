@@ -31,7 +31,7 @@ foreach (\App\Services\AdminSettings::TEXT as $key => $meta) {
 <?php $fieldName = 'site_icon'; $fieldValue = (string) ($old['site_icon'] ?? $siteIcon); $fieldLabel = 'Site icon'; $emptyText = 'Default';
 $fieldHint = 'Square, at least 180 × 180 px. PNG, JPG or WebP work best. Remove it to use the default icon.';
 $pickerTitle = 'Choose site icon'; $pickerAction = 'Use as site icon'; require __DIR__ . '/media-field.php'; ?>
-<p class="text-sm text-slate-500">Header and footer items are on <a class="text-orange-700 underline dark:text-orange-400" href="/admin/menus">Header &amp; footer</a>.</p>
+<p class="text-sm text-slate-500 dark:text-slate-400">Header and footer items are on <a class="text-orange-700 underline dark:text-orange-400" href="/admin/menus">Header &amp; footer</a>.</p>
 </section>
 <section class="space-y-3">
 <h2 class="text-xl font-bold">Site text</h2>
@@ -42,7 +42,7 @@ $pickerTitle = 'Choose site icon'; $pickerAction = 'Use as site icon'; require _
 <tbody>
 <?php foreach (\App\Services\AdminSettings::TEXT as $key => [$label, $hint, $max, $multiline]): ?>
 <tr>
-<th scope="row" class="sheet-key"><span class="font-semibold"><?= e($label) ?></span><span class="block text-xs text-slate-500"><?= e($hint) ?></span></th>
+<th scope="row" class="sheet-key"><span class="font-semibold"><?= e($label) ?></span><span class="block text-xs text-slate-500 dark:text-slate-400"><?= e($hint) ?></span></th>
 <?php foreach ($locales as $code => $language): $name = 'text[' . $key . '][' . $code . ']'; $aria = $label . ', ' . $language['name']; ?>
 <td><?php if ($multiline): ?><textarea name="<?= e($name) ?>" lang="<?= e($code) ?>" rows="3" maxlength="<?= e($max) ?>" placeholder="<?= e($placeholder($key, $code)) ?>" aria-label="<?= e($aria) ?>"><?= e($text[$key][$code] ?? '') ?></textarea>
 <?php else: ?><input name="<?= e($name) ?>" lang="<?= e($code) ?>" maxlength="<?= e($max) ?>" value="<?= e($text[$key][$code] ?? '') ?>" placeholder="<?= e($placeholder($key, $code)) ?>" aria-label="<?= e($aria) ?>"><?php endif ?></td>
@@ -57,7 +57,7 @@ $pickerTitle = 'Choose site icon'; $pickerAction = 'Use as site icon'; require _
 <h2 class="text-xl font-bold">Custom CSS · all languages</h2>
 <label class="field">Stylesheet<textarea name="custom_css" rows="12" class="font-mono text-sm"><?= e($old['custom_css'] ?? $db->one('SELECT value FROM settings WHERE `key` = ? AND locale_scope = ?', ['custom_css', ''])['value'] ?? '') ?></textarea>
 </label>
-<p class="text-sm text-slate-500">Served at /custom.css.</p>
+<p class="text-sm text-slate-500 dark:text-slate-400">Served at /custom.css.</p>
 </section>
 <button class="btn-primary">Save settings</button>
 </form>

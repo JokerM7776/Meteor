@@ -11,8 +11,11 @@ final class I18n
 
     private array $packs = [];
 
-    /** Text comes from: site edits (ui_strings) → the language file lang/<code>.json → default language → built-in English. */
-    public function __construct(Database $db, private array $builtins, ?string $packDirectory = null)
+    /**
+     * Text comes from: site edits (ui_strings) → the language file (a download in storage/lang wins
+     * over the bundled lang/<code>.json) → default language → built-in English.
+     */
+    public function __construct(Database $db, private array $builtins, ?string $packDirectory = null, ?string $downloadDirectory = null)
     {
         foreach ($db->all('SELECT * FROM locales ORDER BY sort_order, code') as $locale) {
             $this->locales[$locale['code']] = $locale;
@@ -24,7 +27,7 @@ final class I18n
         $this->default = (string) array_key_first($defaults);
         $this->current = $this->default;
         foreach (array_keys($this->locales) as $code) {
-            $this->packs[$code] = LanguagePack::bundled((string) $code, $builtins, $packDirectory)['strings'] ?? [];
+            $this->packs[$code] = LanguagePack::strings((string) $code, $builtins, $packDirectory, $downloadDirectory);
             $this->strings[$code] = $this->packs[$code];
         }
         foreach ($db->all('SELECT locale, `key`, value FROM ui_strings') as $row) {
@@ -34,7 +37,7 @@ final class I18n
 
     public function registry(): array { return $this->locales; }
     public function builtins(): array { return $this->builtins; }
-    /** Text from the bundled language file of a language, without site edits. */
+    /** Text from the language file of a language, without site edits. */
     public function packText(string $locale, string $key): ?string { return $this->packs[$locale][$key] ?? null; }
     public function defaultLocale(): string { return $this->default; }
     public function locale(): string { return $this->current; }

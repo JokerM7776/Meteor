@@ -3,7 +3,7 @@
 A fast, multilingual blog in plain PHP. Public pages are server-rendered HTML and CSS with
 **zero JavaScript**; a small admin area handles writing, translating and site settings.
 
-- Write once, translate into any number of languages, each with its own URL (`/en/…`, `/zh/…`).
+- Write once, translate into any number of languages, each with its own URL (`/en/…`, `/zh-hans/…`).
 - Languages are managed in the admin: **Live**, **Preview** (editors only) or **Off**.
 - Sign in with a **passkey** (Touch ID, Face ID, Windows Hello, security key) or a password.
 - RSS per language, a multilingual sitemap with hreflang, dark mode, and one-click updates.
@@ -172,9 +172,15 @@ for online updates — the application files. For photos allow `upload_max_files
   - Nothing on the public site says “Meteor” unless you write it: the defaults use your site title.
 - **Interface text and language files:** Admin → Settings → *Interface text* — every menu label,
   button and heading in one table, one column per language. Meteor ships language files for
-  简体中文 (`zh`) and Bahasa Melayu (`ms`) in `lang/`; they start **Off** — switch one to Preview or
+  简体中文 (`zh-hans`) and Bahasa Melayu (`ms`) in `lang/`; they start **Off** — switch one to Preview or
   Live under Languages. Languages → *Download file* exports a language as JSON to share with
   another site, and *Import a language file* brings one in (a new language is added as Off).
+- **Get languages:** Languages → *Get languages* → *Check for languages* reads the community
+  language catalog on GitHub (`lang/` on `main`). *Add* downloads a language (added as Off);
+  *Update* brings newer text for one you have. Downloads are kept in `storage/lang/`, your own
+  edits always stay on top, and Meteor only contacts GitHub when you click the button. Sites that
+  used `zh` before keep that code and its URLs and read the `zh-hans` file.
+  To translate Meteor into your language, see [CONTRIBUTING.md](CONTRIBUTING.md#translating-meteor).
 - **Header and footer:** Admin → Header & footer — drag to reorder, show or hide the built-in
   links, add links to pages or any URL with a label per language, and choose what the footer
   shows (site info, author card or nothing; each column and the copyright line can be turned off).

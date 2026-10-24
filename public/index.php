@@ -15,6 +15,8 @@ require_once dirname(__DIR__) . '/core/helpers.php';
 header('Content-Security-Policy: ' . security_policy($adminRequest ? "'self'" : "'none'"));
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
+header('Cross-Origin-Opener-Policy: same-origin');
+header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()');
 header('Content-Type: text/html; charset=UTF-8');
 if ($adminRequest) {
     header('Cache-Control: no-store');

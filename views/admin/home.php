@@ -44,7 +44,7 @@ $buttonLabel = fn (int $n, string $code) => $n === 1 ? $i18n->translateFor($code
 <div class="flex items-center gap-1">
 <?php $handleName = $name; require __DIR__ . '/drag-handle.php'; ?>
 <input type="hidden" name="sections[<?= e($key) ?>][order]" value="<?= e($position) ?>" data-sort-order>
-<div class="min-w-0"><span class="block font-semibold text-slate-900 dark:text-slate-100"><?= e($name) ?></span><span class="mt-0.5 block text-xs text-slate-500"><?= e($hint) ?></span></div>
+<div class="min-w-0"><span class="block font-semibold text-slate-900 dark:text-slate-100"><?= e($name) ?></span><span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400"><?= e($hint) ?></span></div>
 </div>
 </th>
 <td class="sheet-center"><input type="hidden" name="sections[<?= e($key) ?>][show]" value="0"><label class="flex min-h-11 items-center justify-center"><input type="checkbox" name="sections[<?= e($key) ?>][show]" value="1" <?= $shown ? 'checked' : '' ?>><span class="sr-only">Show <?= e($name) ?></span></label></td>
@@ -80,7 +80,7 @@ $buttonLabel = fn (int $n, string $code) => $n === 1 ? $i18n->translateFor($code
 <tbody>
 <?php foreach (HomePage::TEXT as $key => [$label, $hint, $max, $multiline]): ?>
 <tr>
-<th scope="row" class="sheet-key"><span class="font-semibold"><?= e($label) ?></span><span class="block text-xs text-slate-500"><?= e($hint) ?></span></th>
+<th scope="row" class="sheet-key"><span class="font-semibold"><?= e($label) ?></span><span class="block text-xs text-slate-500 dark:text-slate-400"><?= e($hint) ?></span></th>
 <?php foreach ($locales as $code => $language): $name = 'text[' . $key . '][' . $code . ']'; $aria = $label . ', ' . $language['name']; ?>
 <td><?php if ($multiline): ?><textarea name="<?= e($name) ?>" lang="<?= e($code) ?>" rows="3" maxlength="<?= e($max) ?>" placeholder="<?= e($placeholder($key, $code)) ?>" aria-label="<?= e($aria) ?>"><?= e($value($key, $code)) ?></textarea>
 <?php else: ?><input name="<?= e($name) ?>" lang="<?= e($code) ?>" maxlength="<?= e($max) ?>" value="<?= e($value($key, $code)) ?>" placeholder="<?= e($placeholder($key, $code)) ?>" aria-label="<?= e($aria) ?>"><?php endif ?></td>

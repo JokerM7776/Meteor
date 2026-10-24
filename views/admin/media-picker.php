@@ -21,7 +21,7 @@
 <ul class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6" data-picker-grid></ul>
 <nav aria-label="Image pages" class="flex items-center justify-between gap-2 text-sm">
 <button type="button" class="btn" data-picker-prev>← Previous</button>
-<span class="font-mono text-xs text-slate-500" data-picker-page></span>
+<span class="font-mono text-xs text-slate-500 dark:text-slate-400" data-picker-page></span>
 <button type="button" class="btn" data-picker-next>Next →</button>
 </nav>
 </section>
@@ -29,7 +29,7 @@
 <form class="grid gap-4 sm:grid-cols-2" enctype="multipart/form-data" data-picker-upload>
 <?= \Core\Csrf::field() ?>
 <label class="field sm:col-span-2">Image<input type="file" name="media" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" required>
-<span class="text-sm font-normal text-slate-500">JPG, PNG, WebP, GIF or AVIF, up to <?= e(\App\Services\MediaLibrary::size(\App\Services\MediaLibrary::uploadLimit())) ?>.</span></label>
+<span class="text-sm font-normal text-slate-500 dark:text-slate-400">JPG, PNG, WebP, GIF or AVIF, up to <?= e(\App\Services\MediaLibrary::size(\App\Services\MediaLibrary::uploadLimit())) ?>.</span></label>
 <label class="field">Category<input name="category" list="picker-categories" maxlength="191"></label>
 <label class="field">Tags · comma separated<input name="tags" maxlength="1500"></label>
 <label class="field sm:col-span-2">Alt text · describes the image<input name="alt" maxlength="255"></label>

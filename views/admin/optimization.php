@@ -41,10 +41,10 @@ $status = fn (bool $ok) => $ok ? '<span class="font-semibold text-green-800 dark
 <section class="panel space-y-3" aria-labelledby="server-heading">
 <h2 id="server-heading" class="text-xl font-bold">This server</h2>
 <dl class="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 xl:grid-cols-4">
-<div><dt class="text-slate-500">WebP</dt><dd><?= $status(ImageOptimizer::available('webp')) ?></dd></div>
-<div><dt class="text-slate-500">AVIF</dt><dd><?= $status(ImageOptimizer::available('avif')) ?></dd></div>
-<div><dt class="text-slate-500">Largest upload</dt><dd class="font-mono"><?= e(MediaLibrary::size(MediaLibrary::uploadLimit())) ?> <span class="font-display text-slate-500">· PHP upload_max_filesize <?= e(ini_get('upload_max_filesize')) ?></span></dd></div>
-<div><dt class="text-slate-500">Images in the library</dt><dd class="font-mono"><a class="text-orange-700 underline dark:text-orange-400" href="/admin/media"><?= e($mediaCount) ?></a></dd></div>
+<div><dt class="text-slate-500 dark:text-slate-400">WebP</dt><dd><?= $status(ImageOptimizer::available('webp')) ?></dd></div>
+<div><dt class="text-slate-500 dark:text-slate-400">AVIF</dt><dd><?= $status(ImageOptimizer::available('avif')) ?></dd></div>
+<div><dt class="text-slate-500 dark:text-slate-400">Largest upload</dt><dd class="font-mono"><?= e(MediaLibrary::size(MediaLibrary::uploadLimit())) ?> <span class="font-display text-slate-500 dark:text-slate-400">· PHP upload_max_filesize <?= e(ini_get('upload_max_filesize')) ?></span></dd></div>
+<div><dt class="text-slate-500 dark:text-slate-400">Images in the library</dt><dd class="font-mono"><a class="text-orange-700 underline dark:text-orange-400" href="/admin/media"><?= e($mediaCount) ?></a></dd></div>
 </dl>
 </section>
 </div>
