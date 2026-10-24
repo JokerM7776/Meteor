@@ -61,6 +61,13 @@ $saveButtons = function (string $extra) use ($state): string {
 </div>
 <span id="slug-hint" class="text-sm font-normal text-slate-500 dark:text-slate-400">Leave empty to generate it from the <?= e($registry[$base]['name'] ?? $base) ?> title.</span>
 </div>
+<?php $stored = $page ? ($id ? $item['created_at'] : null) : ($item['published_at'] ?? null);
+$dateValue = array_key_exists('date', $values) ? (string) $values['date'] : ($stored ? str_replace(' ', 'T', substr((string) $stored, 0, 16)) : ''); ?>
+<div class="field">
+<label for="date"><?= $page ? 'Date' : 'Publish date' ?> (UTC)</label>
+<input id="date" type="datetime-local" name="date" step="60" value="<?= e($dateValue) ?>" aria-describedby="date-hint">
+<span id="date-hint" class="text-sm font-normal text-slate-500 dark:text-slate-400"><?= $page ? 'When the page was written. Leave empty for now.' : 'Shown on the post. Leave empty to use the moment it is first published; a future date schedules it.' ?></span>
+</div>
 <?php if (!$page): ?>
 <label class="field">Category<select name="category_id">
 <option value="">None</option>

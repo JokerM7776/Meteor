@@ -33,6 +33,13 @@ $fieldHint = 'Square, at least 180 × 180 px. PNG, JPG or WebP work best. Remove
 $pickerTitle = 'Choose site icon'; $pickerAction = 'Use as site icon'; require __DIR__ . '/media-field.php'; ?>
 <p class="text-sm text-slate-500 dark:text-slate-400">Header and footer items are on <a class="text-orange-700 underline dark:text-orange-400" href="/admin/menus">Header &amp; footer</a>.</p>
 </section>
+<section class="panel space-y-3" aria-labelledby="writing-heading">
+<h2 id="writing-heading" class="text-xl font-bold">Writing</h2>
+<?php $extendedDefault = (string) ($old['markdown_extended_default'] ?? ($db->one('SELECT value FROM settings WHERE `key` = ? AND locale_scope = ?', ['markdown_extended_default', ''])['value'] ?? '0')); ?>
+<input type="hidden" name="markdown_extended_default" value="0">
+<label class="flex min-h-11 items-center gap-3"><input type="checkbox" name="markdown_extended_default" value="1" aria-describedby="extended-default-hint" <?= $extendedDefault === '1' ? 'checked' : '' ?>>Enable Extended Markdown</label>
+<p id="extended-default-hint" class="max-w-3xl text-sm text-slate-500 dark:text-slate-400">New posts and pages start with “Extended Markdown” ticked (tables, footnotes, task lists and more). Each post or page can still turn it off under Shared settings; ones you already saved keep their own choice.</p>
+</section>
 <section class="space-y-3">
 <h2 class="text-xl font-bold">Site text</h2>
 <div class="sheet">

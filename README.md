@@ -94,6 +94,7 @@ cp config/.env.example .env
 | `DB_NAME`, `DB_USER`, `DB_PASS` | `meteor`, `meteor`, `…` | MariaDB/MySQL credentials. |
 | `DB_PATH` | `storage/meteor.sqlite` | SQLite file, relative to the project root. |
 | `SESSION_NAME` | `meteor_session` | Admin session cookie name. |
+| `CAPTCHA` | `on` | `off` skips the CAPTCHA on the sign-in page (after a wrong key locks you out). |
 | `WEBAUTHN_RP_ID` | `blog.example.com` | Passkey domain: the hostname of `APP_URL`, no scheme or port. |
 | `WEBAUTHN_RP_NAME` | `Meteor` | Name shown in the passkey prompt. |
 
@@ -154,6 +155,9 @@ for online updates — the application files. For photos allow `upload_max_files
   20 per page with page numbers. *View ↗* opens the public page. In the editor, pick the language
   from the menu next to Save; the slug is generated from the title when left empty; a post's
   cover is chosen from the media library.
+- **Dates:** Shared settings → *Publish date (UTC)* sets the date shown on a post (e.g. for posts
+  moved from another blog); a future date schedules it. Left empty, it is set when the post is
+  first published. Pages have a *Date* too.
 - **Writing:** the editor has a **Visual** mode with a toolbar (headings, bold, italic, links,
   lists, quotes, code, images) and a **Markdown** mode that shows the `#`, `**`, `-` syntax. Both
   edit the same text; the toolbar works in either mode.
@@ -162,6 +166,7 @@ for online updates — the application files. For photos allow `upload_max_files
   footnotes `[^1]`, heading ids `## Title {#id}`, definition lists, task lists `- [x]`,
   `~~strikethrough~~`, `==highlight==`, `H~2~O`, `X^2^`, emoji shortcodes `:tada:`, automatic links
   and `\` escapes. It applies to every language of that item. Visual mode shows this syntax as text.
+  To start every new post and page with it ticked, use Settings → Site → *Enable Extended Markdown*.
 - **Search:** a search icon in the header opens `/<language>/search`, which finds published posts
   and pages in that language (every word must match). No JavaScript: results load as a normal
   page. Turn it off under Header & footer → *Show search*.
@@ -173,9 +178,9 @@ for online updates — the application files. For photos allow `upload_max_files
   - *Spam protection without JavaScript:* a hidden trap field, a signed form that must be a few
     seconds old, at most 5 comments per visitor per 10 minutes, and comments with more than two
     links always wait for approval. Visitor IPs are stored only as a keyed hash.
-  - *CAPTCHA (optional, on by default once keys exist):* Cloudflare Turnstile reuses the keys from
-    Security → Turnstile; Google reCAPTCHA v2 takes its own keys in Comments → Settings. The check
-    opens on a separate page after the visitor presses Send, so post pages stay script-free.
+  - *CAPTCHA (optional, on by default once keys exist):* uses the site's CAPTCHA from Security
+    (see below). The check opens on a separate page after the visitor presses Send, so post pages
+    stay script-free.
 - **Webmentions:** while comments are on, Meteor accepts [Webmentions](https://www.w3.org/TR/webmention/)
   at `/webmention` and advertises it on every post. Replies show with the comments; likes,
   reposts, bookmarks and mentions are listed under *Mentions*. All follow the moderation setting.
@@ -227,6 +232,13 @@ for online updates — the application files. For photos allow `upload_max_files
 - **Passkeys:** Admin → Security → *Add a passkey*. Requires HTTPS (or `localhost`) and correct
   `APP_URL` / `WEBAUTHN_RP_ID`. Password sign-in always stays available as a fallback.
 - **Change username or password:** Admin → Security. Changing the password signs out other sessions.
+- **CAPTCHA:** Admin → Security → *CAPTCHA*. Save keys for Cloudflare Turnstile and/or Google
+  reCAPTCHA v2 and choose the one the whole site uses: on the password form of the sign-in page
+  (switch on there; passkeys skip it) and for comments (switch on in Comments → Settings).
+  Locked out by a wrong key? Sign in with a passkey, or add `CAPTCHA=off` to `.env`.
+- **Keep me signed in:** tick it on the sign-in page to stay signed in on that browser for 30
+  days. Admin → Security → *Signed-in devices* lists these browsers; sign out one, or
+  *Sign out everywhere else* (this also ends sessions that did not tick the box).
 - Failed sign-ins are limited to 5 per 15 minutes per IP and username.
 
 ## 7. Updating
@@ -250,8 +262,17 @@ From the server shell, in the project folder:
 php bin/reset-password.php <username>
 ```
 
-It asks for the new password (12+ characters), signs out other sessions and clears the
-failed-login counter. Use `NEW_PASSWORD='…' php bin/reset-password.php <username>` in scripts.
+It asks for the new password (12+ characters), signs out every session and remembered browser,
+and clears the failed-login counter. Use `NEW_PASSWORD='…' php bin/reset-password.php <username>` in scripts.
+
+To sign out every device without changing a password (e.g. after losing a laptop):
+
+```sh
+php bin/sign-out.php              # every admin
+php bin/sign-out.php <username>   # one admin
+```
+
+Every session and every “Keep me signed in” browser ends; sign in again with a password or passkey.
 
 ## 9. Local development
 
@@ -297,7 +318,7 @@ app/        controllers, repositories, services, routes
 core/       router, database, i18n, Markdown, auth, WebAuthn, installer, updater
 views/      PHP templates (public + admin)
 database/   schema.mysql.sql, schema.sqlite.sql, migrations/
-bin/        install, seed, migrate, update, package, reset-password, build-css
+bin/        install, seed, migrate, update, package, reset-password, sign-out, cron, build-css
 public/     web root: index.php, assets, uploads
 config/     config.php, .env.example
 storage/    runtime data (database, logs, backups) — not in git

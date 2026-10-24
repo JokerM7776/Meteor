@@ -1,15 +1,14 @@
 <?php
 declare(strict_types=1);
 namespace App\Services;
-use Core\{Captcha, Database};
+use Core\Database;
 
 /** Site-wide comment and webmention settings (global rows in the settings table). */
 final class CommentSettings
 {
     public const MODES = ['hold' => 'Hold every comment for approval', 'returning' => 'Publish at once when the email already has an approved comment; hold the rest', 'open' => 'Publish every comment at once'];
-    public const DEFAULTS = ['comments_enabled' => '0', 'comments_moderation' => 'hold', 'comments_captcha' => '1', 'comments_captcha_provider' => 'turnstile',
-        'recaptcha_site_key' => '', 'recaptcha_secret_key' => '', 'webmention_receive' => '1', 'webmention_send' => '0'];
-    private const KEY = '/^[0-9A-Za-z_-]{20,100}$/D';
+    public const DEFAULTS = ['comments_enabled' => '0', 'comments_moderation' => 'hold', 'comments_captcha' => '1',
+        'webmention_receive' => '1', 'webmention_send' => '0'];
 
     public function __construct(private Database $db) {}
 
@@ -28,34 +27,20 @@ final class CommentSettings
     /** The CAPTCHA to show commenters: provider, site key and secret, or null when off or not set up. */
     public function captcha(): ?array
     {
-        $values = $this->values();
-        if ($values['comments_captcha'] !== '1') { return null; }
-        $provider = $values['comments_captcha_provider'];
-        [$site, $secret] = $provider === 'recaptcha' ? [$values['recaptcha_site_key'], $values['recaptcha_secret_key']] : array_values(array_intersect_key((new LoginProtection($this->db))->values(), ['site_key' => 1, 'secret' => 1]));
-        return isset(Captcha::PROVIDERS[$provider]) && $site !== '' && $secret !== '' ? ['provider' => $provider, 'site_key' => $site, 'secret' => $secret] + Captcha::PROVIDERS[$provider] : null;
+        return $this->values()['comments_captcha'] === '1' ? $this->provider() : null;
     }
 
-    public function turnstileReady(): bool { $v = (new LoginProtection($this->db))->values(); return $v['site_key'] !== '' && $v['secret'] !== ''; }
+    /** The site-wide provider chosen on the Security page, or null while its keys are missing. */
+    public function provider(): ?array { return (new CaptchaSettings($this->db))->provider(); }
 
+    /** Comments → Settings: comments, moderation, the CAPTCHA switch and webmentions. */
     public function save(array $input): void
     {
-        $current = $this->values();
         $flag = fn (string $key) => ($input[$key] ?? '0') === '1' ? '1' : '0';
         $values = ['comments_enabled' => $flag('comments_enabled'), 'comments_captcha' => $flag('comments_captcha'),
             'webmention_receive' => $flag('webmention_receive'), 'webmention_send' => $flag('webmention_send'),
-            'comments_moderation' => (string) ($input['comments_moderation'] ?? 'hold'), 'comments_captcha_provider' => (string) ($input['comments_captcha_provider'] ?? 'turnstile'),
-            'recaptcha_site_key' => trim((string) ($input['recaptcha_site_key'] ?? '')),
-            // An empty secret field keeps the saved secret; it is never sent back to the browser.
-            'recaptcha_secret_key' => trim((string) ($input['recaptcha_secret_key'] ?? '')) ?: $current['recaptcha_secret_key']];
-        if (!empty($input['recaptcha_forget'])) { $values['recaptcha_site_key'] = $values['recaptcha_secret_key'] = ''; }
+            'comments_moderation' => (string) ($input['comments_moderation'] ?? 'hold')];
         if (!isset(self::MODES[$values['comments_moderation']])) { throw new \InvalidArgumentException('Choose how new comments are published.'); }
-        if (!isset(Captcha::PROVIDERS[$values['comments_captcha_provider']])) { throw new \InvalidArgumentException('Choose a CAPTCHA provider.'); }
-        foreach (['recaptcha_site_key' => 'site key', 'recaptcha_secret_key' => 'secret key'] as $key => $label) {
-            if ($values[$key] !== '' && !preg_match(self::KEY, $values[$key])) { throw new \InvalidArgumentException('The reCAPTCHA ' . $label . ' looks wrong. Copy it from the Google reCAPTCHA admin console.'); }
-        }
-        if ($values['comments_captcha'] === '1' && $values['comments_captcha_provider'] === 'recaptcha' && ($values['recaptcha_site_key'] === '' || $values['recaptcha_secret_key'] === '')) {
-            throw new \InvalidArgumentException('Enter the reCAPTCHA site key and secret key, or choose Cloudflare Turnstile.');
-        }
         $this->db->transaction(function () use ($values) {
             foreach ($values as $key => $value) { $this->db->upsert('settings', ['key' => $key, 'locale' => null, 'value' => $value], ['key', 'locale_scope']); }
         });

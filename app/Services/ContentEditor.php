@@ -28,14 +28,17 @@ final class ContentEditor
         $tags = array_values(array_unique(array_filter(array_map('trim', explode(',', $input['tags'] ?? '')))));
         foreach ($tags as $tag) { if (mb_strlen($tag) > 191) { throw new \InvalidArgumentException('Tag names must be at most 191 characters.'); } }
         $cover = $page ? null : $this->cover($input, $old);
-        $result = $this->db->transaction(function () use ($page, $id, $locale, $input, $old, $table, $translations, $foreign, $slug, $title, $status, $category, $tags, $cover) {
+        $date = self::date($input['date'] ?? '');
+        $result = $this->db->transaction(function () use ($page, $id, $locale, $input, $old, $table, $translations, $foreign, $slug, $title, $status, $category, $tags, $cover, $date) {
             $now = gmdate('Y-m-d H:i:s');
             $extended = isset($input['markdown_extended']) ? 1 : 0;
             $values = ['slug' => $slug, 'base_locale' => $old['base_locale'] ?? $locale, 'is_published' => isset($input['is_published']) ? 1 : 0,
                 'markdown_extended' => $extended, 'updated_at' => $now];
+            // The date field sets when the item was written; for a post it is also the publish date shown on the site.
+            if ($date !== null) { $values['created_at'] = $date; }
             if (!$page) { $values += ['category_id' => $category, 'is_pinned' => isset($input['is_pinned']) ? 1 : 0,
                 'comments_enabled' => isset($input['comments_enabled']) ? 1 : 0,
-                'cover_image' => $cover, 'published_at' => $old['published_at'] ?? ($status === 'published' ? $now : null)]; }
+                'cover_image' => $cover, 'published_at' => $date ?? $old['published_at'] ?? ($status === 'published' ? $now : null)]; }
             if ($id) { $this->db->upsert($table, ['id' => $id] + $values, ['id']); }
             else { $columns = implode(', ', array_keys($values)); $marks = implode(', ', array_fill(0, count($values), '?'));
                 $id = $this->db->insert("INSERT INTO $table ($columns) VALUES ($marks)", array_values($values)); }
@@ -71,6 +74,18 @@ final class ContentEditor
         return $result;
     }
     /** Compiled content_html, toc_html and reading_minutes. Footnote labels use the content's language. */
+    /** "2024-05-01T09:30" from a datetime-local field (UTC) → "2024-05-01 09:30:00"; empty → null (keep or set automatically). */
+    public static function date(mixed $value): ?string
+    {
+        if ($value === null || (is_string($value) && trim($value) === '')) { return null; }
+        $value = is_string($value) ? trim($value) : '';
+        foreach (['Y-m-d\TH:i', 'Y-m-d\TH:i:s', 'Y-m-d H:i', 'Y-m-d H:i:s'] as $format) {
+            $date = \DateTimeImmutable::createFromFormat('!' . $format, $value, new \DateTimeZone('UTC'));
+            if ($date && $date->format($format) === $value && $date->format('Y') >= 1970 && $date->format('Y') <= 9999) { return $date->format('Y-m-d H:i:s'); }
+        }
+        throw new \InvalidArgumentException('Date: choose a valid date and time.');
+    }
+
     public static function compile(string $markdown, bool $extended, string $locale): array
     {
         $i18n = $GLOBALS['i18n'] ?? null;

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace App\Controllers\Admin;
 use Core\{Auth, Csrf, Database, I18n, Session, View, WebAuthn};
-use App\Services\{Account, AdminSettings, Appearance, Author, ContentEditor, HomePage, LanguageDownloads, Languages, LoginProtection, MenuEditor, TaxonomyEditor, UiStrings};
+use App\Services\{Account, AdminSettings, Appearance, Author, CaptchaSettings, ContentEditor, HomePage, LanguageDownloads, Languages, MenuEditor, TaxonomyEditor, UiStrings};
 
 final class AdminController
 {
@@ -43,19 +43,22 @@ final class AdminController
         if ($json) { return $this->passkey($path, $user, $post); }
         if ($path === '/admin/login') {
             if ($user) { return $this->go('/admin/posts'); }
-            $protection = $this->protection();
+            $captcha = $this->captcha();
             if ($post) {
-                if (!$protection->passes((string) ($_POST['cf-turnstile-response'] ?? ''), $_SERVER['REMOTE_ADDR'] ?? '')) { return $this->go('/admin/login', 'Complete the security check and try again.'); }
-                if ($this->auth->password((string) ($_POST['username'] ?? ''), (string) ($_POST['password'] ?? ''), $_SERVER['REMOTE_ADDR'] ?? '')) { return $this->go('/admin/posts', 'Welcome back.'); }
+                if (!$captcha->passes($_POST, $_SERVER['REMOTE_ADDR'] ?? '')) { return $this->go('/admin/login', 'Complete the security check and try again.'); }
+                if ($this->auth->password((string) ($_POST['username'] ?? ''), (string) ($_POST['password'] ?? ''), $_SERVER['REMOTE_ADDR'] ?? '')) {
+                    if (($_POST['remember'] ?? '') === '1') { $this->remember()->issue((int) $_SESSION['user_id'], (int) $_SESSION['session_version']); }
+                    return $this->go('/admin/posts', 'Welcome back.');
+                }
                 $_SESSION['login_username'] = mb_substr(trim((string) ($_POST['username'] ?? '')), 0, 191);
                 return $this->go('/admin/login', 'Unable to sign in. Check your credentials or try again later.');
             }
             $username = (string) ($_SESSION['login_username'] ?? ''); unset($_SESSION['login_username']);
-            if (!$protection->active()) { return $this->render('login', 'Sign in', ['turnstileKey' => '', 'username' => $username]); }
-            header('Content-Security-Policy: ' . security_policy("'self' " . \Core\Turnstile::ORIGIN, \Core\Turnstile::ORIGIN));
-            return $this->render('login', 'Sign in', ['turnstileKey' => $protection->siteKey(), 'username' => $username]);
+            $check = $captcha->signIn();
+            if ($check !== null) { header('Content-Security-Policy: ' . security_policy("'self' " . $check['scripts'], $check['frames'])); }
+            return $this->render('login', 'Sign in', ['captcha' => $check, 'username' => $username]);
         }
-        if ($path === '/admin/logout' && $post) { Session::logout(); return $this->go('/admin/login', 'Signed out.'); }
+        if ($path === '/admin/logout' && $post) { $this->remember()->forget(); Session::logout(); return $this->go('/admin/login', 'Signed out.'); }
         if ($path === '/admin') { return $this->go('/admin/posts'); }
         if (str_starts_with($path, '/admin/media') || $path === '/admin/optimization') {
             $media = new MediaController($this->db, $this->render(...), $this->go(...), dirname(__DIR__, 3) . '/public');
@@ -142,14 +145,14 @@ final class AdminController
                         'strings' => $this->saveStrings(),
                         'menus' => (new MenuEditor($this->db))->save((string) ($_POST['menu'] ?? ''), $_POST),
                         'taxonomy' => (new TaxonomyEditor($this->db))->save($_POST),
-                        'security' => (new Account($this->db, $this->protection()))->update($user, $_POST['action'] ?? '', $_POST),
+                        'security' => $this->security($user),
                         'home' => (new HomePage($this->db))->save($_POST),
                         'author' => (new Author($this->db))->save($_POST),
                         'appearance' => (new Appearance($this->db))->save($_POST),
                     };
-                    return $this->go($path . $this->query($section), $section === 'security' && ($_POST['action'] ?? '') === 'remove' ? 'Passkey removed. Password sign-in remains available.' : 'Changes saved.');
+                    return $this->go($path . $this->query($section), $section === 'security' ? (['remove' => 'Passkey removed. Password sign-in remains available.', 'sign_out_device' => 'That device was signed out.', 'sign_out_others' => 'Every other device and browser was signed out.'][$_POST['action'] ?? ''] ?? 'Changes saved.') : 'Changes saved.');
                 } catch (\InvalidArgumentException $e) {
-                    $safe = $_POST; foreach (['current_password', 'new_password', 'new_password_confirm', 'turnstile_secret_key'] as $key) { unset($safe[$key]); }
+                    $safe = $_POST; foreach (['current_password', 'new_password', 'new_password_confirm', 'turnstile_secret_key', 'recaptcha_secret_key'] as $key) { unset($safe[$key]); }
                     $_SESSION['old'][$section] = $safe;
                     return $this->go($path . $this->query($section), $e->getMessage());
                 }
@@ -157,7 +160,7 @@ final class AdminController
             $locale = (string) ($_GET['locale'] ?? $this->i18n->defaultLocale());
             if (!isset($this->i18n->registry()[$locale])) { $locale = $this->i18n->defaultLocale(); }
             $data = ['db' => $this->db, 'locale' => $locale, 'old' => $old, 'settings' => new \App\Repositories\Settings($this->db, $this->i18n)];
-            if ($section === 'security') { $data['protection'] = $this->protection(); }
+            if ($section === 'security') { $data['captcha'] = $this->captcha(); $data['commentsCaptcha'] = (new \App\Services\CommentSettings($this->db))->captcha() !== null; $data['devices'] = $this->remember()->devices((int) $user['id']); }
             if ($section === 'menus') {
                 $menus = new \App\Repositories\Menus($this->db); $menus->ensureDefaults();
                 $data['menus'] = ['header' => $menus->rows('header'), 'footer' => $menus->rows('footer')];
@@ -201,7 +204,16 @@ final class AdminController
         return $this->render('announcement', $id > 0 ? 'Edit announcement' : 'New announcement', ['row' => $row, 'action' => $path,
             'old' => ($old['path'] ?? '') === $path ? $old['values'] : [], 'locales' => $this->i18n->registry()]);
     }
-    private function protection(): LoginProtection { return new LoginProtection($this->db, $this->config['turnstile'] ?? true); }
+    private function remember(): \Core\Remember { return \Core\Remember::forRequest($this->db, $this->config); }
+    private function security(array $user): void
+    {
+        $action = (string) ($_POST['action'] ?? '');
+        $remembered = isset($_SESSION['remember_id']);
+        (new Account($this->db, $this->captcha()))->update($user, $action, $_POST);
+        // A new password or "sign out everywhere else" forgets every remembered browser; keep this one if it was.
+        if (in_array($action, ['password', 'sign_out_others'], true) && $remembered) { $this->remember()->issue((int) $user['id'], (int) $_SESSION['session_version']); }
+    }
+    private function captcha(): CaptchaSettings { return new CaptchaSettings($this->db, $this->config['captcha'] ?? true); }
     /** Query string to return to after saving a section, so the admin lands on the same view. */
     private function query(string $section): string
     {
@@ -235,6 +247,7 @@ final class AdminController
             }
             $user = $web->authenticate($data);
             Session::login((int) $user['id'], (int) $user['session_version']);
+            if (($data['remember'] ?? false) === true) { $this->remember()->issue((int) $user['id'], (int) $user['session_version']); }
             return json_encode(['redirect' => '/admin/posts']);
         } catch (\Throwable $e) {
             http_response_code(400); return json_encode(['error' => 'Unable to verify the passkey. Try again or use your password.']);
@@ -279,7 +292,8 @@ final class AdminController
         [$table, $translations, $foreign] = ContentEditor::tables($page);
         $locale = (string) ($_GET['locale'] ?? $this->i18n->defaultLocale());
         if (!isset($this->i18n->registry()[$locale])) { http_response_code(404); return $this->render('message', 'Not found', ['message' => 'Unknown language.']); }
-        $item = $id ? $this->db->one("SELECT * FROM $table WHERE id = ?", [$id]) : ['base_locale' => $locale, 'is_published' => 1, 'comments_enabled' => 1];
+        $item = $id ? $this->db->one("SELECT * FROM $table WHERE id = ?", [$id])
+            : ['base_locale' => $locale, 'is_published' => 1, 'comments_enabled' => 1, 'markdown_extended' => (int) ((new \App\Repositories\Settings($this->db, $this->i18n))->global('markdown_extended_default', '0') === '1')];
         if (!$item) { http_response_code(404); return $this->render('message', 'Not found', ['message' => 'Content not found.']); }
         $target = '/admin/editor?' . http_build_query(['post' => $id, 'locale' => $locale, 'kind' => $page ? 'page' : 'post', 'from' => $_GET['from'] ?? $item['base_locale']]);
         if ($post) {

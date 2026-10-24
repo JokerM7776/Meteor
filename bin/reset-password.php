@@ -18,8 +18,9 @@ try {
     // Bumping session_version signs out every existing session for this admin.
     $db->query('UPDATE users SET password_hash = ?, password_changed_at = ?, session_version = session_version + 1 WHERE username = ?',
         [password_hash($password, PASSWORD_DEFAULT), gmdate('Y-m-d H:i:s'), $username]);
+    $db->query('DELETE FROM remember_tokens WHERE user_id = (SELECT id FROM users WHERE username = ?)', [$username]);
     $db->query('DELETE FROM login_attempts WHERE username = ?', [$username]);
-    fwrite(STDOUT, "Password updated for \"$username\". Other sessions were signed out.\n");
+    fwrite(STDOUT, "Password updated for \"$username\". Every session and remembered browser was signed out.\n");
 } catch (Throwable $error) {
     fwrite(STDERR, $error->getMessage() . "\n");
     exit(1);

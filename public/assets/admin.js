@@ -60,7 +60,8 @@
       if (!conditional) { login.disabled = true; message.textContent = 'Waiting for your passkey…'; }
       const publicKey = options(await post('/admin/passkey/login/options'));
       const credential = await navigator.credentials.get({publicKey, signal: pending.signal, ...(conditional ? {mediation: 'conditional'} : {})});
-      const result = await post('/admin/passkey/login/verify', serialize(credential));
+      const remember = document.getElementById('remember');
+      const result = await post('/admin/passkey/login/verify', {...serialize(credential), remember: Boolean(remember && remember.checked)});
       window.location.assign(result.redirect);
     } catch (error) {
       if (error.name !== 'AbortError' && !conditional) message.textContent = error.name === 'NotAllowedError' ? 'Passkey sign-in was cancelled or timed out. Try again or use your password.' : error.message;

@@ -16,7 +16,7 @@ function webFixture(int $algorithm): array {
     $web = new WebAuthn($db, 'https://meteor.example', 'meteor.example');
     $private = openssl_pkey_new($algorithm === -7 ? ['private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'prime256v1'] : ['private_key_type' => OPENSSL_KEYTYPE_RSA, 'private_key_bits' => 2048]);
     $details = openssl_pkey_get_details($private);
-    $cose = $algorithm === -7 ? [1 => 2, 3 => -7, -1 => 1, -2 => $details['ec']['x'], -3 => $details['ec']['y']] : [1 => 3, 3 => -257, -1 => $details['rsa']['n'], -2 => $details['rsa']['e']];
+    $cose = $algorithm === -7 ? [1 => 2, 3 => -7, -1 => 1, -2 => str_pad($details['ec']['x'], 32, "\0", STR_PAD_LEFT), -3 => str_pad($details['ec']['y'], 32, "\0", STR_PAD_LEFT)] : [1 => 3, 3 => -257, -1 => $details['rsa']['n'], -2 => $details['rsa']['e']];
     $rawId = random_bytes(32); $id = WebAuthn::encode($rawId);
     return compact('db', 'user', 'web', 'private', 'cose', 'rawId', 'id');
 }

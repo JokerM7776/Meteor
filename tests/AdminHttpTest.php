@@ -3,7 +3,7 @@ final class AdminHttpClient
 {
     public Core\Database $db;
     public string $cookie = '';
-    private string $directory;
+    public string $directory;
     public string $root;
     public function __construct()
     {
@@ -98,6 +98,20 @@ test('Admin HTTP: editor PRG validation, publication, language/settings and pass
         same('preview', $c->db->one('SELECT status FROM locales WHERE code = ?', ['fr'])['status']);
         $c->request('/admin/settings?locale=en', 'POST', ['csrf_token' => $token, 'locale' => 'en', 'text' => ['site_title' => ['en' => 'My HTTP Site'], 'copyright' => ['en' => 'Copyright test']], 'custom_css' => 'body {color:red}']);
         [, $html] = $c->request('/en/'); contains('My HTTP Site', $html); contains('Copyright test', $html);
+        // The editor shows the publish date; the date survives a validation error; Extended Markdown can start ticked.
+        [, $html] = $c->request('/admin/editor?post=1&locale=en'); contains('type="datetime-local" name="date" step="60" value="' . str_replace(' ', 'T', substr($c->db->one('SELECT published_at FROM posts')['published_at'], 0, 16)) . '"', $html);
+        $c->request('/admin/editor?post=1&locale=en', 'POST', array_replace($bad, ['date' => '2012-12-12T12:12']));
+        [, $html] = $c->request('/admin/editor?post=1&locale=en&kind=post&from=en'); contains('name="date" step="60" value="2012-12-12T12:12"', $html);
+        $c->request('/admin/editor?post=1&locale=en', 'POST', $values + ['date' => '2012-12-12T12:12']);
+        [, $html] = $c->request('/en/posts/http-post'); contains('datetime="2012-12-12 12:12:00"', $html);
+        [, $html] = $c->request('/admin/editor?kind=page'); contains('Date (UTC)', $html); contains('name="date" step="60" value=""', $html); ok(!preg_match('~name="markdown_extended"[^>]*checked~', $html), 'Off by default');
+        [, $html] = $c->request('/admin/settings'); contains('Enable Extended Markdown', $html);
+        $c->request('/admin/settings', 'POST', ['csrf_token' => $token, 'markdown_extended_default' => '1']);
+        same('1', $c->db->one("SELECT value FROM settings WHERE `key` = 'markdown_extended_default'")['value']);
+        [, $html] = $c->request('/admin/editor?kind=page'); ok((bool) preg_match('~name="markdown_extended"[^>]*checked~', $html), 'New pages start extended');
+        [, $html] = $c->request('/admin/editor?post=1&locale=en'); ok(!preg_match('~name="markdown_extended"[^>]*checked~', $html), 'Saved posts keep their choice');
+        $c->request('/admin/settings', 'POST', ['csrf_token' => $token, 'markdown_extended_default' => '0']);
+        [, $html] = $c->request('/admin/editor'); ok(!preg_match('~name="markdown_extended"[^>]*checked~', $html));
         $c->request('/admin/security', 'POST', ['csrf_token' => $token, 'action' => 'username', 'username' => 'renamed', 'current_password' => 'a long password']);
         same('renamed', $c->db->one('SELECT username FROM users')['username']);
         $oldCookie = $c->cookie;
@@ -264,29 +278,125 @@ test('Admin HTTP: interface text table, language file download and import', func
         [, $html] = $c->request('/admin/languages'); contains('not a valid Meteor language file', $html);
     } finally { $c->close(); }
 });
-test('Admin HTTP: Cloudflare Turnstile settings and sign-in check', function () {
+test('Admin HTTP: one site-wide CAPTCHA on Security, used by the sign-in page and comments', function () {
     $c = new AdminHttpClient();
     try {
-        [, $html] = $c->request('/admin/login'); ok(!str_contains($html, 'cf-turnstile'), 'Off by default');
+        [, $html] = $c->request('/admin/login'); ok(!str_contains($html, 'cf-turnstile') && !str_contains($html, 'g-recaptcha'), 'Off by default');
         $token = $c->token(); $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']);
         $token = $c->token('/admin/security');
-        [, $html] = $c->request('/admin/security'); contains('Sign-in check · Cloudflare Turnstile', $html); contains('name="turnstile_site_key"', $html);
-        [$h] = $c->request('/admin/security', 'POST', ['csrf_token' => $token, 'action' => 'turnstile', 'turnstile_enabled' => '0', 'turnstile_site_key' => '0x4AAAAAAAsitekey', 'turnstile_secret_key' => '0x4AAAAAAAsecret', 'current_password' => 'wrong']);
-        [, $html] = $c->request('/admin/security'); contains('Current password is incorrect.', $html); ok(!str_contains($html, '0x4AAAAAAAsecret'), 'Secret must not be kept in the form');
-        $c->request('/admin/security', 'POST', ['csrf_token' => $token, 'action' => 'turnstile', 'turnstile_enabled' => '0', 'turnstile_site_key' => '0x4AAAAAAAsitekey', 'turnstile_secret_key' => '0x4AAAAAAAsecret', 'current_password' => 'a long password']);
+        [, $html] = $c->request('/admin/security'); contains('id="captcha-heading"', $html); contains('name="turnstile_site_key"', $html); contains('name="recaptcha_site_key"', $html); contains('name="captcha_provider" value="turnstile" checked', $html);
+        $keys = ['turnstile_enabled' => '0', 'turnstile_site_key' => '0x4AAAAAAAsitekey', 'turnstile_secret_key' => '0x4AAAAAAAsecret'];
+        $c->request('/admin/security', 'POST', ['csrf_token' => $token, 'action' => 'captcha', 'recaptcha_secret_key' => '6LcRECAPTCHAsecretvalue000', 'current_password' => 'wrong'] + $keys);
+        [, $html] = $c->request('/admin/security'); contains('Current password is incorrect.', $html); ok(!str_contains($html, '0x4AAAAAAAsecret'), 'Secret must not be kept in the form'); ok(!str_contains($html, '6LcRECAPTCHAsecretvalue000'));
+        // Choosing reCAPTCHA without its keys saves nothing, not even the Turnstile keys.
+        $c->request('/admin/security', 'POST', ['csrf_token' => $token, 'action' => 'captcha', 'captcha_provider' => 'recaptcha', 'current_password' => 'a long password'] + $keys);
+        [, $html] = $c->request('/admin/security'); contains('Enter the Google reCAPTCHA v2 site key and secret key', $html); contains('name="captcha_provider" value="recaptcha" checked', $html);
+        same(null, $c->db->one("SELECT value FROM settings WHERE `key` = 'turnstile_secret_key'"));
+        $c->request('/admin/security', 'POST', ['csrf_token' => $token, 'action' => 'captcha', 'captcha_provider' => 'recaptcha', 'recaptcha_site_key' => '6LcRECAPTCHAsitekeyvalue00', 'recaptcha_secret_key' => '6LcRECAPTCHAsecretvalue000', 'current_password' => 'a long password'] + $keys);
         same('0x4AAAAAAAsecret', $c->db->one("SELECT value FROM settings WHERE `key` = 'turnstile_secret_key'")['value']);
-        [, $html] = $c->request('/admin/security'); contains('value="0x4AAAAAAAsitekey"', $html); contains('Saved · leave empty to keep', $html); ok(!str_contains($html, '0x4AAAAAAAsecret'));
-        // Turn it on directly: saving through the form would ask Cloudflare to confirm the secret.
-        $c->db->query("UPDATE settings SET value = '1' WHERE `key` = 'turnstile_enabled'");
+        same('6LcRECAPTCHAsecretvalue000', $c->db->one("SELECT value FROM settings WHERE `key` = 'recaptcha_secret_key'")['value']);
+        [, $html] = $c->request('/admin/comments?tab=settings'); contains('Site CAPTCHA: Google reCAPTCHA v2 · keys saved ✓', $html);
+        [, $html] = $c->request('/admin/security'); contains('value="0x4AAAAAAAsitekey"', $html); contains('value="6LcRECAPTCHAsitekeyvalue00"', $html); contains('Saved · leave empty to keep', $html); ok(!str_contains($html, '0x4AAAAAAAsecret')); ok(!str_contains($html, 'secretvalue000'));
+        // Turn the sign-in check on directly: saving through the form would ask the provider to confirm the secret.
+        $c->db->upsert('settings', ['key' => 'turnstile_enabled', 'locale' => null, 'value' => '1'], ['key', 'locale_scope']);
         $c->request('/admin/logout', 'POST', ['csrf_token' => $token]);
-        [$h, $html] = $c->request('/admin/login'); contains('data-sitekey="0x4AAAAAAAsitekey"', $html); contains('<script src="https://challenges.cloudflare.com/turnstile/v0/api.js"', $html);
-        contains("script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com;", $h); same(1, substr_count($h, 'Content-Security-Policy'));
+        [$h, $html] = $c->request('/admin/login'); contains('class="g-recaptcha min-h-[78px]" data-sitekey="6LcRECAPTCHAsitekeyvalue00"', $html); contains('<script src="https://www.google.com/recaptcha/api.js"', $html); ok(!str_contains($html, 'cf-turnstile'));
+        contains("script-src 'self' https://www.google.com https://www.gstatic.com; frame-src https://www.google.com;", $h); same(1, substr_count($h, 'Content-Security-Policy'));
+        // The same site, switched to Turnstile.
+        $c->db->upsert('settings', ['key' => 'captcha_provider', 'locale' => null, 'value' => 'turnstile'], ['key', 'locale_scope']);
+        [$h, $html] = $c->request('/admin/login'); contains('data-sitekey="0x4AAAAAAAsitekey" data-theme="auto"', $html); contains('<script src="https://challenges.cloudflare.com/turnstile/v0/api.js"', $html);
+        contains("script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com;", $h);
         $token = $c->token();
         [$h] = $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']); contains('Location: /admin/login', $h);
         [, $html] = $c->request('/admin/login'); contains('Complete the security check and try again.', $html);
         same(0, (int) $c->db->one('SELECT COUNT(*) AS n FROM login_attempts')['n']);
         [$h] = $c->request('/admin/passkey/login/options', 'POST', [], true, $token); contains('200 OK', $h);
     } finally { $c->close(); }
+});
+test('Admin HTTP: keep me signed in survives a lost session until sign-out or a new password', function () {
+    $c = new AdminHttpClient();
+    try {
+        [, $html] = $c->request('/admin/login'); contains('name="remember" value="1"', $html);
+        // Without the box there is no remember cookie.
+        $token = $c->token(); [$h] = $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']);
+        ok(!str_contains($h, 'meteor_admin_test_remember'));
+        $c->cookie = ''; $token = $c->token();
+        [$h] = $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password', 'remember' => '1']);
+        ok((bool) preg_match('/Set-Cookie: (meteor_admin_test_remember=([0-9a-f]{24})%3A[0-9a-f]{64}); expires=[^;]+; Max-Age=2592000; path=\/; secure; HttpOnly; SameSite=Lax/', $h, $m), $h);
+        [$remember, $selector] = [$m[1], $m[2]];
+        $row = $c->db->one('SELECT * FROM remember_tokens'); same($selector, $row['selector']); ok(!str_contains($remember, $row['validator_hash']));
+        // The session is gone (expired or cleaned up): the cookie signs in again, also from a public page.
+        $c->cookie = $remember; [$h] = $c->request('/admin/posts'); contains('200 OK', $h);
+        $c->cookie = $remember; [$h] = $c->request('/ja/'); contains('200 OK', $h); contains('Cache-Control: private, no-store', $h);
+        $c->cookie = 'meteor_admin_test_remember=' . $selector . '%3A' . str_repeat('0', 64); [$h] = $c->request('/admin/posts'); contains('Location: /admin/login', $h);
+        same(0, (int) $c->db->one('SELECT COUNT(*) AS n FROM remember_tokens')['n'], 'A wrong secret deletes the token');
+        // A new password forgets other browsers but keeps this one.
+        $c->cookie = ''; $token = $c->token();
+        [$h] = $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password', 'remember' => '1']);
+        preg_match('/Set-Cookie: (meteor_admin_test_remember=[^;]+)/', $h, $m); $first = $m[1];
+        $c->cookie = ''; $token = $c->token();
+        [$h] = $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password', 'remember' => '1']);
+        preg_match('/Set-Cookie: (meteor_admin_test_remember=[^;]+)/', $h, $m); $second = $m[1];
+        $session = $c->cookie; $c->cookie = $session . '; ' . $second; $token = $c->token('/admin/security');
+        [$h] = $c->request('/admin/security', 'POST', ['csrf_token' => $token, 'action' => 'password', 'current_password' => 'a long password', 'new_password' => 'another long password', 'new_password_confirm' => 'another long password']);
+        ok((bool) preg_match('/Set-Cookie: (meteor_admin_test_remember=[0-9a-f]{24}%3A[^;]+); expires/', $h, $m), 'Reissued'); $third = $m[1];
+        same(1, (int) $c->db->one('SELECT COUNT(*) AS n FROM remember_tokens')['n']);
+        $c->cookie = $first; [$h] = $c->request('/admin/posts'); contains('Location: /admin/login', $h);
+        $c->cookie = $third; [$h] = $c->request('/admin/posts'); contains('200 OK', $h);
+        // Signing out forgets this browser too.
+        $c->cookie .= '; ' . $third; $token = $c->token('/admin/posts');
+        [$h] = $c->request('/admin/logout', 'POST', ['csrf_token' => $token]); contains('meteor_admin_test_remember=deleted', $h);
+        same(0, (int) $c->db->one('SELECT COUNT(*) AS n FROM remember_tokens')['n']);
+        $c->cookie = $third; [$h] = $c->request('/admin/posts'); contains('Location: /admin/login', $h);
+    } finally { $c->close(); }
+});
+test('Admin HTTP: signed-in devices, signing out one or every other device, and bin/sign-out.php', function () {
+    $c = new AdminHttpClient();
+    try {
+        // Sign in three times: two remembered browsers (A, B) and one plain session (C).
+        $signIn = function (bool $remember, string $agent) use ($c): array {
+            $c->cookie = ''; $token = $c->token();
+            putenv('HTTP_USER_AGENT=' . $agent);
+            [$h] = $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password'] + ($remember ? ['remember' => '1'] : []));
+            preg_match('/Set-Cookie: (meteor_admin_test_remember=[^;]+)/', $h, $m);
+            return [$c->cookie, $m[1] ?? ''];
+        };
+        [$sessionA, $rememberA] = $signIn(true, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1');
+        [$sessionB, $rememberB] = $signIn(true, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0');
+        [$sessionC] = $signIn(false, 'curl/8');
+        ok($rememberA !== '' && $rememberB !== '');
+        $c->cookie = $sessionB . '; ' . $rememberB; $token = $c->token('/admin/security');
+        [, $html] = $c->request('/admin/security'); contains('Signed-in devices', $html); contains('Safari on iPhone', $html); contains('Edge on Windows</span> <span class="font-mono text-xs font-normal text-orange-800 dark:text-orange-300">this device', $html); same(1, substr_count($html, 'this device')); same(1, substr_count($html, 'value="sign_out_device"'));
+        contains('php bin/sign-out.php', $html);
+        // Signing out A from B ends A's open session at once, not only its cookie.
+        $idA = (int) $c->db->one('SELECT id FROM remember_tokens ORDER BY id LIMIT 1')['id'];
+        [$h] = $c->request('/admin/security', 'POST', ['csrf_token' => $token, 'action' => 'sign_out_device', 'id' => $idA]); contains('303', $h);
+        [, $html] = $c->request('/admin/security'); contains('That device was signed out.', $html);
+        $c->cookie = $sessionA; [$h] = $c->request('/admin/posts'); contains('Location: /admin/login', $h);
+        $c->cookie = $rememberA; [$h] = $c->request('/admin/posts'); contains('Location: /admin/login', $h);
+        $c->cookie = $sessionC; [$h] = $c->request('/admin/posts'); contains('200 OK', $h);
+        // "Sign out everywhere else" also ends C, which never ticked the box; B stays signed in and remembered.
+        $c->cookie = $sessionB . '; ' . $rememberB; $token = $c->token('/admin/security');
+        [$h] = $c->request('/admin/security', 'POST', ['csrf_token' => $token, 'action' => 'sign_out_others']);
+        ok((bool) preg_match('/Set-Cookie: (meteor_admin_test_remember=[0-9a-f]{24}%3A[^;]+); expires/', $h, $m), 'B is remembered again'); $rememberB = $m[1];
+        same(1, (int) $c->db->one('SELECT COUNT(*) AS n FROM remember_tokens')['n']);
+        $sessionB = $c->cookie;
+        $c->cookie = $sessionC; [$h] = $c->request('/admin/posts'); contains('Location: /admin/login', $h);
+        $c->cookie = $sessionB; [$h] = $c->request('/admin/posts'); contains('200 OK', $h);
+        // From the server shell: every device, this one included.
+        $env = array_merge(getenv(), ['DB_DRIVER' => 'sqlite', 'DB_PATH' => $c->directory . '/db.sqlite']);
+        $run = function (array $args) use ($c, $env): array {
+            $process = proc_open([PHP_BINARY, 'bin/sign-out.php', ...$args], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $c->root, $env);
+            $out = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]); fclose($pipes[1]); fclose($pipes[2]);
+            return [proc_close($process), $out];
+        };
+        [$code, $out] = $run(['nobody']); same(1, $code); contains('No admin named "nobody".', $out);
+        [$code, $out] = $run([]); same(0, $code); contains('1 admin was signed out on every device.', $out);
+        same(0, (int) $c->db->one('SELECT COUNT(*) AS n FROM remember_tokens')['n']);
+        $c->cookie = $sessionB; [$h] = $c->request('/admin/posts'); contains('Location: /admin/login', $h);
+        $c->cookie = $rememberB; [$h] = $c->request('/admin/posts'); contains('Location: /admin/login', $h);
+        [$code, $out] = $run(['EDITOR']); same(0, $code); contains('"editor" was signed out', $out);
+    } finally { putenv('HTTP_USER_AGENT'); $c->close(); }
 });
 test('Admin HTTP: author tab toggles the card at the end of posts', function () {
     $c = new AdminHttpClient();

@@ -3,6 +3,7 @@
 <h1 class="text-[26px] font-bold tracking-tight">Sign in</h1>
 <p class="mt-1 text-[15px] text-slate-600 dark:text-slate-400">Write and translate posts.</p>
 </div>
+<label class="flex min-h-11 items-center gap-3 text-[15px]"><input type="checkbox" id="remember" name="remember" value="1">Keep me signed in on this device for <?= \Core\Remember::DAYS ?> days</label>
 <button id="passkey-login" type="button" class="btn-primary min-h-[52px] w-full">Sign in with a passkey</button>
 <p class="text-center text-sm text-slate-600 dark:text-slate-400">Use Touch ID, Face ID, Windows Hello or a security key.</p>
 <p id="passkey-message" role="status" class="text-sm text-orange-700 dark:text-orange-400">
@@ -16,10 +17,10 @@
 </label>
 <label class="field">Password<input name="password" type="password" autocomplete="current-password" required<?= ($username ?? '') !== '' ? ' autofocus' : '' ?>>
 </label>
-<?php if ($turnstileKey !== ''): ?>
-<div class="cf-turnstile min-h-[65px]" data-sitekey="<?= e($turnstileKey) ?>" data-theme="auto" data-size="flexible"></div>
+<?php if ($captcha): ?>
+<div class="<?= e($captcha['widget']) ?> min-h-[78px]" data-sitekey="<?= e($captcha['site_key']) ?>"<?= $captcha['provider'] === 'turnstile' ? ' data-theme="auto" data-size="flexible"' : '' ?>></div>
 <?php endif ?>
 <button type="submit" class="btn">Sign in with password</button>
 </form>
-<?php if ($turnstileKey !== ''): ?><script src="<?= e(\Core\Turnstile::SCRIPT) ?>" async defer></script><?php endif ?>
+<?php if ($captcha): ?><script src="<?= e($captcha['script']) ?>" async defer></script><?php endif ?>
 <a href="/<?= e($i18n->defaultLocale()) ?>/" class="flex min-h-11 items-center justify-center text-sm text-slate-600 dark:text-slate-400">← Back to the site</a>

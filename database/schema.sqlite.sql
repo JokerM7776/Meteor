@@ -26,6 +26,19 @@ CREATE TABLE passkeys (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE remember_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    selector CHAR(24) NOT NULL UNIQUE,
+    validator_hash CHAR(64) NOT NULL,
+    session_version INTEGER NOT NULL,
+    user_agent VARCHAR(255) NOT NULL DEFAULT '',
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_used_at DATETIME,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE TABLE login_attempts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ip_address VARCHAR(45) NOT NULL,

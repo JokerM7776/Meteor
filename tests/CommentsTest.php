@@ -66,17 +66,19 @@ test('Comments: CAPTCHA step uses the chosen provider and keeps the original tok
     same('comment_error_check', $form->submit($post, 'en', $input + ['g-recaptcha-response' => 'bad'], '1.1.1.1')['error']);
     same('saved', $form->submit($post, 'en', $input + ['g-recaptcha-response' => 'good'], '1.1.1.1')['result']);
     same('https://www.google.com/recaptcha/api/siteverify', $calls[0][0]); same(str_repeat('k', 40), $calls[0][1]['secret']);
-    // Turnstile reuses the Security keys; with no keys there is no CAPTCHA step.
+    // Comments → Settings only switches the CAPTCHA; the site-wide provider and keys come from Security.
     $settings = new CommentSettings($db);
-    $settings->save(['comments_enabled' => '1', 'comments_captcha' => '1', 'comments_captcha_provider' => 'turnstile', 'comments_moderation' => 'hold']);
+    $settings->save(['comments_enabled' => '1', 'comments_captcha' => '0', 'captcha_provider' => 'turnstile', 'recaptcha_site_key' => '', 'comments_moderation' => 'hold']);
+    same(null, $settings->captcha()); same('recaptcha', $settings->provider()['provider']);
+    $settings->save(['comments_enabled' => '1', 'comments_captcha' => '1', 'comments_moderation' => 'hold']);
+    same('g-recaptcha-response', $settings->captcha()['field']);
+    // With Turnstile chosen but no Turnstile keys there is no CAPTCHA step.
+    $db->upsert('settings', ['key' => 'captcha_provider', 'locale' => null, 'value' => 'turnstile'], ['key', 'locale_scope']);
     same(null, $settings->captcha());
     $db->upsert('settings', ['key' => 'turnstile_site_key', 'locale' => null, 'value' => 'site-key-123456'], ['key', 'locale_scope']);
     $db->upsert('settings', ['key' => 'turnstile_secret_key', 'locale' => null, 'value' => 'secret-key-123456'], ['key', 'locale_scope']);
     same('cf-turnstile-response', $settings->captcha()['field']);
-    same(str_repeat('k', 40), $settings->values()['recaptcha_secret_key']);
-    throws(fn () => $settings->save(['comments_captcha' => '1', 'comments_captcha_provider' => 'recaptcha', 'recaptcha_forget' => '1', 'comments_moderation' => 'hold']), InvalidArgumentException::class);
     throws(fn () => $settings->save(['comments_moderation' => 'maybe']), InvalidArgumentException::class);
-    throws(fn () => $settings->save(['comments_moderation' => 'hold', 'recaptcha_site_key' => 'bad key!']), InvalidArgumentException::class);
 });
 test('Webmention: SafeHttp refuses private addresses, odd ports and unsafe redirects', function () {
     $resolve = fn (string $host) => ['internal.test' => ['10.0.0.5'], 'six.test' => ['::1'], 'public.test' => ['93.184.216.34']][$host] ?? [];
@@ -201,7 +203,7 @@ test('Comments HTTP: zero-JS form, CAPTCHA page, webmention endpoint and admin m
         [, $html] = $c->request('/en/posts/hello?comment=published');
         contains('Thanks!', $html); contains('role="status"', $html); contains('>Author<', $html); contains('href="/en/posts/hello?reply=' . $comment . '#comment-form"', $html);
         [, $html] = $c->request('/admin/comments?tab=settings');
-        contains('name="comments_moderation"', $html); contains('bin/cron.php', $html); contains('uses the keys from Security', $html);
+        contains('name="comments_moderation"', $html); contains('bin/cron.php', $html); contains('Site CAPTCHA: Cloudflare Turnstile · keys saved ✓', $html); ok(!str_contains($html, 'name="recaptcha_site_key"'), 'Keys live on Security');
         [$h] = $c->request('/admin/comments', 'POST', ['csrf_token' => $csrf, 'action' => 'delete', 'ids' => [$comment]]);
         same(0, (int) $db->one('SELECT COUNT(*) AS n FROM comments')['n']);
         [$h] = $c->request('/admin/comments', 'POST', ['action' => 'delete', 'ids' => [1]]); contains('403', $h);

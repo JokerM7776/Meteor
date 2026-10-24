@@ -46,6 +46,9 @@ final class AdminSettings
                     if ($value !== '') { $this->db->upsert('settings', ['key' => $key, 'locale' => (string) $code, 'value' => $value], ['key', 'locale_scope']); }
                 }
             }
+            if (array_key_exists('markdown_extended_default', $input)) {
+                $this->db->upsert('settings', ['key' => 'markdown_extended_default', 'locale' => null, 'value' => $input['markdown_extended_default'] === '1' ? '1' : '0'], ['key', 'locale_scope']);
+            }
             if (array_key_exists('custom_css', $input)) {
                 $this->db->upsert('settings', ['key' => 'custom_css', 'locale' => null, 'value' => (string) $input['custom_css']], ['key', 'locale_scope']);
             }

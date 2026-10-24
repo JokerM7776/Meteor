@@ -116,6 +116,8 @@ path, never by public requests.
 - `View::render` accepts an optional layout; `partial` returns buffered HTML. Only
   trusted template output and compiled Markdown may bypass `e()`.
 - `Session::login` regenerates the session ID after verified credentials. Password and passkey authentication both use it; session versions are verified on every request.
+- *Keep me signed in* (`Core\Remember`): the cookie `<SESSION_NAME>_remember` (HttpOnly, SameSite=Lax, Secure on HTTPS, 30 days) holds `selector:secret`; `remember_tokens` stores the selector, the SHA-256 of the secret, the user's `session_version`, the user agent and the last use. When no session is signed in, `bootstrap.php` signs in from the cookie. A wrong secret deletes the row; a changed `session_version` (new password, *Sign out everywhere else*, `bin/sign-out.php`, `bin/reset-password.php`) makes every row useless. A session started from a row keeps `remember_id`, and `Auth::user()` ends it when the row is gone (device signed out on the Security page).
+- CAPTCHA (`App\Services\CaptchaSettings`, `Core\Captcha`): keys for Cloudflare Turnstile and Google reCAPTCHA v2 are stored side by side; `captcha_provider` picks the one used for both the sign-in page (`turnstile_enabled`, a name kept from older versions) and comments (`comments_captcha`). Older sites without `captcha_provider` fall back to `comments_captcha_provider`. `CAPTCHA=off` (or `TURNSTILE=off`) in `.env` skips the sign-in check only. Turning the sign-in check on verifies the secret with a dummy token (`invalid-input-secret`).
   Admin forms use `csrf_token`; JSON endpoints require `X-CSRF-Token`. Invalid tokens return HTTP 403.
 
 ## Checks

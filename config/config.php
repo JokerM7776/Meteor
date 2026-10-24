@@ -25,7 +25,8 @@ return [
         'user' => $get('DB_USER', 'meteor'), 'password' => $get('DB_PASS'), 'path' => $path,
     ],
     'session_name' => $get('SESSION_NAME', 'meteor_session'),
-    // TURNSTILE=off removes Cloudflare Turnstile from the sign-in page (e.g. after saving a wrong key).
-    'turnstile' => $get('TURNSTILE', 'on') !== 'off',
+    // CAPTCHA=off removes the CAPTCHA from the sign-in page (e.g. after saving a wrong key).
+    // TURNSTILE=off is the older name and still works.
+    'captcha' => $get('CAPTCHA', 'on') !== 'off' && $get('TURNSTILE', 'on') !== 'off',
     'webauthn' => ['rp_id' => $get('WEBAUTHN_RP_ID', 'localhost'), 'rp_name' => $get('WEBAUTHN_RP_NAME', 'Meteor')],
 ];

@@ -10,8 +10,10 @@ final class Auth
     {
         if (!isset($_SESSION['user_id'], $_SESSION['session_version'])) { return null; }
         $user = $this->db->one('SELECT * FROM users WHERE id = ?', [$_SESSION['user_id']]);
-        if (!$user || (int) $user['session_version'] !== (int) $_SESSION['session_version']) {
-            unset($_SESSION['user_id'], $_SESSION['session_version']);
+        // A session started from "Keep me signed in" ends when that device is signed out on the Security page.
+        $forgotten = isset($_SESSION['remember_id']) && !$this->db->one('SELECT id FROM remember_tokens WHERE id = ?', [$_SESSION['remember_id']]);
+        if (!$user || (int) $user['session_version'] !== (int) $_SESSION['session_version'] || $forgotten) {
+            unset($_SESSION['user_id'], $_SESSION['session_version'], $_SESSION['remember_id']);
             return null;
         }
         return $user;

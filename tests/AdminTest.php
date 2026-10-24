@@ -31,6 +31,24 @@ test('Admin: content saves compile, first publication dates persist, pages and t
     same(null, $db->one('SELECT tag_id FROM post_tags WHERE tag_id = ?', [$tag]));
     $editor->delete(false, $id); same([], $db->all('SELECT * FROM post_translations')); $editor->delete(true, $pageId);
 });
+test('Admin: the editor date sets the publish date of posts and the date of pages', function () {
+    $db = database(); locale($db); $editor = new App\Services\ContentEditor($db);
+    same(null, App\Services\ContentEditor::date('')); same('2019-03-04 05:06:00', App\Services\ContentEditor::date('2019-03-04T05:06'));
+    same('2019-03-04 05:06:07', App\Services\ContentEditor::date('2019-03-04T05:06:07'));
+    foreach (['2019-02-30T10:00', 'yesterday', '1969-12-31T23:59', '2019-03-04', ['x']] as $bad) { throws(fn () => App\Services\ContentEditor::date($bad), InvalidArgumentException::class); }
+    $base = ['title' => 'Old post', 'content_md' => 'Text', 'status' => 'published', 'is_published' => '1'];
+    $id = $editor->save(false, 0, 'en', $base + ['date' => '2015-06-01T08:30']);
+    $row = $db->one('SELECT published_at, created_at FROM posts WHERE id = ?', [$id]);
+    same('2015-06-01 08:30:00', $row['published_at']); same('2015-06-01 08:30:00', $row['created_at']);
+    same('Old post', (new App\Repositories\Posts($db))->published('en')[0]['title']);
+    // Empty keeps the date; a future date schedules the post.
+    $editor->save(false, $id, 'en', $base + ['date' => '']); same('2015-06-01 08:30:00', $db->one('SELECT published_at FROM posts WHERE id = ?', [$id])['published_at']);
+    $editor->save(false, $id, 'en', $base + ['date' => '2999-01-01T00:00']); same([], (new App\Repositories\Posts($db))->published('en'));
+    throws(fn () => $editor->save(false, $id, 'en', $base + ['date' => 'soon']), InvalidArgumentException::class);
+    $page = $editor->save(true, 0, 'en', ['title' => 'About us', 'content_md' => 'Hi', 'status' => 'published', 'is_published' => '1', 'date' => '2010-01-02T03:04']);
+    same('2010-01-02 03:04:00', $db->one('SELECT created_at FROM pages WHERE id = ?', [$page])['created_at']);
+    $draft = $editor->save(false, 0, 'en', ['title' => 'Draft', 'content_md' => 'x', 'status' => 'draft']); same(null, $db->one('SELECT published_at FROM posts WHERE id = ?', [$draft])['published_at']);
+});
 test('Admin: language rules, settings fallback and CSS validation', function () {
     $f = adminFixture(); $db = $f['db']; $languages = new App\Services\Languages($db);
     $languages->save('add', ['code' => 'pt-br', 'name' => 'Portuguese', 'native_name' => 'Português']);
@@ -170,29 +188,45 @@ test('Admin: taxonomy rows save independently and keep other languages', functio
     $editor->save(['kind' => 'tag', 'slug' => 'php', 'names' => ['en' => 'PHP', 'ja' => 'ピーエイチピー']]);
     same(1, count($editor->rows('tag', 'ピーエイチ'))); same(0, count($editor->rows('tag', 'nothing'))); same(1, count($editor->rows('category', 'COD')));
 });
-test('Admin: Turnstile keys are checked with Cloudflare and tokens verified', function () {
+test('Admin: one site-wide CAPTCHA; keys are checked with the provider and tokens verified', function () {
     $db = database(); locale($db); $calls = [];
     $reply = ['success' => false, 'error-codes' => ['invalid-input-secret']];
     $send = function (string $url, array $fields) use (&$calls, &$reply): ?array { $calls[] = [$url, $fields]; return $reply; };
-    $guard = new App\Services\LoginProtection($db, true, $send);
-    ok($guard->passes('', '1.2.3.4'), 'Off means no check');
+    $guard = new App\Services\CaptchaSettings($db, true, $send);
+    ok($guard->passes([], '1.2.3.4'), 'Off means no check'); same('turnstile', $guard->values()['captcha_provider']);
+    $guard->save([]); same(null, $guard->provider(), 'Nothing set up is allowed');
     throws(fn () => $guard->save(['turnstile_enabled' => '1', 'turnstile_site_key' => '0x4AAAAAAAsite']), InvalidArgumentException::class);
-    throws(fn () => $guard->save(['turnstile_enabled' => '0', 'turnstile_site_key' => 'bad key!']), InvalidArgumentException::class);
+    throws(fn () => $guard->save(['turnstile_site_key' => 'bad key!']), InvalidArgumentException::class);
+    throws(fn () => $guard->save(['captcha_provider' => 'hcaptcha']), InvalidArgumentException::class);
     throws(fn () => $guard->save(['turnstile_enabled' => '1', 'turnstile_site_key' => '0x4AAAAAAAsite', 'turnstile_secret_key' => '0x4AAAAAAAwrong']), InvalidArgumentException::class);
-    same('https://challenges.cloudflare.com/turnstile/v0/siteverify', $calls[0][0]); same('0x4AAAAAAAwrong', $calls[0][1]['secret']); ok(!$guard->active());
+    same('https://challenges.cloudflare.com/turnstile/v0/siteverify', $calls[0][0]); same('0x4AAAAAAAwrong', $calls[0][1]['secret']); same(null, $guard->signIn());
     $reply = null;
     throws(fn () => $guard->save(['turnstile_enabled' => '1', 'turnstile_site_key' => '0x4AAAAAAAsite', 'turnstile_secret_key' => '0x4AAAAAAAgood']), InvalidArgumentException::class);
     $reply = ['success' => false, 'error-codes' => ['invalid-input-response']];
     $guard->save(['turnstile_enabled' => '1', 'turnstile_site_key' => '0x4AAAAAAAsite', 'turnstile_secret_key' => '0x4AAAAAAAgood']);
-    ok($guard->active()); same('0x4AAAAAAAsite', $guard->siteKey());
+    same('0x4AAAAAAAsite', $guard->signIn()['site_key']); same('cf-turnstile', $guard->signIn()['widget']);
     // An empty secret field keeps the saved one.
-    $guard->save(['turnstile_enabled' => '1', 'turnstile_site_key' => '0x4AAAAAAAsite', 'turnstile_secret_key' => '']); same('0x4AAAAAAAgood', $guard->values()['secret']);
+    $guard->save(['turnstile_enabled' => '1', 'turnstile_site_key' => '0x4AAAAAAAsite', 'turnstile_secret_key' => '']); same('0x4AAAAAAAgood', $guard->values()['turnstile_secret_key']);
     $calls = [];
-    ok(!$guard->passes('', '1.2.3.4')); ok(!$guard->passes(str_repeat('a', 2049), '1.2.3.4')); same([], $calls);
-    ok(!$guard->passes('token', '1.2.3.4'));
-    $reply = ['success' => true]; ok($guard->passes('token', '1.2.3.4'));
+    ok(!$guard->passes([], '1.2.3.4')); ok(!$guard->passes(['cf-turnstile-response' => str_repeat('a', 4097)], '1.2.3.4')); ok(!$guard->passes(['cf-turnstile-response' => ['x']], '1.2.3.4')); same([], $calls);
+    ok(!$guard->passes(['cf-turnstile-response' => 'token'], '1.2.3.4'));
+    $reply = ['success' => true]; ok($guard->passes(['cf-turnstile-response' => 'token'], '1.2.3.4'));
     same(['secret' => '0x4AAAAAAAgood', 'response' => 'token', 'remoteip' => '1.2.3.4'], $calls[1][1]);
-    $reply = null; ok(!$guard->passes('token', '1.2.3.4'), 'Unreachable Cloudflare fails closed');
-    $off = new App\Services\LoginProtection($db, false, $send); ok(!$off->active()); ok($off->passes('', '1.2.3.4'));
-    $guard->save(['turnstile_enabled' => '0', 'turnstile_site_key' => '0x4AAAAAAAsite']); ok(!$guard->active());
+    $reply = null; ok(!$guard->passes(['cf-turnstile-response' => 'token'], '1.2.3.4'), 'Unreachable provider fails closed');
+    // Switching the site to reCAPTCHA: its keys are required and checked; the Turnstile keys stay saved.
+    $reply = ['success' => false, 'error-codes' => ['invalid-input-response']];
+    throws(fn () => $guard->save(['captcha_provider' => 'recaptcha', 'turnstile_enabled' => '1', 'turnstile_site_key' => '0x4AAAAAAAsite']), InvalidArgumentException::class);
+    throws(fn () => $guard->save(['captcha_provider' => 'recaptcha', 'turnstile_site_key' => '0x4AAAAAAAsite']), InvalidArgumentException::class);
+    $calls = [];
+    $guard->save(['captcha_provider' => 'recaptcha', 'turnstile_enabled' => '1', 'turnstile_site_key' => '0x4AAAAAAAsite', 'recaptcha_site_key' => str_repeat('s', 40), 'recaptcha_secret_key' => str_repeat('k', 40)]);
+    same('https://www.google.com/recaptcha/api/siteverify', $calls[0][0]); same(str_repeat('k', 40), $calls[0][1]['secret']);
+    same('g-recaptcha-response', $guard->signIn()['field']); same('0x4AAAAAAAgood', $guard->values()['turnstile_secret_key']);
+    $reply = ['success' => true]; ok(!$guard->passes(['cf-turnstile-response' => 'token'], '1.2.3.4'), 'Only the chosen provider counts'); ok($guard->passes(['g-recaptcha-response' => 'token'], '1.2.3.4'));
+    same('g-recaptcha-response', (new App\Services\CommentSettings($db))->provider()['field'], 'Comments use the same provider');
+    $off = new App\Services\CaptchaSettings($db, false, $send); same(null, $off->signIn()); ok($off->passes([], '1.2.3.4')); ok($off->provider() !== null, 'CAPTCHA=off only affects sign-in');
+    $guard->save(['captcha_provider' => 'turnstile', 'turnstile_forget' => '1', 'recaptcha_forget' => '1']); same(null, $guard->provider()); same('', $guard->values()['recaptcha_secret_key']);
+    // Older sites chose a provider for comments only.
+    $old = database(); locale($old);
+    $old->upsert('settings', ['key' => 'comments_captcha_provider', 'locale' => null, 'value' => 'recaptcha'], ['key', 'locale_scope']);
+    same('recaptcha', (new App\Services\CaptchaSettings($old))->values()['captcha_provider']);
 });

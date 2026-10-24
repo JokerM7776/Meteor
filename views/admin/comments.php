@@ -80,17 +80,7 @@ $chip = ['pending' => 'bg-amber-100 text-amber-950', 'approved' => 'bg-slate-900
 <input type="hidden" name="comments_captcha" value="0">
 <label class="flex min-h-11 items-center gap-3"><input type="checkbox" name="comments_captcha" value="1" <?= $check('comments_captcha') ?>>Ask commenters to pass a CAPTCHA</label>
 <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">The check opens on its own page after the visitor presses Send, so post pages stay free of JavaScript. Without a configured provider, comments are still protected by a hidden trap field, a form timer, a rate limit and moderation.</p>
-<fieldset class="space-y-1"><legend class="mb-1 font-semibold">Provider</legend>
-<label class="flex min-h-11 items-center gap-3"><input type="radio" name="comments_captcha_provider" value="turnstile" <?= ($v['comments_captcha_provider'] ?? '') !== 'recaptcha' ? 'checked' : '' ?>>Cloudflare Turnstile
-<span class="text-sm <?= $turnstileReady ? 'text-green-800 dark:text-green-300' : 'text-amber-800 dark:text-amber-300' ?>"><?= $turnstileReady ? '· uses the keys from Security ✓' : '· not set up: add the keys on' ?></span><?php if (!$turnstileReady): ?> <a class="text-sm underline" href="/admin/security">Security</a><?php endif ?></label>
-<label class="flex min-h-11 items-center gap-3"><input type="radio" name="comments_captcha_provider" value="recaptcha" <?= ($v['comments_captcha_provider'] ?? '') === 'recaptcha' ? 'checked' : '' ?>>Google reCAPTCHA v2 (“I'm not a robot” checkbox)</label>
-</fieldset>
-<div class="grid max-w-3xl gap-4 sm:grid-cols-2">
-<label class="field">reCAPTCHA site key<input name="recaptcha_site_key" value="<?= e($v['recaptcha_site_key'] ?? '') ?>" autocomplete="off" spellcheck="false"></label>
-<label class="field">reCAPTCHA secret key<input type="password" name="recaptcha_secret_key" autocomplete="new-password" placeholder="<?= ($v['recaptcha_secret_key'] ?? '') !== '' ? 'Saved · leave empty to keep' : '' ?>"></label>
-</div>
-<?php if (($v['recaptcha_secret_key'] ?? '') !== ''): ?><label class="flex min-h-11 items-center gap-3"><input type="checkbox" name="recaptcha_forget" value="1">Remove the saved reCAPTCHA keys</label><?php endif ?>
-<p class="text-sm text-slate-600 dark:text-slate-400">Create v2 checkbox keys at <a class="underline" href="https://www.google.com/recaptcha/admin" target="_blank" rel="noopener">google.com/recaptcha/admin ↗</a> and add your domain.</p>
+<p class="text-sm <?= $captchaReady ? 'text-green-800 dark:text-green-300' : 'text-amber-800 dark:text-amber-300' ?>">Site CAPTCHA: <?= e($captchaName) ?> <?= $captchaReady ? '· keys saved ✓' : '· not set up: add its keys on' ?> <a class="underline" href="/admin/security#captcha-heading"><?= $captchaReady ? 'Change on Security' : 'Security' ?></a></p>
 </section>
 <section class="panel space-y-4" aria-labelledby="webmention-heading">
 <h2 id="webmention-heading" class="text-xl font-bold">Webmentions</h2>

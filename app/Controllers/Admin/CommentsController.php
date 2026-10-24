@@ -22,7 +22,7 @@ final class CommentsController
         }
         if ($path === '/admin/comments/settings' && $post) {
             try { (new CommentSettings($this->db))->save($_POST); $message = 'Changes saved.'; }
-            catch (\InvalidArgumentException $e) { $_SESSION['old']['comments'] = array_diff_key($_POST, ['recaptcha_secret_key' => 1]); $message = $e->getMessage(); }
+            catch (\InvalidArgumentException $e) { $_SESSION['old']['comments'] = $_POST; $message = $e->getMessage(); }
             return ($this->go)('/admin/comments?tab=settings', $message);
         }
         if ($path === '/admin/comments/process' && $post) {
@@ -97,7 +97,7 @@ final class CommentsController
         $settings = new CommentSettings($this->db);
         $old = $_SESSION['old']['comments'] ?? []; unset($_SESSION['old']['comments']);
         $queue = array_column($this->db->all("SELECT direction, COUNT(*) AS n FROM webmentions WHERE status = 'queued' GROUP BY direction"), 'n', 'direction');
-        return ($this->render)('comments', 'Comments', ['tab' => 'settings', 'values' => $old + $settings->values(), 'turnstileReady' => $settings->turnstileReady(),
+        return ($this->render)('comments', 'Comments', ['tab' => 'settings', 'values' => $old + $settings->values(), 'captchaName' => \Core\Captcha::PROVIDERS[(new \App\Services\CaptchaSettings($this->db))->values()['captcha_provider']]['name'], 'captchaReady' => $settings->provider() !== null,
             'queue' => $queue, 'lastRun' => $this->db->one('SELECT value FROM settings WHERE `key` = ? AND locale_scope = ?', ['webmention_last_run', ''])['value'] ?? '',
             'root' => dirname(__DIR__, 3)]);
     }

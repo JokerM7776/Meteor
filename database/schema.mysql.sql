@@ -26,6 +26,19 @@ CREATE TABLE passkeys (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE remember_tokens (
+    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    user_id INTEGER NOT NULL,
+    selector CHAR(24) COLLATE utf8mb4_bin NOT NULL UNIQUE,
+    validator_hash CHAR(64) COLLATE utf8mb4_bin NOT NULL,
+    session_version INTEGER NOT NULL,
+    user_agent VARCHAR(255) NOT NULL DEFAULT '',
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_used_at DATETIME,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE login_attempts (
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
     ip_address VARCHAR(45) NOT NULL,

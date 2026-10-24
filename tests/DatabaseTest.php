@@ -55,14 +55,14 @@ test('Database: MySQL statement and column parity with loaded SQLite schema', fu
             $mysql[$m[1]] = $columns[1];
             preg_match_all('/^    (`?\w+`?) (?:VARCHAR|CHAR)\(\d+\)([^\n]*)/m', $m[2], $textColumns, PREG_SET_ORDER);
             foreach ($textColumns as $column) {
-                $binary = in_array(trim($column[1], '`'), ['code', 'locale', 'base_locale', 'locale_scope', 'slug', 'key', 'credential_hash', 'file_name', 'thumb_name', 'tag'], true);
+                $binary = in_array(trim($column[1], '`'), ['code', 'locale', 'base_locale', 'locale_scope', 'slug', 'key', 'credential_hash', 'file_name', 'thumb_name', 'tag', 'selector', 'validator_hash'], true);
                 same($binary, str_contains($column[2], 'COLLATE utf8mb4_bin'));
             }
             ok(!preg_match('/\bENUM\b/i', $statement));
         } else { ok((bool) preg_match('/^CREATE INDEX \w+ ON \w+ \([\w, ]+\)$/D', $statement), 'Unrecognized MySQL statement'); }
     }
     $tables = $db->all("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name");
-    same(22, count($tables)); same(count($tables), count($mysql));
+    same(23, count($tables)); same(count($tables), count($mysql));
     foreach ($tables as $table) {
         $columns = array_column($db->all('PRAGMA table_xinfo(' . $table['name'] . ')'), 'name');
         same($columns, $mysql[$table['name']] ?? []);
