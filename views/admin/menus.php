@@ -24,7 +24,7 @@ $toggle = function (string $key, string $label) use ($old, $globals): void { ?>
 <?php foreach (\App\Services\MenuEditor::TOGGLES['header'] as $key => $label) { $toggle($key, $label); } ?>
 </div>
 <h3 class="font-semibold">Header menu</h3>
-<p class="max-w-4xl text-sm text-slate-600 dark:text-slate-400">Drag ⋮⋮ to reorder. Built-in items can be hidden; pages and links can also be removed. A page link shows once the page is published in that language. Links accept /paths, #anchors, https://, http:// and mailto:. Use {locale} for the language code, e.g. /{locale}/projects. A link without a label in a language uses the <?= e($locales[$default]['name']) ?> label; leave that one empty to show the link only in languages that have a label.</p>
+<p class="max-w-4xl text-sm text-slate-600 dark:text-slate-400">Drag ⋮⋮ to reorder. Built-in items can be hidden; pages and links can also be removed. Add each page you want in the menu below; it shows once the page is published in that language, labelled with its title unless you write a label. Links accept /paths, #anchors, https://, http:// and mailto:. Use {locale} for the language code, e.g. /{locale}/projects. A link without a label in a language uses the <?= e($locales[$default]['name']) ?> label; leave that one empty to show the link only in languages that have a label.</p>
 <?php $menu = 'header'; $rows = $menus['header']; require __DIR__ . '/menu-sheet.php'; ?>
 <button class="btn-primary">Save header</button>
 </section>

@@ -198,7 +198,7 @@ test('Admin HTTP: header & footer page, settings sheet and taxonomy rows', funct
         contains('href="/admin/menus" aria-current="page"', $html); contains('<span lang="ja"', $html); contains('ja · preview', $html);
         contains('href="/admin/menus?tab=footer" class=', $html); ok(!str_contains($html, 'name="footer_menu_heading[ja]"'), 'Footer belongs to its own tab');
         [, $html] = $c->request('/admin/menus?tab=footer'); contains('href="/admin/menus?tab=footer" class="-mb-px', $html); contains('aria-current="page">Footer', $html);
-        contains('name="footer_menu_heading[ja]"', $html); ok(!str_contains($html, 'name="header_show_switcher"')); same(10, (int) $c->db->one('SELECT COUNT(*) AS n FROM menu_items')['n']);
+        contains('name="footer_menu_heading[ja]"', $html); ok(!str_contains($html, 'name="header_show_switcher"')); same(8, (int) $c->db->one('SELECT COUNT(*) AS n FROM menu_items')['n']);
         $posts = $c->db->one("SELECT id FROM menu_items WHERE menu = 'header' AND kind = 'posts'")['id'];
         [$h] = $c->request('/admin/menus', 'POST', ['csrf_token' => $token, 'menu' => 'header', 'header_show_switcher' => '0',
             'items' => [$posts => ['sort_order' => '9', 'visible' => '1', 'labels' => ['en' => 'Journal']], 'new' => ['url' => '/{locale}/now', 'labels' => ['en' => 'Now', 'ja' => '']]]]);
@@ -244,7 +244,7 @@ test('Admin HTTP: interface text table, language file download and import', func
         $token = $c->token('/admin/strings');
         [$h, $html] = $c->request('/admin/strings'); contains('200 OK', $h);
         contains('href="/admin/settings" aria-current="page"', $html); contains('href="/admin/strings" class=', $html); contains('data-changed-only', $html);
-        contains('Layout &amp; navigation</span>', $html); contains('name="strings[zh][posts]"', $html); contains('value="文章"', $html); contains('48 missing', $html);
+        contains('Layout &amp; navigation</span>', $html); contains('name="strings[zh][posts]"', $html); contains('value="文章"', $html); contains('88 missing', $html);
         $c->request('/admin/strings', 'POST', ['csrf_token' => $token, 'strings' => ['ja' => ['posts' => '投稿'], 'zh' => ['posts' => '文章']]]);
         same([['locale' => 'ja', 'key' => 'posts', 'value' => '投稿']], $c->db->all('SELECT locale, `key`, value FROM ui_strings'));
         $c->request('/admin/strings?q=minutes', 'POST', ['csrf_token' => $token, 'strings' => ['ja' => ['reading_minutes' => '読了', 'tags' => 'タグ']]]);
@@ -255,7 +255,7 @@ test('Admin HTTP: interface text table, language file download and import', func
         [$h, $json] = $c->request('/admin/languages/export?code=ja');
         contains('Content-Type: application/json', $h); contains('attachment; filename="meteor-language-ja.json"', $h); same('投稿', json_decode($json, true)['strings']['posts']);
         [$h] = $c->request('/admin/languages/export?code=nope'); contains('404', $h);
-        [, $html] = $c->request('/admin/languages'); contains('href="/admin/languages/export?code=zh" download', $html); contains('name="language_file"', $html); contains('48 / 48', $html);
+        [, $html] = $c->request('/admin/languages'); contains('href="/admin/languages/export?code=zh" download', $html); contains('name="language_file"', $html); contains('88 / 88', $html);
         $pack = json_encode(['meteor_language_pack' => 1, 'code' => 'fr', 'name' => 'French', 'native_name' => 'Français', 'direction' => 'ltr', 'strings' => ['posts' => 'Articles']]);
         $c->request('/admin/languages', 'POST', ['csrf_token' => $token, 'action' => 'import'], false, null, ['field' => 'language_file', 'filename' => 'fr.json', 'bytes' => $pack]);
         [, $html] = $c->request('/admin/languages'); contains('Imported 1 interface text into French (added as Off).', $html);

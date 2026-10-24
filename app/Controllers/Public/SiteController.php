@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace App\Controllers\Public;
 
-use App\Repositories\{Announcements, Menus, Posts, Pages, Taxonomy, Settings};
+use App\Repositories\{Announcements, Menus, Posts, Pages, Search, Taxonomy, Settings};
 use Core\{Database, I18n, View};
 
 final class SiteController
@@ -13,7 +13,7 @@ final class SiteController
     public Settings $settings;
     public Menus $menus;
     public Announcements $announcements;
-    public function __construct(Database $db, private I18n $i18n, private View $view, private bool $admin = false)
+    public function __construct(private Database $db, private I18n $i18n, private View $view, private bool $admin = false)
     {
         $this->posts = new Posts($db);
         $this->pages = new Pages($db);
@@ -42,7 +42,7 @@ final class SiteController
         }
         $published = $this->pages->published($locale);
         $menu = ['locale' => $locale, 'default' => $this->i18n->defaultLocale(), 'preview' => $preview, 'active' => $data['active'] ?? '',
-            'navPages' => array_values(array_filter($published, fn ($p) => (bool) $p['show_in_nav'])), 'pages' => $published,
+            'pages' => $published,
             'path' => (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), 'translate' => fn (string $key) => $this->i18n->translate($key)];
         $themeCss = \App\Services\Appearance::css($this->settings);
         return $this->view->render('public/' . $template, $data + [
@@ -124,11 +124,17 @@ final class SiteController
             'canonical' => '/' . $locale . $suffix . ((int) $page > 1 ? '?page=' . $page : ''),
         ]);
     }
-    public function item(string $locale, string $slug, bool $page = false): string
+    public function item(string $locale, string $slug, bool $page = false, array $form = [], int $status = 200): string
     {
         $repository = $page ? $this->pages : $this->posts;
         $item = $repository->find($locale, $slug);
         if (!$item) { return $this->notFound('/' . $locale . '/'); }
+        $discussion = $page ? null : $this->discussion($item, $locale, $form);
+        $webmention = '';
+        if (!$page && (int) $item['comments_enabled'] === 1 && (new \App\Services\CommentSettings($this->db))->receivesWebmentions()) {
+            $webmention = absolute_url('/webmention');
+            header('Link: <' . $webmention . '>; rel="webmention"', false);
+        }
         $neighbors = [];
         if (!$page) {
             $posts = $this->posts->published($locale);
@@ -140,7 +146,78 @@ final class SiteController
             'translations' => $repository->translations((int) $item['id'], $this->admin),
             'suffix' => ($page ? '/' : '/posts/') . rawurlencode($slug), 'neighbors' => $neighbors,
             'tags' => $page ? [] : $this->taxonomy->tags($locale, (int) $item['id']),
-            'active' => $page ? $slug : 'posts',
+            'active' => $page ? $slug : 'posts', 'discussion' => $discussion, 'webmention' => $webmention,
+        ], $status);
+    }
+    /** Comments, mentions and the form below a post; null when comments are off site-wide or there is nothing to show. */
+    private function discussion(array $item, string $locale, array $form): ?array
+    {
+        $comments = new \App\Services\CommentForm($this->db);
+        if (!$comments->settings()->enabled()) { return null; }
+        $data = (new \App\Repositories\Comments($this->db))->discussion((int) $item['id'], $locale);
+        $open = (int) $item['comments_enabled'] === 1;
+        if (!$open && !$data['threads'] && !$data['reactions']) { return null; }
+        $values = ($form['values'] ?? []) + ['name' => '', 'email' => '', 'url' => '', 'body' => '', 'token' => $comments->token((int) $item['id'], $locale), 'parent_id' => 0];
+        $reply = $values['parent_id'] ?: (int) ($_GET['reply'] ?? 0);
+        $replyTo = null;
+        foreach ($data['threads'] as $thread) {
+            foreach ([$thread, ...$thread['replies']] as $row) { if ((int) $row['id'] === $reply) { $replyTo = $row; } }
+        }
+        $notice = $_GET['comment'] ?? '';
+        return $data + ['open' => $open, 'values' => $values, 'error' => $form['error'] ?? '', 'field' => $form['field'] ?? '', 'replyTo' => $replyTo,
+            'notice' => in_array($notice, ['pending', 'published'], true) && !$form ? $notice : '',
+            'action' => '/' . $locale . '/posts/' . rawurlencode((string) $item['slug']) . '/comments',
+            'url' => '/' . $locale . '/posts/' . rawurlencode((string) $item['slug'])];
+    }
+    /** POST /webmention (W3C Webmention receiving endpoint). */
+    public function webmention(): string
+    {
+        header('Content-Type: text/plain; charset=UTF-8');
+        header('Cache-Control: no-store');
+        [$status, $message] = (new \App\Services\Webmentions($this->db, $GLOBALS['config']['app_url']))
+            ->receive($_POST['source'] ?? null, $_POST['target'] ?? null, (string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+        http_response_code($status);
+        if ($status === 202) {
+            $db = $this->db;
+            \App\Services\Webmentions::later(static fn () => (new \App\Services\Webmentions($db, $GLOBALS['config']['app_url']))->process(5));
+        }
+        return $message . "\n";
+    }
+    /** POST /{locale}/posts/{slug}/comments: save, show the CAPTCHA page, or show the post with the problem. */
+    public function comment(string $locale, string $slug): string
+    {
+        header('Cache-Control: no-store');
+        $item = $this->posts->find($locale, $slug);
+        $form = new \App\Services\CommentForm($this->db);
+        if (!$item || !$form->settings()->enabled() || (int) $item['comments_enabled'] !== 1) { return $this->notFound('/' . $locale . '/'); }
+        $url = '/' . $locale . '/posts/' . rawurlencode($slug);
+        $outcome = $form->submit($item, $locale, $_POST, (string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+        if ($outcome['result'] === 'saved' || $outcome['result'] === 'dropped') {
+            $approved = ($outcome['status'] ?? '') === 'approved';
+            header('Location: ' . $url . '?comment=' . ($approved ? 'published#comment-' . $outcome['id'] : 'pending#comments'), true, 303);
+            return '';
+        }
+        if ($outcome['result'] === 'error') { return $this->item($locale, $slug, false, $outcome, 422); }
+        $captcha = $form->settings()->captcha();
+        $this->i18n->setLocale($locale, $this->admin);
+        $html = $this->render('comment-check', $locale, ['title' => __('comment_check_title'), 'captcha' => $captcha, 'postUrl' => $url,
+            'action' => $url . '/comments', 'values' => $outcome['values'], 'error' => $outcome['error'] ?? '', 'noindex' => true, 'canonical' => null]);
+        // The one public page that runs a script: the CAPTCHA widget, after the visitor chose to comment.
+        header('Content-Security-Policy: ' . security_policy($captcha['scripts'], $captcha['frames']));
+        return $html;
+    }
+    public function search(string $locale): string
+    {
+        // With search turned off, /search is an ordinary page slug again.
+        if (!$this->settings->enabled('header_show_search')) { return $this->item($locale, 'search', true); }
+        $this->i18n->setLocale($locale, $this->admin);
+        $query = $_GET['q'] ?? '';
+        $query = is_string($query) && mb_check_encoding($query, 'UTF-8') ? mb_substr(trim($query), 0, Search::MAX_QUERY) : '';
+        return $this->render('search', $locale, [
+            'query' => $query, 'results' => $query === '' ? [] : (new Search($this->db))->find($locale, $query),
+            'title' => $query === '' ? __('search') : __('search_results', ['query' => $query]),
+            'description' => __('search_hint', ['language' => $this->i18n->registry()[$locale]['native_name']]),
+            'active' => 'search', 'suffix' => '/search', 'noindex' => true, 'canonical' => null,
         ]);
     }
     public function notFound(string $uri): string

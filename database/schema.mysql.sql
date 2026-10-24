@@ -102,6 +102,8 @@ CREATE TABLE posts (
     cover_image VARCHAR(2048),
     is_published INTEGER NOT NULL DEFAULT 0 CHECK (is_published IN (0, 1)),
     is_pinned INTEGER NOT NULL DEFAULT 0 CHECK (is_pinned IN (0, 1)),
+    markdown_extended INTEGER NOT NULL DEFAULT 0 CHECK (markdown_extended IN (0, 1)),
+    comments_enabled INTEGER NOT NULL DEFAULT 1 CHECK (comments_enabled IN (0, 1)),
     published_at DATETIME,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -141,7 +143,7 @@ CREATE TABLE pages (
     base_locale VARCHAR(35) COLLATE utf8mb4_bin NOT NULL,
     is_published INTEGER NOT NULL DEFAULT 0 CHECK (is_published IN (0, 1)),
     sort_order INTEGER NOT NULL DEFAULT 0,
-    show_in_nav INTEGER NOT NULL DEFAULT 0 CHECK (show_in_nav IN (0, 1)),
+    markdown_extended INTEGER NOT NULL DEFAULT 0 CHECK (markdown_extended IN (0, 1)),
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (base_locale) REFERENCES locales(code) ON DELETE RESTRICT
@@ -152,7 +154,6 @@ CREATE TABLE page_translations (
     page_id INTEGER NOT NULL,
     locale VARCHAR(35) COLLATE utf8mb4_bin NOT NULL,
     title VARCHAR(255) NOT NULL,
-    nav_label VARCHAR(191),
     summary TEXT NOT NULL,
     content_md LONGTEXT NOT NULL,
     content_html LONGTEXT NOT NULL,
@@ -173,7 +174,8 @@ CREATE TABLE menu_items (
     url VARCHAR(2048),
     sort_order INTEGER NOT NULL DEFAULT 0,
     is_visible INTEGER NOT NULL DEFAULT 1 CHECK (is_visible IN (0, 1)),
-    page_id INTEGER NULL
+    page_id INTEGER NULL,
+    new_tab INTEGER NOT NULL DEFAULT 0 CHECK (new_tab IN (0, 1))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE menu_item_labels (
@@ -220,6 +222,42 @@ CREATE TABLE announcements (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE comments (
+    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    post_id INTEGER NOT NULL,
+    locale VARCHAR(35) COLLATE utf8mb4_bin NOT NULL,
+    parent_id INTEGER,
+    kind VARCHAR(10) NOT NULL DEFAULT 'comment' CHECK (kind IN ('comment', 'webmention')),
+    mention_type VARCHAR(10) NOT NULL DEFAULT '',
+    author_name VARCHAR(100) NOT NULL,
+    author_email VARCHAR(191) NOT NULL DEFAULT '',
+    author_url VARCHAR(2048) NOT NULL DEFAULT '',
+    body TEXT NOT NULL,
+    source_url VARCHAR(2048) NOT NULL DEFAULT '',
+    status VARCHAR(10) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'spam')),
+    is_owner INTEGER NOT NULL DEFAULT 0 CHECK (is_owner IN (0, 1)),
+    ip_hash CHAR(64) NOT NULL DEFAULT '',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (locale) REFERENCES locales(code) ON DELETE CASCADE,
+    FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE webmentions (
+    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    direction VARCHAR(3) NOT NULL CHECK (direction IN ('in', 'out')),
+    source VARCHAR(2048) NOT NULL,
+    target VARCHAR(2048) NOT NULL,
+    pair_hash CHAR(64) NOT NULL UNIQUE,
+    status VARCHAR(10) NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'done', 'failed')),
+    attempts INTEGER NOT NULL DEFAULT 0,
+    result VARCHAR(255) NOT NULL DEFAULT '',
+    ip_hash CHAR(64) NOT NULL DEFAULT '',
+    next_try_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE INDEX login_attempts_ip_time ON login_attempts (ip_address, attempted_at);
 CREATE INDEX login_attempts_user_time ON login_attempts (username, attempted_at);
 CREATE INDEX locales_status_order ON locales (status, sort_order);
@@ -234,3 +272,8 @@ CREATE INDEX menu_items_menu_order ON menu_items (menu, sort_order);
 CREATE INDEX media_created ON media (created_at, id);
 CREATE INDEX media_category ON media (category);
 CREATE INDEX media_tags_tag ON media_tags (tag);
+CREATE INDEX comments_post ON comments (post_id, locale, status);
+CREATE INDEX comments_status ON comments (status, created_at);
+CREATE INDEX comments_ip ON comments (ip_hash, created_at);
+CREATE INDEX webmentions_queue ON webmentions (status, next_try_at);
+CREATE INDEX webmentions_ip ON webmentions (ip_hash, created_at);

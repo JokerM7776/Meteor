@@ -65,7 +65,7 @@ $oldRow = ($old['kind'] ?? '') === $kind ? $old : [];
 <input type="hidden" name="kind" value="<?= e($kind) ?>">
 <input type="hidden" name="id" value="<?= e($row['id']) ?>">
 <button class="btn" name="action" value="save"><?= $row['id'] ? 'Save' : 'Add' ?><span class="sr-only"> <?= e($label) ?></span></button>
-<?php if ($row['id']): ?><a class="btn text-red-700 dark:text-red-400" href="/admin/taxonomy/<?= e($kind) ?>/<?= e($row['id']) ?>/delete">Delete<span class="sr-only"> <?= e($label) ?></span></a><?php endif ?>
+<?php if ($row['id']): ?><a class="btn-danger-outline" href="/admin/taxonomy/<?= e($kind) ?>/<?= e($row['id']) ?>/delete">Delete<span class="sr-only"> <?= e($label) ?></span></a><?php endif ?>
 </form>
 </td>
 </tr>

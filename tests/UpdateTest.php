@@ -15,13 +15,13 @@ test('Migrator: ordered pending migrations, recorded history, failure transactio
     try {
         $directory = $root . '/database/migrations';
         $runner = new Migrator($db, $directory);
-        same(['001_published_at.php', '002_lowercase_usernames.php', '003_menus.php', '004_language_files_and_updates.php', '005_media.php', '006_page_links_and_site_text.php', '007_chinese_simplified_code.php', '008_announcements.php'], $runner->run()); same([], $runner->run());
+        same(['001_published_at.php', '002_lowercase_usernames.php', '003_menus.php', '004_language_files_and_updates.php', '005_media.php', '006_page_links_and_site_text.php', '007_chinese_simplified_code.php', '008_announcements.php', '009_comments_search_markdown.php', '010_menu_page_links_and_new_tab.php'], $runner->run()); same([], $runner->run());
         file_put_contents($directory . '/900_test.php', '<?php return static function (\Core\Database $db): void { $db->query("CREATE TABLE migration_probe (id INT)"); };');
         same(['900_test.php'], $runner->run());
         file_put_contents($directory . '/901_fail.php', '<?php return static function (\Core\Database $db): void { $db->query("INSERT INTO migration_probe VALUES (1)"); throw new \RuntimeException("forced"); };');
         throws(fn () => $runner->run());
         same([], $db->all('SELECT * FROM migration_probe'));
-        same(9, count($db->all('SELECT * FROM schema_migrations')));
+        same(11, count($db->all('SELECT * FROM schema_migrations')));
     } finally { ReleasePackage::removeTree($root); }
 });
 test('Migration 003: creates menu tables and converts the earlier header and footer settings', function () {

@@ -51,7 +51,7 @@ final class DemoSeeder
                     $this->translation('post', $id, 'ms', $msTitles[$index], 'Catatan tentang web yang ringkas, pantas dan mudah dibaca.', "Laman yang ringkas memberi ruang kepada tulisan. Setiap halaman dihantar sebagai HTML dan CSS.\n\n## Mula dengan asas\n\nGunakan pautan biasa dan templat PHP yang mudah dibaca.\n\n```php\necho \$title;\n```\n\n> Kesederhanaan memudahkan penyelenggaraan.\n\n- Tulis kandungan\n- Semak terjemahan\n- Terbitkan halaman");
                 }
             }
-            $this->db->upsert('pages', ['slug' => 'about', 'base_locale' => 'en', 'is_published' => 1, 'show_in_nav' => 1], ['slug']);
+            $this->db->upsert('pages', ['slug' => 'about', 'base_locale' => 'en', 'is_published' => 1], ['slug']);
             $id = (int) $this->db->one('SELECT id FROM pages WHERE slug = ?', ['about'])['id'];
             $this->translation('page', $id, 'en', 'About Meteor', 'Server-rendered HTML and CSS. Zero JavaScript on public pages.', "Meteor is a small place for notes on engineering, design and everyday life.\n\n## A quieter web\n\nEvery page is plain HTML and CSS — no scripts, no trackers, nothing to wait for.\n\n## Read your way\n\n- Browse the archive\n- Follow a language’s RSS feed\n- Share a direct link to a translation\n\n> Good tools leave room for the writing.");
             (new \App\Repositories\Menus($this->db))->ensureDefaults();

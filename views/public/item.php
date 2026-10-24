@@ -20,6 +20,7 @@
 <?php if ($authorCard): ?><section aria-labelledby="author-heading" class="max-w-[700px]"><h2 id="author-heading" class="eyebrow mb-4"><?= e(__('about_author')) ?></h2><div class="rounded-2xl border border-slate-200 bg-white p-5 md:p-7 dark:border-slate-800 dark:bg-slate-900"><?php $card = $author; $cardVariant = 'post'; require __DIR__ . '/../partials/author-card.php' ?></div></section><?php endif ?>
 </div>
 <?php endif ?>
+<?php if (!empty($discussion)) { require __DIR__ . '/../partials/comments.php'; } ?>
 <?php if (array_filter($neighbors)): ?><nav aria-label="<?= e(__('more_posts')) ?>" class="grid gap-4 border-t border-slate-200 pt-6 md:grid-cols-2 dark:border-slate-800"><?php foreach ($neighbors as $rel => $neighbor): if (!$neighbor) { continue; } ?><a class="flex flex-col gap-2 rounded-[14px] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900" rel="<?= e($rel) ?>" href="<?= e('/' . $locale . '/posts/' . rawurlencode($neighbor['slug'])) ?>"><span class="eyebrow"><?= e(__($rel === 'prev' ? 'previous' : 'next')) ?></span><span class="text-xl font-semibold"><?= e($neighbor['title']) ?></span></a><?php endforeach ?></nav><?php endif ?>
 <?php endif ?>
 </div>

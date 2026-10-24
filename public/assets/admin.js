@@ -833,3 +833,8 @@ for (const box of document.querySelectorAll('[data-link-kind]')) {
 for (const input of document.querySelectorAll('[data-custom-color]')) {
   input.addEventListener('input', () => { const radio = input.form.querySelector('input[name="theme_accent"][value="custom"]'); if (radio) radio.checked = true; });
 }
+
+// Lists: changing the sort order applies it at once (the Apply button stays for keyboards and no-JS).
+for (const select of document.querySelectorAll('[data-autosubmit-change]')) {
+  select.addEventListener('change', () => select.form.requestSubmit());
+}

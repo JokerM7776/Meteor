@@ -146,16 +146,49 @@ for online updates — the application files. For photos allow `upload_max_files
 
 ## 6. Using Meteor
 
-- **Admin:** `/admin` — Posts (translation matrix), Pages, **Media**, Categories & tags, **Languages**,
+- **Admin:** `/admin` — Posts (translation matrix), Pages, **Comments**, **Media**, Categories & tags, **Languages**,
   **Header & footer**, Settings, **Security**, **Updates**.
 - **Add a language:** Admin → Languages → *Add a language*. It starts in **Preview**; translate,
   then click **Go live**. English is the default language.
-- **Posts and pages lists:** *View ↗* opens the public page. In the editor, pick the language
+- **Posts and pages lists:** sort by last update, newest, oldest, title or (posts) publish date;
+  20 per page with page numbers. *View ↗* opens the public page. In the editor, pick the language
   from the menu next to Save; the slug is generated from the title when left empty; a post's
   cover is chosen from the media library.
 - **Writing:** the editor has a **Visual** mode with a toolbar (headings, bold, italic, links,
   lists, quotes, code, images) and a **Markdown** mode that shows the `#`, `**`, `-` syntax. Both
   edit the same text; the toolbar works in either mode.
+- **Extended Markdown:** tick *Extended Markdown* in the editor's Shared settings to add
+  [extended syntax](https://www.markdownguide.org/extended-syntax/) to a post or page: tables,
+  footnotes `[^1]`, heading ids `## Title {#id}`, definition lists, task lists `- [x]`,
+  `~~strikethrough~~`, `==highlight==`, `H~2~O`, `X^2^`, emoji shortcodes `:tada:`, automatic links
+  and `\` escapes. It applies to every language of that item. Visual mode shows this syntax as text.
+- **Search:** a search icon in the header opens `/<language>/search`, which finds published posts
+  and pages in that language (every word must match). No JavaScript: results load as a normal
+  page. Turn it off under Header & footer → *Show search*.
+- **Comments:** Admin → Comments → *Settings* → *Allow comments on posts*. Each post can turn its
+  comments off in the editor (Shared settings → *Allow comments*). Each language of a post has its
+  own discussion. Visitors can reply to a comment (one level); you can reply from the admin, shown
+  with an “Author” badge. New comments are held for approval, published when the email already has
+  an approved comment, or published at once — your choice. The sidebar shows how many are waiting.
+  - *Spam protection without JavaScript:* a hidden trap field, a signed form that must be a few
+    seconds old, at most 5 comments per visitor per 10 minutes, and comments with more than two
+    links always wait for approval. Visitor IPs are stored only as a keyed hash.
+  - *CAPTCHA (optional, on by default once keys exist):* Cloudflare Turnstile reuses the keys from
+    Security → Turnstile; Google reCAPTCHA v2 takes its own keys in Comments → Settings. The check
+    opens on a separate page after the visitor presses Send, so post pages stay script-free.
+- **Webmentions:** while comments are on, Meteor accepts [Webmentions](https://www.w3.org/TR/webmention/)
+  at `/webmention` and advertises it on every post. Replies show with the comments; likes,
+  reposts, bookmarks and mentions are listed under *Mentions*. All follow the moderation setting.
+  Turn on *Send webmentions* to notify sites your published posts link to. Meteor fetches other
+  sites only over http(s) on standard ports and never to private or local addresses.
+  - *Background work:* received webmentions are checked, and outgoing ones sent, right after the
+    response on PHP-FPM and LiteSpeed. For retries and scheduled posts, and on other servers, add a
+    cron job (shown with your real path in Comments → Settings):
+    ```
+    */10 * * * * php /path/to/meteor/bin/cron.php
+    ```
+    The cron job also deletes spam older than 30 days. Without cron, use *Process now* in
+    Comments → Settings. Sending needs the PHP `curl` extension.
 - **Media:** Admin → Media, or *Image* in the editor toolbar. Uploads get random file names, so
   their addresses cannot be guessed. Give images a category, tags and alt text when uploading or
   later; search and filter by them. Admin → Settings → *Optimization* (on by default) converts
@@ -169,7 +202,8 @@ for online updates — the application files. For photos allow `upload_max_files
     on the home page.
   - *Appearance:* light, dark or follow the device; an optional visitor switch (no JavaScript);
     accent color (presets or any color) and the text/background tone.
-  - Nothing on the public site says “Meteor” unless you write it: the defaults use your site title.
+  - New sites start with the footer line “Powered by Meteor Blog”; change or remove it in the
+    site text table (Copyright). Otherwise the defaults use your site title.
 - **Interface text and language files:** Admin → Settings → *Interface text* — every menu label,
   button and heading in one table, one column per language. Meteor ships language files for
   简体中文 (`zh-hans`) and Bahasa Melayu (`ms`) in `lang/`; they start **Off** — switch one to Preview or
@@ -184,7 +218,10 @@ for online updates — the application files. For photos allow `upload_max_files
 - **Header and footer:** Admin → Header & footer — drag to reorder, show or hide the built-in
   links, add links to pages or any URL with a label per language, and choose what the footer
   shows (site info, author card or nothing; each column and the copyright line can be turned off).
-  The About link points at a normal page (Pages → About), so its content is yours to edit.
+  To put a page in a menu, add it there (a page link uses the page title unless you write a
+  label). Tick *New tab* to open a link in a new tab; *Show ↗ on links that open in a new tab*
+  adds the icon. The About link points at a normal page (Pages → About), so its content is yours
+  to edit.
 - **Categories & tags:** one table row per term with a column per language, so missing
   translations stand out; each row saves on its own.
 - **Passkeys:** Admin → Security → *Add a passkey*. Requires HTTPS (or `localhost`) and correct

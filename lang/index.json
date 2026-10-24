@@ -5,17 +5,17 @@
             "name": "Malay",
             "native_name": "Bahasa Melayu",
             "direction": "ltr",
-            "texts": 48,
-            "sha256": "f6b6f5141ec1b3117c787330e30fc7e70b4b1308c0c24ca493a9af12a1739339",
-            "updated": "2026-10-24T11:18:41Z"
+            "texts": 88,
+            "sha256": "ca400ccfc8b7fbf37165e7b7ac7a04498519a4f5832a6fa589c42aeca12562c0",
+            "updated": "2026-10-24T14:09:26Z"
         },
         "zh-hans": {
             "name": "Chinese (Simplified)",
             "native_name": "简体中文",
             "direction": "ltr",
-            "texts": 48,
-            "sha256": "9f57d69f7d73ca3e0d1652d44c0d5068aab9343caf85e552c444958bd6e6e6c2",
-            "updated": "2026-10-24T11:18:41Z"
+            "texts": 88,
+            "sha256": "5381b0a06f9a9f2f3e6f956c8824ee87997fb2925ac066c1e029ee8c4c87d432",
+            "updated": "2026-10-24T14:09:26Z"
         }
     }
 }

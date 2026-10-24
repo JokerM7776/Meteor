@@ -62,7 +62,7 @@ test('Database: MySQL statement and column parity with loaded SQLite schema', fu
         } else { ok((bool) preg_match('/^CREATE INDEX \w+ ON \w+ \([\w, ]+\)$/D', $statement), 'Unrecognized MySQL statement'); }
     }
     $tables = $db->all("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name");
-    same(20, count($tables)); same(count($tables), count($mysql));
+    same(22, count($tables)); same(count($tables), count($mysql));
     foreach ($tables as $table) {
         $columns = array_column($db->all('PRAGMA table_xinfo(' . $table['name'] . ')'), 'name');
         same($columns, $mysql[$table['name']] ?? []);

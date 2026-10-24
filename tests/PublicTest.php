@@ -182,16 +182,40 @@ test('Public: identity, header and footer customization without scripts', functi
     $set('site_icon', '/uploads/' . str_repeat('b', 32) . '.ico'); ok(!str_contains(publicRequest($app, '/en/'), 'apple-touch-icon'));
     unset($_SERVER['REQUEST_URI']);
 });
-test('Public: menu built-ins for nav pages, About de-duplication and preview RSS', function () {
+test('Public: page links with labels, new-tab links and preview RSS', function () {
     $app = publicApp(true); $db = $app['db'];
-    $db->query("UPDATE pages SET show_in_nav = 1, is_published = 1 WHERE slug = 'about'");
-    $db->query("UPDATE page_translations SET nav_label = 'Who we are', status = 'published' WHERE locale = 'en' AND page_id = (SELECT id FROM pages WHERE slug = 'about')");
-    $html = publicRequest($app, '/en/'); preg_match('~<header\b.*?</header>~s', $html, $header);
-    contains('Who we are', $header[0]); same(2, substr_count($header[0], 'href="/en/about"'));
-    preg_match('~<footer\b.*?</footer>~s', $html, $footer); contains('href="/en/about"', $footer[0]);
-    $db->query("UPDATE menu_items SET is_visible = 0 WHERE menu = 'header' AND kind = 'pages'");
-    preg_match('~<header\b.*?</header>~s', publicRequest($app, '/en/'), $header); same(2, substr_count($header[0], 'href="/en/about"')); contains('Who we are', $header[0]);
-    preg_match('~<header\b.*?</header>~s', publicRequest($app, '/ms/'), $header); ok(!str_contains($header[0], 'rss.xml'));
+    $db->query("UPDATE pages SET is_published = 1 WHERE slug = 'about'");
+    $about = (int) $db->one("SELECT id FROM menu_items WHERE menu = 'header' AND page_id = (SELECT id FROM pages WHERE slug = 'about')")['id'];
+    $db->query('INSERT INTO menu_item_labels (item_id, locale, label) VALUES (?, ?, ?)', [$about, 'en', 'Who we are']);
+    $header = function (string $path) use ($app): string { preg_match('~<header\b.*?</header>~s', publicRequest($app, $path), $m); return $m[0]; };
+    $html = $header('/en/');
+    contains('Who we are', $html); same(2, substr_count($html, 'href="/en/about"')); ok(!str_contains($html, 'target="_blank"'));
+    $db->query('UPDATE menu_items SET new_tab = 1 WHERE id = ?', [$about]);
+    $html = $header('/en/');
+    same(2, substr_count($html, 'href="/en/about" target="_blank" rel="noopener"')); contains('<span class="sr-only"> (opens in a new tab)</span>', $html); same(2, substr_count($html, 'M10 3.25h4.75V8'));
+    $db->upsert('settings', ['key' => 'header_new_tab_icon', 'locale' => null, 'value' => '0'], ['key', 'locale_scope']);
+    $html = $header('/en/'); ok(!str_contains($html, 'M10 3.25h4.75V8')); contains('(opens in a new tab)', $html);
+    ok(!str_contains($header('/ms/'), 'rss.xml'));
+});
+test('Migration 010: the automatic Pages item becomes ordered page links with their navigation labels', function () {
+    $db = database(); locale($db); locale($db, 'ms', 'live', 0, 1);
+    $db->query('ALTER TABLE pages ADD COLUMN show_in_nav INTEGER NOT NULL DEFAULT 0');
+    $db->query('ALTER TABLE page_translations ADD COLUMN nav_label VARCHAR(191)');
+    $db->query('ALTER TABLE menu_items DROP COLUMN new_tab');
+    foreach (['a' => 2, 'b' => 1, 'c' => 0] as $slug => $order) {
+        $id = $db->insert('INSERT INTO pages (slug, base_locale, is_published, sort_order, show_in_nav) VALUES (?, ?, 1, ?, ?)', [$slug, 'en', $order, $slug === 'c' ? 0 : 1]);
+        $db->query("INSERT INTO page_translations (page_id, locale, title, summary, content_md, content_html, toc_html, status, nav_label) VALUES (?, 'en', ?, '', '', '', '', 'published', ?)", [$id, strtoupper($slug), $slug === 'a' ? 'Nav A' : null]);
+    }
+    foreach (['posts', 'pages', 'rss'] as $n => $kind) { $db->query("INSERT INTO menu_items (menu, kind, sort_order, is_visible) VALUES ('header', ?, ?, 1)", [$kind, $n]); }
+    $db->query("INSERT INTO menu_items (menu, kind, sort_order, is_visible) VALUES ('footer', 'pages', 0, 0)");
+    $migration = require dirname(__DIR__) . '/database/migrations/010_menu_page_links_and_new_tab.php';
+    $migration($db); $migration($db);
+    $rows = (new App\Repositories\Menus($db))->rows('header');
+    same(['posts', 'link', 'link', 'rss'], array_column($rows, 'kind'));
+    same(['b', 'a'], array_map(fn ($r) => $db->one('SELECT slug FROM pages WHERE id = ?', [$r['page_id']])['slug'], array_slice($rows, 1, 2)));
+    same(['en' => 'Nav A'], $rows[2]['labels']); same(0, (int) $rows[2]['new_tab']);
+    same(0, (int) $db->one("SELECT COUNT(*) AS n FROM menu_items WHERE kind = 'pages'")['n']);
+    same([0, 0], array_map('intval', array_column($db->all("SELECT is_visible FROM menu_items WHERE menu = 'footer'"), 'is_visible')));
 });
 test('Public: optional author card ends posts as the h-entry p-author h-card', function () {
     $app = publicApp(); $db = $app['db'];

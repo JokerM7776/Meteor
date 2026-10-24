@@ -10,8 +10,8 @@ final class Menus
     public const LIMIT = 30;
     /** Built-in kinds per menu, in default order, with their default visibility. 'about' is a link to the About page. */
     public const DEFAULTS = [
-        'header' => ['posts' => 1, 'tags' => 1, 'about' => 1, 'pages' => 1, 'rss' => 1, 'sitemap' => 0],
-        'footer' => ['about' => 1, 'sitemap' => 1, 'posts' => 0, 'tags' => 0, 'rss' => 0, 'pages' => 0],
+        'header' => ['posts' => 1, 'tags' => 1, 'about' => 1, 'rss' => 1, 'sitemap' => 0],
+        'footer' => ['about' => 1, 'sitemap' => 1, 'posts' => 0, 'tags' => 0, 'rss' => 0],
     ];
     /** Path pattern of each built-in kind; {locale} is the current language code. */
     public const PATHS = ['posts' => '/{locale}/posts', 'tags' => '/{locale}/tags', 'rss' => '/{locale}/rss.xml', 'sitemap' => '/sitemap.xml'];
@@ -42,7 +42,7 @@ final class Menus
             $order = 0;
             foreach (self::DEFAULTS[$menu] ?? [] as $kind => $visible) {
                 if ($kind === 'about') { continue; }
-                $rows[] = ['id' => 0, 'menu' => $menu, 'kind' => $kind, 'url' => null, 'page_id' => null, 'sort_order' => $order++, 'is_visible' => $visible, 'labels' => []];
+                $rows[] = ['id' => 0, 'menu' => $menu, 'kind' => $kind, 'url' => null, 'page_id' => null, 'sort_order' => $order++, 'is_visible' => $visible, 'new_tab' => 0, 'labels' => []];
             }
             return $rows;
         }
@@ -56,34 +56,25 @@ final class Menus
 
     /**
      * Resolved links for one menu in one language.
-     * $context: locale, default, preview (bool), active, navPages, pages (all published pages in this
-     * language), path (request path), translate (callable key => text).
+     * $context: locale, default, preview (bool), active, pages (all published pages in this language),
+     * path (request path), translate (callable key => text). Each link: label, url, external, current, new_tab.
      */
     public function links(string $menu, array $context): array
     {
         $rows = array_filter($this->rows($menu), fn ($row) => (int) $row['is_visible'] === 1);
         $locale = $context['locale'];
-        $navPages = $context['navPages'] ?? [];
-        $pagesShown = in_array('pages', array_column($rows, 'kind'), true);
         $published = array_column($context['pages'] ?? [], null, 'id');
-        $inNav = array_column($navPages, 'id');
         $links = [];
         foreach ($rows as $row) {
             $kind = $row['kind'];
-            if ($kind === 'pages') {
-                foreach ($navPages as $page) {
-                    $links[] = ['label' => $page['nav_label'] ?: $page['title'], 'url' => '/' . $locale . '/' . rawurlencode($page['slug']),
-                        'external' => false, 'current' => ($context['active'] ?? '') === $page['slug']];
-                }
-                continue;
-            }
+            $newTab = (int) ($row['new_tab'] ?? 0) === 1;
             if ($kind === 'rss' && !empty($context['preview'])) { continue; }
             if ($kind === 'link' && !empty($row['page_id'])) {
-                // Shown once the page is published in this language, and not twice when "Pages" lists it too.
+                // Shown once the page is published in this language.
                 $page = $published[$row['page_id']] ?? null;
-                if (!$page || ($pagesShown && in_array($page['id'], $inNav))) { continue; }
-                $links[] = ['label' => ($row['labels'][$locale] ?? '') ?: ($page['nav_label'] ?: $page['title']), 'url' => '/' . $locale . '/' . rawurlencode($page['slug']),
-                    'external' => false, 'current' => ($context['active'] ?? '') === $page['slug']];
+                if (!$page) { continue; }
+                $links[] = ['label' => ($row['labels'][$locale] ?? '') ?: $page['title'], 'url' => '/' . $locale . '/' . rawurlencode($page['slug']),
+                    'external' => false, 'current' => ($context['active'] ?? '') === $page['slug'], 'new_tab' => $newTab];
                 continue;
             }
             if ($kind === 'link') {
@@ -91,13 +82,13 @@ final class Menus
                 $url = str_replace('{locale}', $locale, (string) $row['url']);
                 if ($label === '' || !\App\Services\SiteLinks::validUrl($url)) { continue; }
                 $links[] = ['label' => $label, 'url' => $url, 'external' => (bool) preg_match('~^https?://~i', $url),
-                    'current' => str_starts_with($url, '/') && $url === ($context['path'] ?? '')];
+                    'current' => str_starts_with($url, '/') && $url === ($context['path'] ?? ''), 'new_tab' => $newTab];
                 continue;
             }
             if (!isset(self::PATHS[$kind])) { continue; }
             $links[] = ['label' => $row['labels'][$locale] ?? ($context['translate'])($kind),
                 'url' => str_replace('{locale}', $locale, self::PATHS[$kind]), 'external' => false,
-                'current' => ($context['active'] ?? '') === $kind];
+                'current' => ($context['active'] ?? '') === $kind, 'new_tab' => $newTab];
         }
         return $links;
     }

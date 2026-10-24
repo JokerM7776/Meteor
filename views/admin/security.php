@@ -96,7 +96,7 @@
 <?= \Core\Csrf::field() ?>
 <input type="hidden" name="id" value="<?= e($key['id']) ?>">
 <button class="btn" name="action" value="rename">Rename<span class="sr-only"> <?= e($key['name']) ?></span></button>
-<a class="btn text-red-700 dark:text-red-400" href="/admin/security/passkeys/<?= e($key['id']) ?>/remove">Remove…<span class="sr-only"> <?= e($key['name']) ?></span></a>
+<a class="btn-danger-outline" href="/admin/security/passkeys/<?= e($key['id']) ?>/remove">Remove…<span class="sr-only"> <?= e($key['name']) ?></span></a>
 </form>
 </td>
 </tr>

@@ -79,7 +79,7 @@ $isUpload = ($old['id'] ?? null) === null;
 <?= \Core\Csrf::field() ?>
 <input type="hidden" name="action" value="save"><input type="hidden" name="id" value="<?= e($row['id']) ?>">
 <button class="btn">Save<span class="sr-only"> <?= e($label) ?></span></button>
-<a class="btn text-red-700 dark:text-red-400" href="/admin/media/<?= e($row['id']) ?>/delete">Delete<span class="sr-only"> <?= e($label) ?></span></a>
+<a class="btn-danger-outline" href="/admin/media/<?= e($row['id']) ?>/delete">Delete<span class="sr-only"> <?= e($label) ?></span></a>
 </form>
 </td>
 </tr>

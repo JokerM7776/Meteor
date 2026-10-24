@@ -19,5 +19,5 @@
 <?php foreach (['db_password' => 'Database password (MySQL)', 'password' => 'Admin password (at least 12 characters)', 'confirm' => 'Confirm admin password'] as $key => $label): ?>
 <label class="block"><?= e($label) ?><input class="mt-1 min-h-11 w-full rounded-lg border p-2" type="password" autocomplete="new-password" name="<?= e($key) ?>"></label>
 <?php endforeach ?>
-<div class="flex gap-3"><button class="min-h-11 rounded-lg border px-4" name="action" value="test">Test connection</button><button class="min-h-11 rounded-lg bg-slate-900 px-4 text-white" name="action" value="install" <?= in_array(false, $checks, true) ? 'disabled' : '' ?>>Install Meteor</button></div>
+<div class="flex gap-3"><button class="inline-flex min-h-11 items-center rounded-[10px] border border-slate-300 px-4 text-sm font-semibold hover:border-slate-500" name="action" value="test">Test connection</button><button class="inline-flex min-h-11 items-center rounded-[10px] border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-40" name="action" value="install" <?= in_array(false, $checks, true) ? 'disabled' : '' ?>>Install Meteor</button></div>
 </form></main></body></html>

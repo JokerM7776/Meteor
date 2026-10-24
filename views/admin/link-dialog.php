@@ -6,7 +6,7 @@
 <label class="field">Text<input name="text" data-link-text></label>
 <p class="text-xs text-slate-500 dark:text-slate-400">Use https://, http://, mailto: or a path such as /en/about.</p>
 <div class="flex flex-wrap justify-end gap-3">
-<button type="button" class="btn me-auto text-red-700 dark:text-red-400" data-link-remove>Remove link</button>
+<button type="button" class="btn-danger-outline me-auto" data-link-remove>Remove link</button>
 <button type="button" class="btn" data-close>Cancel</button>
 <button class="btn-primary" value="ok">Apply</button>
 </div>

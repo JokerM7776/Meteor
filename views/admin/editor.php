@@ -15,7 +15,7 @@ $saveButtons = function (string $extra) use ($state): string {
     $live = $state === 'published';
     // Ctrl+S keeps the current state: it updates a published translation and saves anything else as a draft.
     return '<button form="translation" name="status" value="draft" class="btn ' . $extra . '" title="' . ($live ? 'Save and take this translation off the site' : 'Save without publishing (Ctrl+S)') . '"' . ($live ? '' : ' data-save-default') . '>' . ($live ? 'Unpublish' : 'Save draft') . '</button>'
-        . '<button form="translation" name="status" value="published" class="btn bg-orange-700 text-white hover:border-orange-800 hover:bg-orange-800 ' . $extra . '" title="' . ($live ? 'Save the published translation (Ctrl+S)' : 'Save and publish') . '"' . ($live ? ' data-save-default' : '') . '>' . ($live ? 'Update' : 'Publish') . '</button>';
+        . '<button form="translation" name="status" value="published" class="btn-accent ' . $extra . '" title="' . ($live ? 'Save the published translation (Ctrl+S)' : 'Save and publish') . '"' . ($live ? ' data-save-default' : '') . '>' . ($live ? 'Update' : 'Publish') . '</button>';
 };
 ?>
 <div class="editor-top flex flex-wrap items-end justify-between gap-x-6 gap-y-4 md:sticky md:top-0 md:z-30">
@@ -78,13 +78,19 @@ $fieldHint = 'Shown on cards and at the top of the post.'; $pickerTitle = 'Choos
 <label class="flex min-h-11 items-center gap-2">
 <input type="checkbox" name="is_pinned" <?= !empty($values['is_pinned']) ? 'checked' : '' ?>>Pinned</label>
 <?php else: ?>
-<label class="field">Navigation label<input name="nav_label" maxlength="191" value="<?= e($values['nav_label'] ?? '') ?>">
-</label>
+<p class="text-sm text-slate-600 sm:col-span-2 dark:text-slate-400">To link this page from the header or footer, add it under <a class="underline" href="/admin/menus">Header &amp; footer</a>, where you can order it and give it a menu label per language.</p>
+<?php endif ?>
+<?php if (!$page): ?>
 <label class="flex min-h-11 items-center gap-2">
-<input type="checkbox" name="show_in_nav" <?= !empty($values['show_in_nav']) ? 'checked' : '' ?>>Show in navigation</label>
+<input type="checkbox" name="comments_enabled" <?= !empty($values['comments_enabled']) ? 'checked' : '' ?>>Allow comments<?php if (!$commentsOn): ?> <span class="font-normal text-slate-500 dark:text-slate-400">· comments are off site-wide (<a class="underline" href="/admin/comments?tab=settings">turn on</a>)</span><?php endif ?></label>
 <?php endif ?>
 <label class="flex min-h-11 items-center gap-2">
 <input type="checkbox" name="is_published" <?= !empty($values['is_published']) ? 'checked' : '' ?>>Visible on site (published translations)</label>
+<div class="sm:col-span-2 lg:col-span-3">
+<label class="flex min-h-11 items-center gap-2">
+<input type="checkbox" name="markdown_extended" aria-describedby="extended-hint" <?= !empty($values['markdown_extended']) ? 'checked' : '' ?>>Extended Markdown</label>
+<p id="extended-hint" class="ms-7 text-sm text-slate-500 dark:text-slate-400">Adds tables, footnotes <code class="font-mono">[^1]</code>, task lists <code class="font-mono">- [x]</code>, <code class="font-mono">~~strikethrough~~</code>, <code class="font-mono">==highlight==</code>, H<code class="font-mono">~2~</code>O, X<code class="font-mono">^2^</code>, <code class="font-mono">:emoji:</code>, heading ids <code class="font-mono">{#id}</code>, definition lists, automatic links and <code class="font-mono">\</code> escapes. Visual mode shows this syntax as plain text. <a class="underline" href="https://www.markdownguide.org/extended-syntax/" target="_blank" rel="noopener">Syntax guide ↗<span class="sr-only"> (opens in a new tab)</span></a></p>
+</div>
 </div>
 </details>
 <div class="grid items-stretch gap-5 xl:grid-cols-2">

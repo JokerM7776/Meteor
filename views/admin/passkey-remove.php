@@ -8,7 +8,7 @@
 <input type="hidden" name="username" value="<?= e($user['username']) ?>" autocomplete="username">
 <label class="field">Current password<input required type="password" name="current_password" autocomplete="current-password"></label>
 <div class="flex flex-wrap gap-4">
-<button class="btn bg-red-700 text-white" type="submit">Remove passkey</button>
+<button class="btn-danger" type="submit">Remove passkey</button>
 <a href="/admin/security" class="btn">Cancel</a>
 </div>
 </form>

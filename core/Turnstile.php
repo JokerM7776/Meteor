@@ -28,7 +28,8 @@ final class Turnstile
         return ($this->check($token, $ip)['success'] ?? false) === true;
     }
 
-    private static function post(string $url, array $fields): ?array
+    /** POSTs a form to a verify endpoint over HTTPS and decodes the JSON reply. */
+    public static function post(string $url, array $fields): ?array
     {
         $body = http_build_query($fields);
         if (extension_loaded('curl')) {

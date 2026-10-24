@@ -72,3 +72,44 @@ test('Markdown: escaped quotes stay inside a single highlighted string', functio
     same(0, substr_count($html, 'syntax-keyword'));
     same($code, html_entity_decode(strip_tags($html), ENT_QUOTES, 'UTF-8'));
 });
+test('Markdown: extended syntax is off by default and covers the extended cheat sheet when on', function () {
+    $source = "## Intro {#start}\n\nA note[^n] ~~old~~ ==hot== H~2~O X^2^ :tada: :nope: \\*lit\\* https://example.test/a_b. <me@example.test>\n\n| Name | Qty | Mid |\n|:-----|----:|:---:|\n| `a\\|b` | **2** |\n\nTerm\n: Meaning\n: Second\n\n- [x] done\n- [ ] todo\n\n[^n]: The note.\n    More.\n";
+    $plain = (new Core\Markdown())->compile($source)['html'];
+    foreach (['<table', '<del>', '<mark>', '<dl>', 'type="checkbox"', 'footnote', '🎉', '<a href="https://example.test'] as $part) { ok(!str_contains($plain, $part), $part); }
+    $html = (new Core\Markdown(true, ['footnotes' => 'Notes', 'footnote_back' => 'Back']))->compile($source)['html'];
+    foreach (['<h2 id="start">Intro</h2>', '<del>old</del>', '<mark>hot</mark>', 'H<sub>2</sub>O', 'X<sup>2</sup>', '🎉', ':nope:', '*lit*',
+        '<a href="https://example.test/a_b">https://example.test/a_b</a>.', '<a href="mailto:me@example.test">me@example.test</a>',
+        '<th class="md-left">Name</th><th class="md-right">Qty</th><th class="md-center">Mid</th>', '<td class="md-left"><code>a|b</code></td><td class="md-right"><strong>2</strong></td><td class="md-center"></td>',
+        '<dl><dt>Term</dt><dd>Meaning</dd><dd>Second</dd></dl>', '<li class="task"><input type="checkbox" disabled checked> done</li>', '<li class="task"><input type="checkbox" disabled> todo</li>',
+        '<a href="#fn-1" id="fnref-1" role="doc-noteref">1</a>', 'aria-label="Notes"', '<li id="fn-1"><p>The note.' . "\nMore." . ' <a href="#fnref-1"', 'aria-label="Back 1"'] as $part) { contains($part, $html); }
+    ok(!str_contains($html, '[^n]:'));
+    // A footnote definition inside a code fence stays code; unknown references stay text.
+    $fenced = (new Core\Markdown(true))->compile("```\n[^x]: code\n```\n\nSee [^y].")['html'];
+    contains('[^x]: code', $fenced); contains('See [^y].', $fenced); ok(!str_contains($fenced, 'footnotes'));
+    // Tables need a matching delimiter row; a paragraph line can be followed by a table.
+    contains("<p>a | b\n--- | --- | ---</p>", (new Core\Markdown(true))->compile("a | b\n--- | --- | ---")['html']);
+    contains("<p>Intro</p>\n<div class=\"md-table\">", (new Core\Markdown(true))->compile("Intro\n| a |\n| - |\n| 1 |")['html']);
+});
+test('Markdown: extended links and escapes stay safe', function () {
+    $md = new Core\Markdown(true);
+    foreach (['<javascript:alert(1)>', 'javascript:alert(1)', '<a href="x">', 'https://x.test/"onmouseover="alert(1)', '[x](javascript:alert)', '==<b>==', '| <script> |\n|---|'] as $input) {
+        $html = $md->compile($input)['html'];
+        ok(!preg_match('/href="javascript|<script|<b>|"onmouseover/i', $html), $input);
+    }
+    contains('(see <a href="https://x.test/a_(b)">https://x.test/a_(b)</a>)', $md->compile('(see https://x.test/a_(b))')['html']);
+    contains('<code>https://x.test</code>', $md->compile('`https://x.test`')['html']);
+});
+test('Content editor: the shared Markdown flag rebuilds every language', function () {
+    $db = database(); locale($db, 'en'); locale($db, 'ms', 'live', 0, 1);
+    $editor = new App\Services\ContentEditor($db);
+    $id = $editor->save(false, 0, 'en', ['title' => 'One', 'content_md' => '~~a~~', 'status' => 'published', 'comments_enabled' => '1']);
+    $editor->save(false, $id, 'ms', ['title' => 'Satu', 'content_md' => '~~b~~', 'status' => 'published', 'comments_enabled' => '1']);
+    $html = fn ($locale) => $db->one('SELECT content_html FROM post_translations WHERE post_id = ? AND locale = ?', [$id, $locale])['content_html'];
+    contains('~~b~~', $html('ms'));
+    $editor->save(false, $id, 'en', ['title' => 'One', 'content_md' => '~~a~~', 'status' => 'published', 'markdown_extended' => '1']);
+    contains('<del>a</del>', $html('en')); contains('<del>b</del>', $html('ms'));
+    $post = $db->one('SELECT markdown_extended, comments_enabled FROM posts WHERE id = ?', [$id]);
+    same(1, (int) $post['markdown_extended']); same(0, (int) $post['comments_enabled']);
+    $editor->save(false, $id, 'en', ['title' => 'One', 'content_md' => '~~a~~', 'status' => 'published']);
+    contains('~~b~~', $html('ms'));
+});

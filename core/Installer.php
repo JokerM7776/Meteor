@@ -63,6 +63,7 @@ final class Installer
                     $db->query('INSERT INTO locales (code, name, native_name, status, is_default, sort_order, direction) VALUES (?, ?, ?, ?, ?, ?, ?)', ['en', 'English', 'English', 'live', 1, 0, 'ltr']);
                     $db->query('INSERT INTO users (username, password_hash) VALUES (?, ?)', [$username, password_hash($password, PASSWORD_DEFAULT)]);
                     $db->upsert('settings', ['key' => 'site_title', 'locale' => 'en', 'value' => $title], ['key', 'locale_scope']);
+                    $db->upsert('settings', ['key' => 'copyright', 'locale' => 'en', 'value' => 'Powered by Meteor Blog'], ['key', 'locale_scope']);
                     \App\Services\AboutPage::ensure($db);
                     (new \App\Repositories\Menus($db))->ensureDefaults();
                     \App\Services\LanguagePacks::sync($db, $this->root . '/lang');

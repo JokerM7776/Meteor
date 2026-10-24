@@ -41,7 +41,7 @@ $visible = $old ? ($old['visible'] ?? '1') === '1' : (bool) ($row['is_visible'] 
 <div class="flex flex-wrap items-center gap-3 xl:col-span-2">
 <button class="btn-primary">Save announcement</button>
 <a class="btn" href="/admin/announcements">Cancel</a>
-<?php if ($row): ?><a class="btn ms-auto text-red-700 dark:text-red-400" href="/admin/announcements/<?= e($row['id']) ?>/delete">Delete</a><?php endif ?>
+<?php if ($row): ?><a class="btn-danger-outline ms-auto" href="/admin/announcements/<?= e($row['id']) ?>/delete">Delete</a><?php endif ?>
 </div>
 </form>
 </div>

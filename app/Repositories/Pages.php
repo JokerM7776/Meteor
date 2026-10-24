@@ -9,7 +9,7 @@ final class Pages
     public function __construct(private Database $db) {}
     public function published(string $locale): array
     {
-        return array_values(array_filter($this->db->all("SELECT p.*, t.title, t.nav_label, t.summary, t.content_html, t.toc_html, t.locale
+        return array_values(array_filter($this->db->all("SELECT p.*, t.title, t.summary, t.content_html, t.toc_html, t.locale
             FROM pages p JOIN page_translations t ON t.page_id = p.id
             WHERE t.locale = ? AND p.is_published = 1 AND t.status = 'published' ORDER BY p.sort_order, p.id", [$locale]),
             fn ($p) => !in_array($p['slug'], self::RESERVED, true)));

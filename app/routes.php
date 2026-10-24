@@ -14,6 +14,7 @@ $router->add('GET', '~^/$~', static function () use ($site, $i18n): string {
     return '';
 });
 $router->add('GET', '~^/sitemap\.xml$~', fn () => $feeds->sitemap());
+$router->add('POST', '~^/webmention$~', fn () => $site->webmention());
 $router->add('GET', '~^/custom\.css$~', fn () => $feeds->css());
 $router->add('GET', '~^/theme\.css$~', fn () => $feeds->theme());
 $router->add('GET', '~^/theme$~', fn () => $feeds->scheme());
@@ -21,6 +22,8 @@ $router->add('GET', '~^/$~', fn ($p, $l) => $site->home($l), true);
 $router->add('GET', '~^/rss\.xml$~', fn ($p, $l) => $feeds->rss($l), true);
 $router->add('GET', '~^/(?P<kind>posts|tags)$~', fn ($p, $l) => $site->archive($l, $p['kind']), true);
 $router->add('GET', '~^/(?P<kind>categories|tags)/(?P<slug>[^/]+)$~u', fn ($p, $l) => $site->archive($l, $p['kind'], $p['slug']), true);
+$router->add('POST', '~^/posts/(?P<slug>[^/]+)/comments$~u', fn ($p, $l) => $site->comment($l, $p['slug']), true);
+$router->add('GET', '~^/search$~', fn ($p, $l) => $site->search($l), true);
 $router->add('GET', '~^/posts/(?P<slug>[^/]+)$~u', fn ($p, $l) => $site->item($l, $p['slug']), true);
 $router->add('GET', '~^/(?P<slug>[^/]+)$~u', fn ($p, $l) => $site->item($l, $p['slug'], true), true);
 

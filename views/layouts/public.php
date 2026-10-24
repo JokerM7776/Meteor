@@ -15,7 +15,8 @@
 <meta property="og:site_name" content="<?= e($settings->label('site_title')) ?>">
 <?php foreach ($alternates as $code => $href): ?><link rel="alternate" hreflang="<?= e($code) ?>" href="<?= e(absolute_url($href)) ?>"><?php endforeach ?>
 <?php if (!$preview): ?><link rel="alternate" type="application/rss+xml" title="<?= e(__('rss')) ?>" href="<?= e('/' . $locale . '/rss.xml') ?>"><?php endif ?>
-<?php require __DIR__ . '/../partials/favicon.php' ?>
+<?php if (!empty($webmention)): ?><link rel="webmention" href="<?= e($webmention) ?>">
+<?php endif ?><?php require __DIR__ . '/../partials/favicon.php' ?>
 <?php require __DIR__ . '/../partials/fonts.php' ?>
 <link rel="stylesheet" href="<?= e(asset('assets/style.css')) ?>">
 <?php if ($themeCss !== ''): ?><link rel="stylesheet" href="<?= e($themeCss) ?>"><?php endif ?>
@@ -49,6 +50,9 @@
 </details>
 <?php endif ?>
 <?php endif ?>
+<?php if ($settings->enabled('header_show_search')): ?>
+<a href="<?= e('/' . $locale . '/search') ?>" aria-label="<?= e(__('search')) ?>" title="<?= e(__('search')) ?>" <?= $active === 'search' ? 'aria-current="page"' : '' ?> class="flex size-11 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 aria-[current=page]:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 dark:aria-[current=page]:bg-slate-800"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8.75" cy="8.75" r="5.5"/><path d="m13 13 4 4"/></svg></a>
+<?php endif ?>
 <?php if ($themeSwitch): $back = (string) ($_SERVER['REQUEST_URI'] ?? '/'); ?>
 <details class="relative"><summary aria-label="<?= e(__('color_scheme')) ?>" title="<?= e(__('color_scheme')) ?>" class="flex size-11 cursor-pointer list-none items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 [&::-webkit-details-marker]:hidden"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.75a7.25 7.25 0 0 1 0 14.5z" fill="currentColor"/></svg></summary>
 <div class="absolute end-0 z-20 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900"><p class="eyebrow px-3 pt-1 pb-2"><?= e(__('color_scheme')) ?></p>
@@ -77,7 +81,7 @@ $copyright = $settings->enabled('footer_show_copyright') ? str_replace(['{year}'
 <?php if ($settings->enabled('footer_show_languages') && $live): ?><div><h2 class="eyebrow text-slate-400"><?= e(__('read_in')) ?></h2><?php foreach ($live as $code): ?><a class="flex min-h-11 items-center text-white" lang="<?= e($code) ?>" href="<?= e('/' . $code . '/') ?>"><?= e($registry[$code]['native_name']) ?></a><?php endforeach ?></div><?php endif ?>
 <?php if ($settings->enabled('footer_show_feeds') && $live): ?><div><h2 class="eyebrow text-slate-400"><?= e(__('feeds')) ?></h2><?php foreach ($live as $code): ?><a class="flex min-h-11 items-center text-white" href="<?= e('/' . $code . '/rss.xml') ?>"><?= e('/' . $code . '/rss.xml') ?></a><?php endforeach ?></div><?php endif ?>
 <?php if ($settings->enabled('footer_show_site') && $footerLinks): ?><div><h2 class="eyebrow text-slate-400"><?= e($settings->get('footer_menu_heading', $locale, __('site'))) ?></h2>
-<?php foreach ($footerLinks as $link): ?><a class="flex min-h-11 items-center text-white" href="<?= e($link['url']) ?>"<?= $link['external'] ? ' rel="noopener"' : '' ?><?= $link['current'] ? ' aria-current="page"' : '' ?>><?= e($link['label']) ?></a><?php endforeach ?>
+<?php $newTabIcon = $settings->enabled('footer_new_tab_icon'); foreach ($footerLinks as $link): ?><a class="flex min-h-11 items-center text-white" href="<?= e($link['url']) ?>"<?= $link['new_tab'] ? ' target="_blank" rel="noopener"' : ($link['external'] ? ' rel="noopener"' : '') ?><?= $link['current'] ? ' aria-current="page"' : '' ?>><?= e($link['label']) ?><?php if ($link['new_tab']) { require __DIR__ . '/../partials/new-tab.php'; } ?></a><?php endforeach ?>
 </div><?php endif ?>
 </div>
 <?php endif ?>

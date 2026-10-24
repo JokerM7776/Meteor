@@ -15,7 +15,7 @@ final class AboutPage
         if ($page) { return (int) $page['id']; }
         $locale = $db->one('SELECT code FROM locales WHERE is_default = 1')['code'] ?? null;
         if ($locale === null) { return null; }
-        $id = $db->insert('INSERT INTO pages (slug, base_locale, is_published, show_in_nav) VALUES (?, ?, ?, ?)', ['about', $locale, 1, 0]);
+        $id = $db->insert('INSERT INTO pages (slug, base_locale, is_published) VALUES (?, ?, ?)', ['about', $locale, 1]);
         $compiled = (new Markdown())->compile(self::MARKDOWN);
         $db->query('INSERT INTO page_translations (page_id, locale, title, summary, content_md, content_html, toc_html, status, reading_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [$id, $locale, 'About', '', self::MARKDOWN, $compiled['html'], $compiled['toc_html'], 'draft', $compiled['reading_minutes']]);

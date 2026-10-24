@@ -8,21 +8,27 @@
 <a class="btn-primary" href="/admin/editor?kind=<?= $pageContent ? 'page' : 'post' ?>">+ New <?= $pageContent ? 'page' : 'post' ?>
 </a>
 </div>
-<div class="mb-5 flex flex-wrap justify-between gap-4">
+<?php // Query string for list links; values equal to the defaults are left out.
+$query = function (array $change) use ($filter, $q, $sort): string {
+    $defaults = ['filter' => 'all', 'q' => '', 'sort' => 'updated', 'page' => 1];
+    $values = $change + ['filter' => $filter, 'q' => $q, 'sort' => $sort];
+    return '?' . http_build_query(array_filter($values, fn ($value, $key) => $value !== $defaults[$key], ARRAY_FILTER_USE_BOTH));
+}; ?>
+<div class="mb-5 flex flex-wrap items-center justify-between gap-4">
 <nav aria-label="Filter" class="flex flex-wrap gap-2">
 <?php foreach (['all' => 'All', 'missing' => 'Missing translations', 'drafts' => 'Has drafts'] as $key => $label): ?>
-<a class="btn <?= $filter === $key ? 'bg-slate-900 text-white' : '' ?>" href="?<?= e(http_build_query(['filter' => $key, 'q' => $q])) ?>" <?= $filter === $key ? 'aria-current="page"' : '' ?>>
-<?= e($label) ?> <span class="ml-2 font-mono text-xs">
-<?= e($counts[$key]) ?>
-</span>
-</a>
+<a class="btn" href="<?= e($query(['filter' => $key, 'page' => 1])) ?>" <?= $filter === $key ? 'aria-current="page"' : '' ?>><?= e($label) ?> <span class="font-mono text-xs"><?= e($counts[$key]) ?></span></a>
 <?php endforeach ?>
 </nav>
-<form method="get" class="flex gap-2">
-<input type="hidden" name="filter" value="<?= e($filter) ?>">
+<form method="get" class="flex flex-wrap items-center gap-2" data-autosubmit>
+<?php if ($filter !== 'all'): ?><input type="hidden" name="filter" value="<?= e($filter) ?>"><?php endif ?>
 <label class="sr-only" for="search">Search titles and slugs</label>
-<input id="search" type="search" name="q" value="<?= e($q) ?>" placeholder="Search titles and slugs">
-<button class="btn">Search</button>
+<input id="search" type="search" name="q" value="<?= e($q) ?>" placeholder="Search titles and slugs" class="w-64 max-w-full sm:w-72">
+<label class="sr-only" for="sort">Sort by</label>
+<select id="sort" name="sort" data-autosubmit-change>
+<?php foreach ($sorts as $key => $label): ?><option value="<?= e($key) ?>" <?= $sort === $key ? 'selected' : '' ?>><?= e($label) ?></option><?php endforeach ?>
+</select>
+<button class="btn">Apply</button>
 </form>
 </div>
 <?php $compact = count($locales) > 6; // Many languages: icon cells under language codes, so the table fits the screen. ?>
@@ -110,16 +116,15 @@ if ($row['is_published'] && ($pageContent || ($row['published_at'] !== null && $
 </tbody>
 </table>
 </div>
-<div class="mt-5 flex items-center justify-between text-sm">
-<span>
-<?= e($total) ?> results · Page <?= e($number) ?>
-</span>
-<nav aria-label="Pagination" class="flex gap-2">
-<?php if ($number > 1): ?>
-<a class="btn" href="?<?= e(http_build_query(['page' => $number - 1, 'filter' => $filter, 'q' => $q])) ?>">← Previous</a>
-<?php endif ?>
-<?php if ($number * 20 < $total): ?>
-<a class="btn" href="?<?= e(http_build_query(['page' => $number + 1, 'filter' => $filter, 'q' => $q])) ?>">Next →</a>
-<?php endif ?>
+<div class="mt-5 flex flex-wrap items-center justify-between gap-3 text-sm">
+<span><?= e($total) ?> <?= $total === 1 ? 'result' : 'results' ?><?= $pages > 1 ? ' · page ' . e($number) . ' of ' . e($pages) : '' ?></span>
+<?php if ($pages > 1): ?>
+<nav aria-label="Pagination" class="flex flex-wrap gap-1">
+<?php if ($number > 1): ?><a class="btn" rel="prev" href="<?= e($query(['page' => $number - 1])) ?>">← Previous</a><?php endif ?>
+<?php for ($n = 1; $n <= $pages; $n++): if ($pages > 9 && $n !== 1 && $n !== $pages && abs($n - $number) > 2) { if ($n === 2 || $n === $pages - 1) { echo '<span class="inline-flex min-h-11 items-center px-1" aria-hidden="true">…</span>'; } continue; } ?>
+<a class="btn" href="<?= e($query(['page' => $n])) ?>" <?= $n === $number ? 'aria-current="page"' : '' ?>><span class="sr-only">Page </span><?= e($n) ?></a>
+<?php endfor ?>
+<?php if ($number < $pages): ?><a class="btn" rel="next" href="<?= e($query(['page' => $number + 1])) ?>">Next →</a><?php endif ?>
 </nav>
+<?php endif ?>
 </div>

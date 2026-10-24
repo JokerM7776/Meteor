@@ -11,7 +11,7 @@ $fieldId = 'media-' . preg_replace('/[^a-z0-9]+/i', '-', $fieldName);
 <span data-media-empty class="flex size-16 items-center justify-center rounded-[10px] border border-dashed border-slate-400 px-1 text-center text-xs font-normal text-slate-500 dark:text-slate-400" <?= $fieldValue !== '' ? 'hidden' : '' ?>><?= e($emptyText) ?></span>
 <input type="hidden" name="<?= e($fieldName) ?>" value="<?= e($fieldValue) ?>" data-media-value>
 <button type="button" class="btn" data-media-choose aria-describedby="<?= e($fieldId) ?>-label">Choose from library…</button>
-<button type="button" class="btn text-red-700 dark:text-red-400" data-media-clear <?= $fieldValue === '' ? 'hidden' : '' ?>>Remove<span class="sr-only"> <?= e(mb_strtolower($fieldLabel)) ?></span></button>
+<button type="button" class="btn-danger-outline" data-media-clear <?= $fieldValue === '' ? 'hidden' : '' ?>>Remove<span class="sr-only"> <?= e(mb_strtolower($fieldLabel)) ?></span></button>
 </div>
 <span class="text-sm font-normal text-slate-500 dark:text-slate-400"><?= e($fieldHint) ?></span>
 </div>

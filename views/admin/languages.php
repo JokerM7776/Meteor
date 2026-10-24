@@ -98,7 +98,7 @@
 <form method="post">
 <?= \Core\Csrf::field() ?>
 <input type="hidden" name="code" value="<?= e($code) ?>">
-<button class="btn text-red-700 dark:text-red-400" name="action" value="delete">Delete empty language</button>
+<button class="btn-danger-outline" name="action" value="delete">Delete empty language</button>
 </form>
 <?php endif ?>
 </details>

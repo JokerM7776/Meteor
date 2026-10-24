@@ -3,7 +3,7 @@
 $oldItems = ($old['menu'] ?? '') === $menu ? ($old['items'] ?? []) : [];
 $missing = [];
 foreach ($rows as $row) {
-    if ($row['kind'] === 'pages' || !empty($row['page_id'])) { continue; }
+    if (!empty($row['page_id'])) { continue; }
     foreach ($locales as $code => $language) {
         $value = $oldItems[$row['id']]['labels'][$code] ?? $row['labels'][$code] ?? '';
         $fallback = $row['kind'] === 'link' ? ($row['labels'][$default] ?? '') : $i18n->translateFor($code, $row['kind']);
@@ -17,6 +17,7 @@ foreach ($rows as $row) {
 <thead><tr>
 <th scope="col" class="sheet-key">Item</th>
 <th scope="col" class="sheet-center">Show</th>
+<th scope="col" class="sheet-center">New tab</th>
 <?php foreach ($locales as $code => $language) { require __DIR__ . '/sheet-head.php'; } ?>
 <th scope="col" class="sheet-center">Remove</th>
 </tr></thead>
@@ -40,23 +41,22 @@ $rowName = $page ? $pageTitle : ($row['kind'] === 'link' ? (($row['labels'][$def
 <input id="<?= e($menu . '-url-' . $id) ?>" name="<?= e($name) ?>[url]" value="<?= e($o['url'] ?? $row['url']) ?>" placeholder="https://… or /{locale}/…" required>
 <?php else: ?>
 <span class="block font-semibold text-slate-900 dark:text-slate-100"><?= e($rowName) ?></span>
-<span class="mt-0.5 block font-mono text-xs text-slate-500 dark:text-slate-400"><?= $row['kind'] === 'pages' ? 'Pages with “Show in navigation”' : e(\App\Repositories\Menus::PATHS[$row['kind']] ?? '') ?></span>
+<span class="mt-0.5 block font-mono text-xs text-slate-500 dark:text-slate-400"><?= e(\App\Repositories\Menus::PATHS[$row['kind']] ?? '') ?></span>
 <?php endif ?>
 </div>
 </div>
 </th>
 <td class="sheet-center"><input type="hidden" name="<?= e($name) ?>[visible]" value="0"><label class="flex min-h-11 items-center justify-center"><input type="checkbox" name="<?= e($name) ?>[visible]" value="1" <?= ($o['visible'] ?? (string) $row['is_visible']) === '1' ? 'checked' : '' ?>><span class="sr-only">Show row <?= e($index + 1) ?></span></label></td>
-<?php if ($row['kind'] === 'pages'): ?>
-<td colspan="<?= e(count($locales)) ?>" class="text-slate-500 dark:text-slate-400">Labels come from each page’s “Navigation label”. <a class="text-orange-700 underline dark:text-orange-400" href="/admin/pages">Edit pages</a></td>
-<?php else: foreach ($locales as $code => $language): ?>
+<td class="sheet-center"><input type="hidden" name="<?= e($name) ?>[new_tab]" value="0"><label class="flex min-h-11 items-center justify-center"><input type="checkbox" name="<?= e($name) ?>[new_tab]" value="1" <?= ($o['new_tab'] ?? (string) ($row['new_tab'] ?? 0)) === '1' ? 'checked' : '' ?>><span class="sr-only">Open row <?= e($index + 1) ?> in a new tab</span></label></td>
+<?php foreach ($locales as $code => $language): ?>
 <td><input name="<?= e($name) ?>[labels][<?= e($code) ?>]" lang="<?= e($code) ?>" maxlength="80" value="<?= e($o['labels'][$code] ?? $row['labels'][$code] ?? '') ?>"
  placeholder="<?= e($page ? ($page['labels'][$code] ?? 'Not translated') : ($row['kind'] === 'link' ? ($code === $default ? 'Label' : ($row['labels'][$default] ?? 'Label')) : $i18n->translateFor($code, $row['kind']))) ?>" aria-label="<?= e($language['name']) ?> label, row <?= e($index + 1) ?>"></td>
-<?php endforeach; endif ?>
+<?php endforeach ?>
 <td class="sheet-center"><?php if ($row['kind'] === 'link'): ?><label class="flex min-h-11 items-center justify-center"><input type="checkbox" name="<?= e($name) ?>[remove]" value="1" <?= !empty($o['remove']) ? 'checked' : '' ?>><span class="sr-only">Remove row <?= e($index + 1) ?></span></label><?php endif ?></td>
 </tr>
 <?php endforeach ?>
 <?php $o = $oldItems['new'] ?? []; ?>
-<tr><th scope="rowgroup" colspan="<?= e(count($locales) + 3) ?>" class="sheet-group"><span class="sticky left-4">Add a page or a link</span></th></tr>
+<tr><th scope="rowgroup" colspan="<?= e(count($locales) + 4) ?>" class="sheet-group"><span class="sticky left-4">Add a page or a link</span></th></tr>
 <tr class="sheet-new">
 <th scope="row" class="sheet-key">
 <div class="flex flex-col gap-2" data-link-kind>
@@ -69,6 +69,7 @@ $rowName = $page ? $pageTitle : ($row['kind'] === 'link' ? (($row['labels'][$def
 <input id="<?= e($menu . '-url-new') ?>" name="items[new][url]" value="<?= e($o['url'] ?? '') ?>" placeholder="https://… or /{locale}/…">
 </div></th>
 <td></td>
+<td class="sheet-center"><label class="flex min-h-11 items-center justify-center"><input type="checkbox" name="items[new][new_tab]" value="1" <?= ($o['new_tab'] ?? '') === '1' ? 'checked' : '' ?>><span class="sr-only">Open the new link in a new tab</span></label></td>
 <?php foreach ($locales as $code => $language): ?>
 <td><input name="items[new][labels][<?= e($code) ?>]" lang="<?= e($code) ?>" maxlength="80" value="<?= e($o['labels'][$code] ?? '') ?>" placeholder="Label" data-page-placeholder="Page title" aria-label="<?= e($language['name']) ?> label of the new link"></td>
 <?php endforeach ?>

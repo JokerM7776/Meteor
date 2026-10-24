@@ -17,6 +17,7 @@ test('Installer: SQLite WAL, English-only seed, password hash and safe rerun', f
         same('wal', $db->one('PRAGMA journal_mode')['journal_mode']);
         same(['en' => 'live', 'ms' => 'off', 'zh-hans' => 'off'], array_column($db->all('SELECT code, status FROM locales ORDER BY code'), 'status', 'code'));
         same('1', $db->one('SELECT is_default FROM locales WHERE code = ?', ['en'])['is_default'] . '');
+        same('Powered by Meteor Blog', $db->one("SELECT value FROM settings WHERE `key` = 'copyright' AND locale = 'en'")['value']);
         $user = $db->one('SELECT * FROM users');
         same('test-admin', $user['username']); ok(password_verify($environment['ADMIN_PASS'], $user['password_hash']));
         [$status, $output] = $install(); same(1, $status); contains('not empty', $output);

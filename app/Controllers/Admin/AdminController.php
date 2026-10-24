@@ -6,6 +6,9 @@ use App\Services\{Account, AdminSettings, Appearance, Author, ContentEditor, Hom
 
 final class AdminController
 {
+    private const PER_PAGE = 20;
+    /** Sort orders of the posts and pages lists; posts also sort by publish date. */
+    private const SORTS = ['updated' => 'Last updated', 'created' => 'Newest first', 'oldest' => 'Oldest first', 'title' => 'Title A–Z', 'title_desc' => 'Title Z–A'];
     private Auth $auth;
     public function __construct(private Database $db, private I18n $i18n, private View $view, private array $config) { $this->auth = new Auth($db); }
     private function go(string $path, string $message = ''): string
@@ -20,7 +23,7 @@ final class AdminController
         $flash = $_SESSION['flash'] ?? ''; unset($_SESSION['flash']);
         return $this->view->render('admin/' . $template, $data + ['title' => $title, 'flash' => $flash, 'i18n' => $this->i18n,
             'siteIcon' => $settings->icon(), 'siteTitle' => $settings->get('site_title', $this->i18n->defaultLocale(), 'Meteor'),
-            'user' => $this->auth->user(), 'active' => $template, 'fontSource' => $settings->global('font_source', 'local'), 'error' => ''], 'layouts/admin');
+            'user' => $this->auth->user(), 'active' => $template, 'pendingComments' => (new \App\Repositories\Comments($this->db))->pendingCount(), 'fontSource' => $settings->global('font_source', 'local'), 'error' => ''], 'layouts/admin');
     }
     public function handle(string $path): string
     {
@@ -123,6 +126,10 @@ final class AdminController
             return $this->go('/admin/languages#catalog', $message);
         }
         if ($path === '/admin/announcements' || str_starts_with($path, '/admin/announcements/')) { return $this->announcements($path, $post); }
+        if ($path === '/admin/comments' || str_starts_with($path, '/admin/comments/')) {
+            $result = (new CommentsController($this->db, $this->i18n, $this->render(...), $this->go(...), $user))->handle($path, $post);
+            if ($result !== null) { return $result; }
+        }
         $section = match ($path) { '/admin/languages' => 'languages', '/admin/menus' => 'menus', '/admin/settings' => 'settings', '/admin/strings' => 'strings', '/admin/taxonomy' => 'taxonomy', '/admin/security' => 'security',
             '/admin/home' => 'home', '/admin/author' => 'author', '/admin/appearance' => 'appearance', default => '' };
         if ($section !== '') {
@@ -155,10 +162,10 @@ final class AdminController
                 $menus = new \App\Repositories\Menus($this->db); $menus->ensureDefaults();
                 $data['menus'] = ['header' => $menus->rows('header'), 'footer' => $menus->rows('footer')];
                 $data['pages'] = [];
-                foreach ($this->db->all('SELECT p.id, p.slug, p.base_locale, p.is_published, t.locale, t.title, t.nav_label, t.status FROM pages p LEFT JOIN page_translations t ON t.page_id = p.id ORDER BY p.sort_order, p.id') as $row) {
+                foreach ($this->db->all('SELECT p.id, p.slug, p.base_locale, p.is_published, t.locale, t.title, t.status FROM pages p LEFT JOIN page_translations t ON t.page_id = p.id ORDER BY p.sort_order, p.id') as $row) {
                     $data['pages'][$row['id']] ??= ['id' => (int) $row['id'], 'slug' => $row['slug'], 'base' => $row['base_locale'], 'visible' => (bool) $row['is_published'], 'labels' => [], 'published' => []];
                     if ($row['locale'] !== null) {
-                        $data['pages'][$row['id']]['labels'][$row['locale']] = $row['nav_label'] ?: $row['title'];
+                        $data['pages'][$row['id']]['labels'][$row['locale']] = $row['title'];
                         if ($row['status'] === 'published') { $data['pages'][$row['id']]['published'][] = $row['locale']; }
                     }
                 }
@@ -238,7 +245,11 @@ final class AdminController
         [$table, $translations, $foreign] = ContentEditor::tables($page);
         $locales = array_filter($this->i18n->registry(), fn ($l) => $l['status'] !== 'off');
         $q = trim((string) ($_GET['q'] ?? '')); $filter = $_GET['filter'] ?? 'all';
-        $items = $this->db->all("SELECT * FROM $table ORDER BY updated_at DESC, id DESC");
+        $sorts = self::SORTS + ($page ? [] : ['published' => 'Publish date']);
+        $sort = is_string($_GET['sort'] ?? null) && isset($sorts[$_GET['sort']]) ? $_GET['sort'] : 'updated';
+        $order = match ($sort) { 'created' => 'created_at DESC, id DESC', 'oldest' => 'created_at ASC, id ASC',
+            'published' => 'published_at IS NULL, published_at DESC, id DESC', default => 'updated_at DESC, id DESC' };
+        $items = $this->db->all("SELECT * FROM $table ORDER BY $order");
         $counts = ['all' => 0, 'missing' => 0, 'drafts' => 0]; $rows = [];
         foreach ($items as $item) {
             $ts = $this->db->all("SELECT locale, title, status FROM $translations WHERE $foreign = ?", [$item['id']]);
@@ -250,9 +261,17 @@ final class AdminController
             if (($filter === 'missing' && !$missing) || ($filter === 'drafts' && !$drafts)) { continue; }
             $rows[] = $item;
         }
-        $total = count($rows); $number = max(1, min((int) ($_GET['page'] ?? 1), max(1, (int) ceil($total / 20))));
-        return $this->render('matrix', $page ? 'Pages' : 'Posts', ['rows' => array_slice($rows, ($number - 1) * 20, 20), 'locales' => $locales,
-            'pageContent' => $page, 'q' => $q, 'filter' => $filter, 'counts' => $counts, 'number' => $number, 'total' => $total]);
+        if ($sort === 'title' || $sort === 'title_desc') {
+            // Titles in the base language, compared the way people read them (intl when available).
+            $title = fn ($row) => (string) ($row['translations'][$row['base_locale']]['title'] ?? $row['slug']);
+            $collator = class_exists(\Collator::class) ? new \Collator('root') : null;
+            $collator?->setAttribute(\Collator::NUMERIC_COLLATION, \Collator::ON);
+            usort($rows, fn ($a, $b) => ($sort === 'title' ? 1 : -1) * ($collator ? (int) $collator->compare($title($a), $title($b)) : strnatcasecmp($title($a), $title($b))));
+        }
+        $total = count($rows); $pages = max(1, (int) ceil($total / self::PER_PAGE));
+        $number = max(1, min((int) ($_GET['page'] ?? 1), $pages));
+        return $this->render('matrix', $page ? 'Pages' : 'Posts', ['rows' => array_slice($rows, ($number - 1) * self::PER_PAGE, self::PER_PAGE), 'locales' => $locales,
+            'pageContent' => $page, 'q' => $q, 'filter' => $filter, 'sort' => $sort, 'sorts' => $sorts, 'counts' => $counts, 'number' => $number, 'pages' => $pages, 'total' => $total]);
     }
     private function editor(bool $post): string
     {
@@ -260,12 +279,17 @@ final class AdminController
         [$table, $translations, $foreign] = ContentEditor::tables($page);
         $locale = (string) ($_GET['locale'] ?? $this->i18n->defaultLocale());
         if (!isset($this->i18n->registry()[$locale])) { http_response_code(404); return $this->render('message', 'Not found', ['message' => 'Unknown language.']); }
-        $item = $id ? $this->db->one("SELECT * FROM $table WHERE id = ?", [$id]) : ['base_locale' => $locale, 'is_published' => 1];
+        $item = $id ? $this->db->one("SELECT * FROM $table WHERE id = ?", [$id]) : ['base_locale' => $locale, 'is_published' => 1, 'comments_enabled' => 1];
         if (!$item) { http_response_code(404); return $this->render('message', 'Not found', ['message' => 'Content not found.']); }
         $target = '/admin/editor?' . http_build_query(['post' => $id, 'locale' => $locale, 'kind' => $page ? 'page' : 'post', 'from' => $_GET['from'] ?? $item['base_locale']]);
         if ($post) {
             try {
-                $saved = (new ContentEditor($this->db))->save($page, $id, $locale, $_POST);
+                $editor = new ContentEditor($this->db);
+                $saved = $editor->save($page, $id, $locale, $_POST);
+                if ($editor->published) {
+                    $webmentions = new \App\Services\Webmentions($this->db, $this->config['app_url']);
+                    if ($webmentions->queueOutgoing(...$editor->published) > 0) { \App\Services\Webmentions::later(static fn () => $webmentions->process(10)); }
+                }
                 return $this->go('/admin/editor?' . http_build_query(['post' => $saved, 'locale' => $locale, 'kind' => $page ? 'page' : 'post']), 'Translation saved.');
             } catch (\InvalidArgumentException $e) {
                 $_SESSION['editor_old'] = ['target' => $target, 'values' => $_POST, 'error' => $e->getMessage()];
@@ -277,9 +301,9 @@ final class AdminController
         if (!$page) { $tags = $this->db->all('SELECT t.slug, tt.name FROM tags t JOIN post_tags pt ON pt.tag_id = t.id LEFT JOIN tag_translations tt ON tt.tag_id = t.id AND tt.locale = ? WHERE pt.post_id = ?', [$locale, $id]);
             $values['tags'] = implode(', ', array_map(fn ($t) => $t['name'] ?? $t['slug'], $tags)); }
         $error = ''; $old = $_SESSION['editor_old'] ?? null; unset($_SESSION['editor_old']);
-        if ($old && $old['target'] === $target) { $values = $old['values'] + ['is_pinned' => 0, 'is_published' => 0, 'show_in_nav' => 0] + $values; $error = $old['error']; }
+        if ($old && $old['target'] === $target) { $values = $old['values'] + ['is_pinned' => 0, 'is_published' => 0, 'markdown_extended' => 0, 'comments_enabled' => 0] + $values; $error = $old['error']; }
         $from = (string) ($_GET['from'] ?? $item['base_locale']);
         return $this->render('editor', $id ? 'Edit ' . ($page ? 'page' : 'post') : 'New ' . ($page ? 'page' : 'post'),
-            compact('page', 'id', 'locale', 'item', 'values', 'error', 'target', 'ts', 'from') + ['reference' => $ts[$from] ?? [], 'categories' => $this->db->all('SELECT * FROM categories ORDER BY sort_order, slug')]);
+            compact('page', 'id', 'locale', 'item', 'values', 'error', 'target', 'ts', 'from') + ['commentsOn' => (new \App\Repositories\Settings($this->db, $this->i18n))->global('comments_enabled', '0') === '1', 'reference' => $ts[$from] ?? [], 'categories' => $this->db->all('SELECT * FROM categories ORDER BY sort_order, slug')]);
     }
 }

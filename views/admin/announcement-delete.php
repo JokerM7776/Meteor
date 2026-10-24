@@ -7,7 +7,7 @@
 <p>It disappears from every language. To hide it for now, untick “Show” instead.</p>
 <form method="post" action="<?= e($action) ?>" class="flex gap-4">
 <?= \Core\Csrf::field() ?>
-<button class="btn bg-red-700 text-white" type="submit">Delete permanently</button>
+<button class="btn-danger" type="submit">Delete permanently</button>
 <a href="/admin/announcements" class="btn">Cancel</a>
 </form>
 </section>
