@@ -76,6 +76,10 @@ a **zero-JavaScript public frontend**, and a small admin area where minimal JS i
 - Accessibility as in the design: real `<a>`, `<button>`, `<label>`; touch targets ≥ 44px;
   `aria-current` on the active language/nav item; `lang` attributes on language names.
 - Keep files small and readable. Comment only non-obvious logic.
+- Code that runs right after an online update (database migrations, `LanguagePacks::sync()`)
+  runs in the old version's request, next to classes it already loaded (`Database`, `I18n`,
+  `LanguagePack`, `Auth`, …). Use only methods those classes had in the previous release;
+  `tests/UpgradeTest.php` checks this against the 0.1.x `LanguagePack`.
 
 ## Layout
 

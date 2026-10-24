@@ -130,6 +130,8 @@ final class Updater
                 try { $this->replaceStream($path, $stream); } finally { fclose($stream); }
             }
             foreach ($removed as $path) { $this->delete($path); }
+            // New migrations and LanguagePacks::sync() run in this request, next to classes the old
+            // version already loaded (Database, I18n, LanguagePack…): they may use only old methods.
             (new Migrator($this->db, $this->root . '/database/migrations'))->run();
             \App\Services\LanguagePacks::sync($this->db, $this->root . '/lang');
             if (function_exists('opcache_reset')) { opcache_reset(); }

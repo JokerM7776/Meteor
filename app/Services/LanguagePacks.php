@@ -7,6 +7,13 @@ use Core\{Database, LanguagePack};
 final class LanguagePacks
 {
     /**
+     * Same as LanguagePack::RENAMED. sync() runs right after an online update, in a request that
+     * already loaded the previous version's LanguagePack class, so it may only use LanguagePack
+     * methods that 0.1.x had: all(), bundled(), parse() and validCode().
+     */
+    public const RENAMED = ['zh' => 'zh-hans'];
+
+    /**
      * Each bundled language is offered once: it is added as Off unless the site already has it,
      * and remembered in the `language_packs_known` setting so a deleted language stays deleted.
      * Downloads that the bundled files have caught up with are removed. Returns the codes added.
@@ -19,7 +26,7 @@ final class LanguagePacks
         $packs = LanguagePack::all($builtins, $directory);
         $known = self::known($db);
         // The files the site's languages read, so a renamed file (zh → zh-hans) is not added twice.
-        $files = array_map(LanguagePack::fileCode(...), array_column($db->all('SELECT code FROM locales'), 'code'));
+        $files = array_map(fn (string $code): string => self::RENAMED[$code] ?? $code, array_column($db->all('SELECT code FROM locales'), 'code'));
         $added = [];
         foreach ($packs as $code => $pack) {
             if (in_array($code, $known, true) || in_array($code, $files, true)) { continue; }

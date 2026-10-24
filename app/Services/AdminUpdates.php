@@ -49,7 +49,10 @@ final class AdminUpdates
                 $updater->apply($destination, $allow, $checksum);
             } finally { if (is_file($destination)) { unlink($destination); } }
         } else { throw new \InvalidArgumentException('Unknown update action.'); }
-        unset($_SESSION['update_release']); return 'Update installed successfully.' . $this->missingText();
+        unset($_SESSION['update_release']);
+        // The update is done; a problem while counting interface text must not report it as failed.
+        try { $notice = $this->missingText(); } catch (\Throwable) { $notice = ''; }
+        return 'Update installed successfully.' . $notice;
     }
     /** Names the public languages that lack interface text the new version added. */
     private function missingText(): string

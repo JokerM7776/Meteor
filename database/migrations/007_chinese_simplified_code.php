@@ -4,8 +4,12 @@ declare(strict_types=1);
 // is unused (Off, no content) becomes zh-hans. A `zh` in use keeps its code and URLs and reads the
 // zh-hans file (LanguagePack::RENAMED).
 return static function (\Core\Database $db): void {
+    // Self-contained on purpose: migrations run next to classes the previous version already loaded.
     $known = array_filter(explode(',', $db->one("SELECT value FROM settings WHERE `key` = 'language_packs_known' AND locale_scope = ''")['value'] ?? ''));
-    if (in_array('zh', $known, true)) { \App\Services\LanguagePacks::remember($db, ['zh-hans']); }
+    if (in_array('zh', $known, true) && !in_array('zh-hans', $known, true)) {
+        $known[] = 'zh-hans'; sort($known);
+        $db->upsert('settings', ['key' => 'language_packs_known', 'locale' => null, 'value' => implode(',', $known)], ['key', 'locale_scope']);
+    }
     $zh = $db->one("SELECT * FROM locales WHERE code = 'zh'");
     if (!$zh || $db->one("SELECT code FROM locales WHERE code = 'zh-hans'")) { return; }
     $used = $zh['status'] !== 'off' || (int) $zh['is_default'] === 1;
