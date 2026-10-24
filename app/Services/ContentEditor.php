@@ -60,11 +60,7 @@ final class ContentEditor
             if (!$page) {
                 $this->db->query('DELETE FROM post_tags WHERE post_id = ?', [$id]);
                 foreach ($tags as $name) {
-                    $tagSlug = \slugify($name);
-                    $tag = $this->db->one('SELECT id FROM tags WHERE slug = ?', [$tagSlug]);
-                    $tagId = $tag['id'] ?? $this->db->insert('INSERT INTO tags (slug) VALUES (?)', [$tagSlug]);
-                    $this->db->upsert('tag_translations', ['tag_id' => $tagId, 'locale' => $locale, 'name' => $name], ['tag_id', 'locale']);
-                    $this->db->upsert('post_tags', ['post_id' => $id, 'tag_id' => $tagId], ['post_id', 'tag_id']);
+                    $this->db->upsert('post_tags', ['post_id' => $id, 'tag_id' => $this->tagId($name, $locale)], ['post_id', 'tag_id']);
                 }
             }
             return $id;
@@ -72,6 +68,21 @@ final class ContentEditor
         // An older cover uploaded straight to /uploads (not the media library) has no other owner.
         if (($old['cover_image'] ?? null) !== null && $old['cover_image'] !== $cover) { $this->removeCover($old['cover_image']); }
         return $result;
+    }
+    /**
+     * The tag a name typed in the editor means: its name in this language (the editor shows translated
+     * names), then its slug. Existing names are never renamed here (that is Categories & tags); a missing
+     * one is filled in, unless the text is just the slug the editor shows for an untranslated tag.
+     */
+    private function tagId(string $name, string $locale): int
+    {
+        $tag = $this->db->one('SELECT t.id, t.slug, tt.name FROM tags t JOIN tag_translations tt ON tt.tag_id = t.id AND tt.locale = ? WHERE tt.name = ? ORDER BY t.id LIMIT 1', [$locale, $name])
+            ?? $this->db->one('SELECT t.id, t.slug, tt.name FROM tags t LEFT JOIN tag_translations tt ON tt.tag_id = t.id AND tt.locale = ? WHERE t.slug = ?', [$locale, \slugify($name)]);
+        $id = $tag ? (int) $tag['id'] : $this->db->insert('INSERT INTO tags (slug) VALUES (?)', [\slugify($name)]);
+        if (!$tag || ($tag['name'] === null && $name !== $tag['slug'])) {
+            $this->db->upsert('tag_translations', ['tag_id' => $id, 'locale' => $locale, 'name' => $name], ['tag_id', 'locale']);
+        }
+        return $id;
     }
     /** Compiled content_html, toc_html and reading_minutes. Footnote labels use the content's language. */
     /** "2024-05-01T09:30" from a datetime-local field (UTC) → "2024-05-01 09:30:00"; empty → null (keep or set automatically). */

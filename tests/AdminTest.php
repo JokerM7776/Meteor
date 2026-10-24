@@ -31,6 +31,24 @@ test('Admin: content saves compile, first publication dates persist, pages and t
     same(null, $db->one('SELECT tag_id FROM post_tags WHERE tag_id = ?', [$tag]));
     $editor->delete(false, $id); same([], $db->all('SELECT * FROM post_translations')); $editor->delete(true, $pageId);
 });
+test('Admin: saving a translation keeps translated tag names and the same tags', function () {
+    $db = database(); locale($db); locale($db, 'zh-hans', 'live', 0, 1); $editor = new App\Services\ContentEditor($db);
+    $base = ['title' => 'Release', 'content_md' => 'Text', 'status' => 'published', 'is_published' => '1'];
+    $id = $editor->save(false, 0, 'en', $base + ['tags' => 'release, updates']);
+    $tags = fn (): array => array_column($db->all('SELECT t.slug FROM post_tags pt JOIN tags t ON t.id = pt.tag_id WHERE pt.post_id = ? ORDER BY t.slug', [$id]), 'slug');
+    $name = fn (string $slug, string $locale) => $db->one('SELECT tt.name FROM tags t JOIN tag_translations tt ON tt.tag_id = t.id AND tt.locale = ? WHERE t.slug = ?', [$locale, $slug])['name'] ?? null;
+    // An untranslated tag shows its slug in the editor; saving that does not make the slug its name.
+    $editor->save(false, $id, 'zh-hans', $base + ['tags' => 'release, updates']);
+    same(['release', 'updates'], $tags()); same(null, $name('release', 'zh-hans'));
+    (new App\Services\TaxonomyEditor($db))->save(['kind' => 'tag', 'id' => $db->one("SELECT id FROM tags WHERE slug = 'release'")['id'], 'slug' => 'release', 'names' => ['en' => 'release', 'zh-hans' => '版本发布']]);
+    // The editor shows translated names; saving them keeps the same tags and names.
+    $editor->save(false, $id, 'zh-hans', $base + ['tags' => '版本发布, updates']);
+    same(['release', 'updates'], $tags()); same('版本发布', $name('release', 'zh-hans')); same(2, count($db->all('SELECT id FROM tags')));
+    // Typing the slug does not rename it; a new name in this language fills a missing one; a new tag gets created.
+    $editor->save(false, $id, 'zh-hans', $base + ['tags' => 'release, Updates, 新标签']);
+    same(['release', 'updates', '新标签'], $tags()); same('版本发布', $name('release', 'zh-hans')); same('Updates', $name('updates', 'zh-hans')); same('新标签', $name('新标签', 'zh-hans'));
+    $editor->save(false, $id, 'en', $base + ['tags' => 'release']); same(['release'], $tags()); same('release', $name('release', 'en'));
+});
 test('Admin: the editor date sets the publish date of posts and the date of pages', function () {
     $db = database(); locale($db); $editor = new App\Services\ContentEditor($db);
     same(null, App\Services\ContentEditor::date('')); same('2019-03-04 05:06:00', App\Services\ContentEditor::date('2019-03-04T05:06'));
