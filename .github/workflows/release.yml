@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
@@ -25,6 +27,17 @@ jobs:
         run: |
           find . -name '*.php' -not -path './design/*' -print0 | xargs -0 -n1 php -l
           php tests/run.php
+      - name: Update language index
+        # lang/index.json is the catalog sites download from; contributors don't need to edit it.
+        run: |
+          php bin/lang.php index
+          if [ -n "$(git status --porcelain -- lang/index.json)" ]; then
+            git config user.name "Meteor Team"
+            git config user.email "meteor-team@north1.org"
+            git add lang/index.json
+            git commit -m "Update language index"
+            git push origin HEAD:main || echo "::warning::Could not push lang/index.json. Run php bin/lang.php index and commit it."
+          fi
       - name: Build CSS
         run: |
           curl --fail --location --proto '=https' --tlsv1.2 https://github.com/tailwindlabs/tailwindcss/releases/download/v4.3.3/tailwindcss-linux-x64 -o "$RUNNER_TEMP/tailwindcss"
@@ -33,7 +46,10 @@ jobs:
           bin/build-css.sh
       - name: Package
         run: |
-          version="$(cut -d. -f1,2 VERSION).${{ github.run_number }}"
+          # VERSION holds major.minor.0; the patch number counts commits since VERSION last changed,
+          # so changing VERSION to 0.3.0 releases 0.3.0, and the pushes after it 0.3.1, 0.3.2 …
+          base="$(git log -1 --format=%H "$GITHUB_SHA" -- VERSION)"
+          version="$(cut -d. -f1,2 VERSION).$(git rev-list --count "$base..$GITHUB_SHA")"
           echo "$version" > VERSION
           echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
           php bin/package.php
@@ -41,4 +57,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          if gh release view "v$RELEASE_VERSION" >/dev/null 2>&1; then echo "v$RELEASE_VERSION is already released."; exit 0; fi
           gh release create "v$RELEASE_VERSION" "dist/meteor-$RELEASE_VERSION.zip" "dist/meteor-$RELEASE_VERSION.zip.sha256" --target "$GITHUB_SHA" --title "Meteor $RELEASE_VERSION" --latest --generate-notes

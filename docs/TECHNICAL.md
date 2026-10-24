@@ -320,7 +320,10 @@ Reset/restart PHP OPcache and clear maintenance mode after verifying recovery.
 
 ## Packaging and GitHub release automation
 
-VERSION starts at 0.1.0. To build locally using the installed standalone
+VERSION holds the major and minor version with a .0 patch (for example 0.2.0).
+Each push to main releases major.minor.N, where N counts the commits since VERSION
+last changed: changing VERSION to 0.3.0 releases 0.3.0, and the pushes after it
+0.3.1, 0.3.2 and so on. To build locally using the installed standalone
 Tailwind v4 CLI:
 
 ```sh
