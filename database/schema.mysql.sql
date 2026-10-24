@@ -207,6 +207,19 @@ CREATE TABLE media_tags (
     FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE announcements (
+    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(191) NOT NULL DEFAULT '',
+    message TEXT NOT NULL,
+    button_text VARCHAR(80) NOT NULL DEFAULT '',
+    button_url VARCHAR(2048) NOT NULL DEFAULT '',
+    locale_codes VARCHAR(1000) NOT NULL DEFAULT '',
+    is_visible INTEGER NOT NULL DEFAULT 1 CHECK (is_visible IN (0, 1)),
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE INDEX login_attempts_ip_time ON login_attempts (ip_address, attempted_at);
 CREATE INDEX login_attempts_user_time ON login_attempts (username, attempted_at);
 CREATE INDEX locales_status_order ON locales (status, sort_order);

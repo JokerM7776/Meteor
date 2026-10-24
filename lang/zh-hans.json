@@ -22,6 +22,8 @@
         "scheme_auto": "跟随系统",
         "scheme_light": "浅色",
         "scheme_dark": "深色",
+        "announcements": "公告",
+        "announcement_position": "第 {number} 条公告，共 {total} 条",
         "read_in": "阅读语言",
         "feeds": "订阅",
         "language_rss": "{language} RSS 订阅",

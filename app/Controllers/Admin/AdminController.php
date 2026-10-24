@@ -20,7 +20,7 @@ final class AdminController
         $flash = $_SESSION['flash'] ?? ''; unset($_SESSION['flash']);
         return $this->view->render('admin/' . $template, $data + ['title' => $title, 'flash' => $flash, 'i18n' => $this->i18n,
             'siteIcon' => $settings->icon(), 'siteTitle' => $settings->get('site_title', $this->i18n->defaultLocale(), 'Meteor'),
-            'user' => $this->auth->user(), 'active' => $template, 'error' => ''], 'layouts/admin');
+            'user' => $this->auth->user(), 'active' => $template, 'fontSource' => $settings->global('font_source', 'local'), 'error' => ''], 'layouts/admin');
     }
     public function handle(string $path): string
     {
@@ -122,6 +122,7 @@ final class AdminController
             } catch (\InvalidArgumentException | \RuntimeException $e) { $message = $e->getMessage(); }
             return $this->go('/admin/languages#catalog', $message);
         }
+        if ($path === '/admin/announcements' || str_starts_with($path, '/admin/announcements/')) { return $this->announcements($path, $post); }
         $section = match ($path) { '/admin/languages' => 'languages', '/admin/menus' => 'menus', '/admin/settings' => 'settings', '/admin/strings' => 'strings', '/admin/taxonomy' => 'taxonomy', '/admin/security' => 'security',
             '/admin/home' => 'home', '/admin/author' => 'author', '/admin/appearance' => 'appearance', default => '' };
         if ($section !== '') {
@@ -165,6 +166,33 @@ final class AdminController
             return $this->render($section, ['taxonomy' => 'Categories & tags', 'menus' => 'Header & footer', 'strings' => 'Interface text', 'home' => 'Home page'][$section] ?? ucfirst($section), $data);
         }
         http_response_code(404); return $this->render('message', 'Not found', ['message' => 'This admin page does not exist.']);
+    }
+    private function announcements(string $path, bool $post): string
+    {
+        $repository = new \App\Repositories\Announcements($this->db); $editor = new \App\Services\AnnouncementEditor($this->db);
+        if ($path === '/admin/announcements') {
+            if ($post) {
+                try { $editor->saveList($_POST); $message = 'Changes saved.'; } catch (\InvalidArgumentException $e) { $message = $e->getMessage(); }
+                return $this->go('/admin/announcements', $message);
+            }
+            return $this->render('announcements', 'Announcements', ['rows' => $repository->all(), 'locales' => $this->i18n->registry()]);
+        }
+        $missing = function (): string { http_response_code(404); return $this->render('message', 'Not found', ['message' => 'This announcement no longer exists.']); };
+        if (!preg_match('~^/admin/announcements/(new|[1-9]\d{0,9})(/delete)?$~D', $path, $m) || ($m[1] === 'new' && !empty($m[2]))) { return $missing(); }
+        $id = $m[1] === 'new' ? 0 : (int) $m[1];
+        $row = $id > 0 ? $repository->find($id) : null;
+        if ($id > 0 && !$row) { return $missing(); }
+        if (!empty($m[2])) {
+            if ($post) { $editor->delete($id); return $this->go('/admin/announcements', 'Announcement deleted.'); }
+            return $this->render('announcement-delete', 'Delete announcement', ['row' => $row, 'action' => $path]);
+        }
+        if ($post) {
+            try { $editor->save($id, $_POST); return $this->go('/admin/announcements', 'Announcement saved.'); }
+            catch (\InvalidArgumentException $e) { $_SESSION['old']['announcement'] = ['path' => $path, 'values' => $_POST]; return $this->go($path, $e->getMessage()); }
+        }
+        $old = $_SESSION['old']['announcement'] ?? []; unset($_SESSION['old']['announcement']);
+        return $this->render('announcement', $id > 0 ? 'Edit announcement' : 'New announcement', ['row' => $row, 'action' => $path,
+            'old' => ($old['path'] ?? '') === $path ? $old['values'] : [], 'locales' => $this->i18n->registry()]);
     }
     private function protection(): LoginProtection { return new LoginProtection($this->db, $this->config['turnstile'] ?? true); }
     /** Query string to return to after saving a section, so the admin lands on the same view. */

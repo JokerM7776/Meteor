@@ -5,17 +5,39 @@ $value = fn (string $key, mixed $saved) => $old[$key] ?? $saved;
 $enabled = (string) $value('media_optimize', $options['optimize'] ? '1' : '0') === '1';
 $format = (string) $value('media_format', $options['format']);
 $size = (int) $value('media_max_size', $options['max_size']);
+$font = (string) $value('font_source', $fontSource);
+$fontFiles = \App\Services\Fonts::manifest();
+$fontChoices = [
+    'local' => ['On this server · recommended', 'Fonts come from your own site: no connection to another server before the text appears, and nothing about your readers is sent to Google. Chinese text uses the reader’s own system font (PingFang, Microsoft YaHei or Noto Sans CJK).'],
+    'google' => ['Google Fonts', 'Loaded from fonts.googleapis.com and fonts.gstatic.com, including Noto Sans SC and Noto Serif SC for Chinese. The browser connects to Google first, which delays the first paint, and Google sees each reader’s IP address.'],
+    'system' => ['System fonts only', 'No font downloads at all, the fastest choice. Text uses each device’s own fonts, so the site looks a little different on each device.'],
+];
 $status = fn (bool $ok) => $ok ? '<span class="font-semibold text-green-800 dark:text-green-400">available</span>' : '<span class="font-semibold text-red-700 dark:text-red-400">missing</span>';
 ?>
 <div class="space-y-6">
 <header class="max-w-3xl">
 <h1 class="text-[32px] font-bold tracking-tight">Settings</h1>
-<p class="text-slate-600 dark:text-slate-400">How uploaded images are prepared for the web. Smaller files load faster for your readers.</p>
+<p class="text-slate-600 dark:text-slate-400">Where fonts load from and how uploaded images are prepared. Fewer connections and smaller files make pages appear sooner.</p>
 </header>
 <?php require __DIR__ . '/settings-tabs.php'; ?>
 <?php if (!ImageOptimizer::available('webp')): ?>
 <p role="alert" class="rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">This server’s PHP has no GD extension with WebP support, so images are stored as uploaded. Ask your host to enable GD.</p>
 <?php endif ?>
+<form method="post" action="/admin/optimization" class="panel space-y-5" aria-labelledby="fonts-heading">
+<?= \Core\Csrf::field() ?>
+<input type="hidden" name="section" value="fonts">
+<h2 id="fonts-heading" class="text-xl font-bold">Fonts · every page</h2>
+<fieldset class="space-y-3">
+<legend class="sr-only">Load fonts from</legend>
+<?php foreach ($fontChoices as $key => [$label, $hint]): ?>
+<label class="flex items-start gap-3"><input class="mt-3" type="radio" name="font_source" value="<?= e($key) ?>" <?= $font === $key ? 'checked' : '' ?> aria-describedby="font-<?= e($key) ?>-hint"><span class="flex min-h-11 flex-col justify-center py-1"><span class="font-semibold"><?= e($label) ?></span><span id="font-<?= e($key) ?>-hint" class="max-w-4xl text-sm text-slate-600 dark:text-slate-400"><?= e($hint) ?></span></span></label>
+<?php endforeach ?>
+</fieldset>
+<?php if ($fontFiles === null): ?>
+<p role="alert" class="rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">The font files are not on this server yet (public/assets/fonts), so “On this server” uses Google Fonts for now. They come with each Meteor release; a developer can also run <code class="font-mono">php bin/fonts.php</code>.</p>
+<?php endif ?>
+<button class="btn-primary">Save fonts</button>
+</form>
 <form method="post" action="/admin/optimization" class="panel space-y-5" aria-labelledby="optimize-heading">
 <?= \Core\Csrf::field() ?>
 <h2 id="optimize-heading" class="text-xl font-bold">Image optimization · all uploads</h2>

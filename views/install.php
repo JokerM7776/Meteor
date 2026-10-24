@@ -1,5 +1,7 @@
 <!doctype html>
-<html lang="en" data-theme="auto"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Install Meteor</title><link rel="stylesheet" href="<?= e(asset('assets/style.css')) ?>"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&amp;display=swap"></head>
+<html lang="en" data-theme="auto"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Install Meteor</title>
+<?php require __DIR__ . '/partials/fonts.php' ?>
+<link rel="stylesheet" href="<?= e(asset('assets/style.css')) ?>"></head>
 <body class="admin bg-slate-50 font-display text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 <main class="mx-auto max-w-2xl space-y-6 px-6 py-12">
 <h1 class="text-3xl font-bold">Install Meteor</h1>

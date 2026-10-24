@@ -22,6 +22,8 @@ return [
     'scheme_auto' => 'System',
     'scheme_light' => 'Light',
     'scheme_dark' => 'Dark',
+    'announcements' => 'Announcements',
+    'announcement_position' => 'Announcement {number} of {total}',
     // Footer
     'read_in' => 'Read in',
     'feeds' => 'Feeds',

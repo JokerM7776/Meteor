@@ -16,13 +16,14 @@
 <?php foreach ($alternates as $code => $href): ?><link rel="alternate" hreflang="<?= e($code) ?>" href="<?= e(absolute_url($href)) ?>"><?php endforeach ?>
 <?php if (!$preview): ?><link rel="alternate" type="application/rss+xml" title="<?= e(__('rss')) ?>" href="<?= e('/' . $locale . '/rss.xml') ?>"><?php endif ?>
 <?php require __DIR__ . '/../partials/favicon.php' ?>
+<?php require __DIR__ . '/../partials/fonts.php' ?>
 <link rel="stylesheet" href="<?= e(asset('assets/style.css')) ?>">
 <?php if ($themeCss !== ''): ?><link rel="stylesheet" href="<?= e($themeCss) ?>"><?php endif ?>
 <?php if (trim($settings->get('custom_css')) !== ''): ?><link rel="stylesheet" href="/custom.css"><?php endif ?>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;700&amp;family=Noto+Serif+SC:wght@400;600&amp;display=swap">
 </head>
 <body class="flex min-h-screen flex-col <?= $is404 ? 'bg-slate-900 text-slate-100' : 'bg-slate-50' ?> font-display text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
 <a class="sr-only focus:not-sr-only focus:inline-flex focus:self-start focus:min-h-11 focus:items-center" href="#main"><?= e(__('skip_content')) ?></a>
+<?php if (!empty($announcements)) { require __DIR__ . '/../partials/announcements.php'; } ?>
 <header class="<?= $is404 ? '[&]:bg-slate-900 [&]:text-slate-100 [&]:border-slate-800' : '' ?> border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
 <div class="mx-auto flex max-w-[1120px] items-center justify-between gap-2 px-4 py-2 md:px-6 md:py-4">
 <a href="<?= e('/' . $locale . '/') ?>" class="flex min-h-11 items-center gap-2 text-xl font-bold tracking-tight md:text-2xl"><?php if ($settings->enabled('header_show_icon')) { require __DIR__ . '/../partials/mark.php'; } ?><span<?= !$settings->enabled('header_show_title') ? ' class="sr-only"' : '' ?>><?= e($settings->label('site_title')) ?></span></a>

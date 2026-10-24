@@ -7,8 +7,8 @@
 <title>
 <?= e($title) ?> · <?= e($siteTitle) ?> Admin</title>
 <?php require __DIR__ . '/../partials/favicon.php' ?>
+<?php require __DIR__ . '/../partials/fonts.php' ?>
 <link rel="stylesheet" href="<?= e(asset('assets/style.css')) ?>">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&amp;family=Source+Serif+4:wght@400;600&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;600&amp;family=Noto+Serif+SC:wght@400;600&amp;display=swap">
 <script src="<?= e(asset('assets/admin.js')) ?>" defer></script>
 </head>
 <body class="admin min-h-screen <?= $active === 'login' || $active === 'editor' ? 'bg-slate-100' : 'bg-slate-50' ?> font-display text-slate-900 dark:bg-slate-950 dark:text-slate-100">
@@ -45,7 +45,7 @@
 </button>
 </div>
 <nav aria-label="Admin" class="-mx-4 flex gap-1 overflow-x-auto px-4 text-[15px] md:mx-0 md:flex-col md:gap-0.5 md:overflow-visible md:px-0">
-<?php foreach (['posts' => 'Posts', 'pages' => 'Pages', 'media' => 'Media', 'taxonomy' => 'Categories & tags', 'languages' => 'Languages', 'menus' => 'Header & footer', 'settings' => 'Settings', 'security' => 'Security', 'updates' => 'Updates'] as $key => $label): $selected = $active === $key || (in_array($active, ['strings', 'optimization', 'home', 'author', 'appearance'], true) && $key === 'settings') || ($active === 'media-delete' && $key === 'media') || ($active === 'updates-restore' && $key === 'updates') || ($active === 'passkey-remove' && $key === 'security') || ($active === 'taxonomy-delete' && $key === 'taxonomy') || ($active === 'matrix' && $key === (!empty($pageContent) ? 'pages' : 'posts')) || ($active === 'editor' && $key === (!empty($page) ? 'pages' : 'posts')); ?>
+<?php foreach (['posts' => 'Posts', 'pages' => 'Pages', 'media' => 'Media', 'taxonomy' => 'Categories & tags', 'languages' => 'Languages', 'menus' => 'Header & footer', 'announcements' => 'Announcements', 'settings' => 'Settings', 'security' => 'Security', 'updates' => 'Updates'] as $key => $label): $selected = $active === $key || (in_array($active, ['strings', 'optimization', 'home', 'author', 'appearance'], true) && $key === 'settings') || ($active === 'media-delete' && $key === 'media') || ($active === 'updates-restore' && $key === 'updates') || ($active === 'passkey-remove' && $key === 'security') || (in_array($active, ['announcement', 'announcement-delete'], true) && $key === 'announcements') || ($active === 'taxonomy-delete' && $key === 'taxonomy') || ($active === 'matrix' && $key === (!empty($pageContent) ? 'pages' : 'posts')) || ($active === 'editor' && $key === (!empty($page) ? 'pages' : 'posts')); ?>
 <a href="/admin/<?= e($key) ?>" <?= $selected ? 'aria-current="page"' : '' ?> title="<?= e($label) ?>" class="nav-item flex min-h-11 shrink-0 items-center gap-3 whitespace-nowrap rounded-lg px-3 <?= $selected ? 'bg-slate-800 font-semibold text-white' : 'hover:bg-slate-800' ?>">
 <?php require __DIR__ . "/../admin/nav-icon.php"; ?>
 <span class="nav-label"><?= e($label) ?></span>

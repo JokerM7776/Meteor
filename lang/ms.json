@@ -22,6 +22,8 @@
         "scheme_auto": "Ikut sistem",
         "scheme_light": "Cerah",
         "scheme_dark": "Gelap",
+        "announcements": "Pengumuman",
+        "announcement_position": "Pengumuman {number} daripada {total}",
         "read_in": "Baca dalam",
         "feeds": "Suapan",
         "language_rss": "Suapan RSS {language}",

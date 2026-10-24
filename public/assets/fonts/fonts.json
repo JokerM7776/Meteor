@@ -1,0 +1,12 @@
+{
+    "meteor_fonts": 1,
+    "families": [
+        "Source Sans 3",
+        "Source Serif 4",
+        "JetBrains Mono"
+    ],
+    "files": 32,
+    "preload": [
+        "source-sans-3-normal-latin.587435ca.woff2"
+    ]
+}

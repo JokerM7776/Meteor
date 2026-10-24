@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace App\Controllers\Public;
 
-use App\Repositories\{Menus, Posts, Pages, Taxonomy, Settings};
+use App\Repositories\{Announcements, Menus, Posts, Pages, Taxonomy, Settings};
 use Core\{Database, I18n, View};
 
 final class SiteController
@@ -12,6 +12,7 @@ final class SiteController
     public Taxonomy $taxonomy;
     public Settings $settings;
     public Menus $menus;
+    public Announcements $announcements;
     public function __construct(Database $db, private I18n $i18n, private View $view, private bool $admin = false)
     {
         $this->posts = new Posts($db);
@@ -19,6 +20,7 @@ final class SiteController
         $this->taxonomy = new Taxonomy($db);
         $this->settings = new Settings($db, $i18n);
         $this->menus = new Menus($db);
+        $this->announcements = new Announcements($db);
     }
     public function render(string $template, string $locale, array $data = [], int $status = 200): string
     {
@@ -45,6 +47,7 @@ final class SiteController
         $themeCss = \App\Services\Appearance::css($this->settings);
         return $this->view->render('public/' . $template, $data + [
             'scheme' => \App\Services\Appearance::scheme($this->settings, $_COOKIE['meteor_theme'] ?? null),
+            'fontSource' => $this->settings->global('font_source', 'local'),
             'themeSwitch' => $this->settings->global('theme_switch', '1') === '1',
             'themeCss' => $themeCss === '' ? '' : '/theme.css?v=' . substr(hash('sha256', $themeCss), 0, 10),
             'author' => \App\Services\Author::card($this->settings, $locale),
@@ -52,6 +55,7 @@ final class SiteController
             'locale' => $locale, 'registry' => $this->i18n->registry(), 'preview' => $preview,
             'headerLinks' => $this->menus->links('header', $menu), 'footerLinks' => $this->menus->links('footer', $menu),
             'live' => $this->i18n->enabledLocales(), 'switcher' => $switcher,
+            'announcements' => $status === 200 ? $this->announcements->live($locale) : [],
             'alternates' => $preview || $status !== 200 ? [] : $alternates,
             'canonical' => $status === 200 ? '/' . $locale . $suffix : null,
             'title' => $this->settings->label('site_title'), 'description' => '',

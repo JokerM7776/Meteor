@@ -116,11 +116,15 @@ final class MediaController
     private function optimization(bool $post): string
     {
         if ($post) {
-            try { $this->media->saveOptions($_POST); return ($this->go)('/admin/optimization', 'Changes saved.'); }
+            try {
+                if (($_POST['section'] ?? '') === 'fonts') { \App\Services\Fonts::save($this->db, $_POST); } else { $this->media->saveOptions($_POST); }
+                return ($this->go)('/admin/optimization', 'Changes saved.');
+            }
             catch (\InvalidArgumentException $e) { $_SESSION['old']['optimization'] = $_POST; return ($this->go)('/admin/optimization', $e->getMessage()); }
         }
         $old = $_SESSION['old']['optimization'] ?? []; unset($_SESSION['old']['optimization']);
         return ($this->render)('optimization', 'Optimization', ['options' => $this->media->options(), 'old' => $old,
-            'mediaCount' => (int) $this->db->one('SELECT COUNT(*) AS n FROM media')['n']]);
+            'mediaCount' => (int) $this->db->one('SELECT COUNT(*) AS n FROM media')['n'],
+            'fontSource' => \App\Services\Fonts::source($this->db->one('SELECT value FROM settings WHERE `key` = ? AND locale_scope = ?', ['font_source', ''])['value'] ?? 'local')]);
     }
 }
