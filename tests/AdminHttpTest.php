@@ -288,3 +288,17 @@ test('Admin HTTP: Cloudflare Turnstile settings and sign-in check', function () 
         [$h] = $c->request('/admin/passkey/login/options', 'POST', [], true, $token); contains('200 OK', $h);
     } finally { $c->close(); }
 });
+test('Admin HTTP: author tab toggles the card at the end of posts', function () {
+    $c = new AdminHttpClient();
+    try {
+        $token = $c->token(); $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']);
+        [, $html] = $c->request('/admin/author');
+        contains('name="post_author_card" value="0"', $html); ok(!preg_match('~name="post_author_card" value="1"[^>]*checked~', $html), 'Off by default');
+        $token = $c->token('/admin/author');
+        $c->request('/admin/author', 'POST', ['csrf_token' => $token, 'text' => ['author_name' => ['en' => 'Ada']], 'author_links' => '', 'post_author_card' => '1']);
+        same('1', $c->db->one("SELECT value FROM settings WHERE `key` = 'post_author_card'")['value']);
+        [, $html] = $c->request('/admin/author'); ok((bool) preg_match('~name="post_author_card" value="1"[^>]*checked~', $html), 'Checked after save');
+        $c->request('/admin/author', 'POST', ['csrf_token' => $token, 'author_links' => '', 'post_author_card' => '0']);
+        same('0', $c->db->one("SELECT value FROM settings WHERE `key` = 'post_author_card'")['value']);
+    } finally { $c->close(); }
+});

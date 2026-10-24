@@ -193,3 +193,25 @@ test('Public: menu built-ins for nav pages, About de-duplication and preview RSS
     preg_match('~<header\b.*?</header>~s', publicRequest($app, '/en/'), $header); same(2, substr_count($header[0], 'href="/en/about"')); contains('Who we are', $header[0]);
     preg_match('~<header\b.*?</header>~s', publicRequest($app, '/ms/'), $header); ok(!str_contains($header[0], 'rss.xml'));
 });
+test('Public: optional author card ends posts as the h-entry p-author h-card', function () {
+    $app = publicApp(); $db = $app['db'];
+    $slug = $app['site']->posts->published('en')[0]['slug'];
+    $post = fn () => publicRequest($app, '/en/posts/' . $slug);
+    $html = $post();
+    contains('class="h-entry ', $html); contains('class="p-name ', $html); contains('class="e-content ', $html);
+    contains('class="dt-published"', $html); contains('<data class="u-url" value="https://meteor.example/en/posts/' . $slug . '">', $html);
+    ok(!str_contains($html, 'p-author'), 'Off by default');
+    preg_match('~e-content.*?</article>\s*(.*?)<nav aria-label="More posts"~s', $html, $after);
+    contains('border-t', $after[1] ?? ''); contains('class="tag"', $after[1] ?? '');
+    $author = new App\Services\Author($db);
+    $author->save(['text' => ['author_name' => ['en' => 'Ada <Writer>']], 'author_links' => 'https://example.com/ada', 'post_author_card' => '1']);
+    $html = $post();
+    contains('class="p-author h-card ', $html); contains('About the author</h2>', $html); contains('>Ada &lt;Writer&gt;</a>', $html);
+    contains('rel="me" href="https://meteor.example/en/"', $html); contains('rel="me noopener" href="https://example.com/ada"', $html);
+    ok(strpos($html, 'p-author') > strpos($html, '</article>') && strpos($html, 'p-author') < strpos($html, 'aria-label="More posts"'), 'Card sits between the article and Previous/Next');
+    ok(!str_contains(publicRequest($app, '/en/about'), 'p-author'), 'Pages have no author card');
+    $author->save(['text' => [], 'author_links' => 'https://example.com/ada']);
+    contains('p-author', $post()); // a save without the field keeps the choice
+    $author->save(['text' => [], 'author_links' => '', 'post_author_card' => '0']);
+    ok(!str_contains($post(), 'p-author')); ok(!str_contains($post(), '<script'));
+});

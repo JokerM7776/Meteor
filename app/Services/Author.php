@@ -5,8 +5,8 @@ use App\Repositories\Settings;
 use Core\Database;
 
 /**
- * The site owner's profile, shown as a representative h-card (microformats2) in the footer
- * and on the home page. Name and bio are per language; avatar and profile links are shared.
+ * The site owner's profile, shown as a representative h-card (microformats2) in the footer,
+ * on the home page and, when post_author_card is on, at the end of each post. Name and bio are per language; avatar and profile links are shared.
  */
 final class Author
 {
@@ -63,14 +63,16 @@ final class Author
         if ($lines && count(self::links($links)) !== count($lines)) { throw new \InvalidArgumentException('Profile links: put one link per line, starting with https://, http:// or mailto:, optionally as “Label | URL”.'); }
         $current = $this->db->one("SELECT value FROM settings WHERE `key` = 'author_avatar' AND locale_scope = ''")['value'] ?? '';
         $avatar = array_key_exists('author_avatar', $input) ? $this->avatar(is_string($input['author_avatar']) ? trim($input['author_avatar']) : '', $current) : $current;
-        $this->db->transaction(function () use ($text, $links, $avatar) {
+        $globals = ['author_links' => $links, 'author_avatar' => $avatar];
+        if (array_key_exists('post_author_card', $input)) { $globals['post_author_card'] = $input['post_author_card'] === '1' ? '1' : '0'; }
+        $this->db->transaction(function () use ($text, $globals) {
             foreach ($text as $key => $values) {
                 foreach ($values as $code => $value) {
                     $this->db->query('DELETE FROM settings WHERE `key` = ? AND locale_scope = ?', [$key, (string) $code]);
                     if (trim((string) $value) !== '') { $this->db->upsert('settings', ['key' => $key, 'locale' => (string) $code, 'value' => trim((string) $value)], ['key', 'locale_scope']); }
                 }
             }
-            foreach (['author_links' => $links, 'author_avatar' => $avatar] as $key => $value) {
+            foreach ($globals as $key => $value) {
                 $this->db->upsert('settings', ['key' => $key, 'locale' => null, 'value' => $value], ['key', 'locale_scope']);
             }
         });

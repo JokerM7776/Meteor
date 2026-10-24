@@ -46,6 +46,11 @@ $fieldHint = 'Square works best, at least 160 × 160 px.'; $pickerTitle = 'Choos
 </tbody>
 </table>
 </div>
+</section>
+<section class="panel space-y-3" aria-labelledby="where-heading">
+<h2 id="where-heading" class="text-xl font-bold">Where the card appears</h2>
+<input type="hidden" name="post_author_card" value="0">
+<label class="flex min-h-11 items-start gap-3"><input type="checkbox" name="post_author_card" value="1" class="mt-0.5 size-5 shrink-0 accent-orange-700" <?= ($old['post_author_card'] ?? $settings->global('post_author_card', '0')) === '1' ? 'checked' : '' ?>><span><span class="font-semibold">At the end of each post</span><span class="block text-sm text-slate-600 dark:text-slate-400">Below the article, before Previous / Next. It is marked as the post’s author (p-author h-card) for readers and other sites.</span></span></label>
 <p class="text-sm text-slate-600 dark:text-slate-400">Show the card in the footer on <a class="text-orange-700 underline dark:text-orange-400" href="/admin/menus">Header &amp; footer</a> (left side of the footer → Author card), or on the home page on <a class="text-orange-700 underline dark:text-orange-400" href="/admin/home">Home page</a> (section Author).</p>
 </section>
 <button class="btn-primary">Save author</button>
