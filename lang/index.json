@@ -6,16 +6,16 @@
             "native_name": "Bahasa Melayu",
             "direction": "ltr",
             "texts": 96,
-            "sha256": "91b13d077270cbb93a97caa4809d7414e8e07b32206ef72a5014ae86b2622c0c",
-            "updated": "2026-10-25T02:09:21Z"
+            "sha256": "cfc21eeb371b5b775fc991f412e26d20174fbdb189523bbd63d22cefc858c6b4",
+            "updated": "2026-10-25T09:27:33Z"
         },
         "zh-hans": {
             "name": "Chinese (Simplified)",
             "native_name": "简体中文",
             "direction": "ltr",
             "texts": 96,
-            "sha256": "6fa0b6dfb78bd86c85c3962bdb8ce705810db07a44e0b5b87d2484a84a5499f5",
-            "updated": "2026-10-25T02:09:21Z"
+            "sha256": "058baa4c29d5a7f63f3f35ebfa21e88ce057b315b6045c5a0b16af17c9203c5a",
+            "updated": "2026-10-25T09:27:33Z"
         }
     }
 }

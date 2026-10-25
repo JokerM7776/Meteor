@@ -1,4 +1,4 @@
-# Meteor
+# Meteor Blog
 
 A fast, multilingual blog in plain PHP. Public pages are server-rendered HTML and CSS with
 **zero JavaScript**; a small admin area handles writing, translating and site settings.
@@ -96,7 +96,7 @@ cp config/.env.example .env
 | `SESSION_NAME` | `meteor_session` | Admin session cookie name. |
 | `CAPTCHA` | `on` | `off` skips the CAPTCHA on the sign-in page (after a wrong key locks you out). |
 | `WEBAUTHN_RP_ID` | `blog.example.com` | Passkey domain: the hostname of `APP_URL`, no scheme or port. |
-| `WEBAUTHN_RP_NAME` | `Meteor` | Name shown in the passkey prompt. |
+| `WEBAUTHN_RP_NAME` | `Meteor Blog` | Name shown in the passkey prompt. |
 
 Environment variables set by the server override `.env`. **Never commit `.env`** — it is in
 `.gitignore`, and only the template `config/.env.example` belongs in git.

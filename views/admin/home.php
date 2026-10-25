@@ -13,7 +13,7 @@ $count = (int) ($old['home_latest_count'] ?? HomePage::latestCount($settings));
 $decoration = ($old['home_decoration'] ?? $settings->global('home_decoration', '1')) === '1';
 $value = fn (string $key, string $code) => $old['text'][$key][$code] ?? $text[$key][$code] ?? '';
 $placeholder = fn (string $key, string $code) => match ($key) {
-    'home_heading' => $settings->get('site_title', $code, 'Meteor'),
+    'home_heading' => $settings->get('site_title', $code, 'Meteor Blog'),
     'home_intro' => $settings->get('site_tagline', $code),
     default => '',
 };

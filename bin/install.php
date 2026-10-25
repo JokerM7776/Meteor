@@ -15,7 +15,7 @@ try {
         fwrite(STDOUT, 'Admin password (at least 12 characters; input is visible): ');
         $password = rtrim((string) fgets(STDIN), "\r\n");
     }
-    (new Core\Installer(dirname(__DIR__)))->install($config['database'], $config['app_url'], 'Meteor', $user, $password);
+    (new Core\Installer(dirname(__DIR__)))->install($config['database'], $config['app_url'], 'Meteor Blog', $user, $password);
     fwrite(STDOUT, "Meteor installed with English and the first admin.\n");
 } catch (Throwable $error) {
     fwrite(STDERR, 'Install failed: ' . $error->getMessage() . "\n");

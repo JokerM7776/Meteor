@@ -6,7 +6,7 @@ if (isset($old['text']) && is_array($old['text'])) { foreach ($old['text'] as $k
 // What visitors see when a cell is empty.
 $placeholder = function (string $key, string $code) use ($i18n, $text, $default, $locales): string {
     return match ($key) {
-        'site_title' => $text['site_title'][$default] ?? 'Meteor',
+        'site_title' => $text['site_title'][$default] ?? 'Meteor Blog',
         'copyright' => '© {year} {site}',
         'language_label' => mb_strlen($locales[$code]['native_name']) <= 4 ? $locales[$code]['native_name'] : strtoupper($code),
         default => '',

@@ -12,9 +12,9 @@ final class FeedsController
         if (!in_array($locale, $this->i18n->enabledLocales(), true)) { return $this->site->notFound('/' . $locale . '/'); }
         header('Content-Type: application/rss+xml; charset=UTF-8');
         $xml = '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>'
-            . $this->xml($this->site->settings->get('site_title', $locale, 'Meteor')) . '</title><link>'
+            . $this->xml($this->site->settings->get('site_title', $locale, 'Meteor Blog')) . '</title><link>'
             . $this->xml(absolute_url('/' . $locale . '/')) . '</link><language>' . $this->xml($locale)
-            . '</language><description>' . $this->xml($this->site->settings->get('home_intro', $locale) ?: $this->site->settings->get('site_tagline', $locale) ?: $this->site->settings->get('site_title', $locale, 'Meteor')) . '</description>';
+            . '</language><description>' . $this->xml($this->site->settings->get('home_intro', $locale) ?: $this->site->settings->get('site_tagline', $locale) ?: $this->site->settings->get('site_title', $locale, 'Meteor Blog')) . '</description>';
         foreach (array_slice($this->site->posts->published($locale), 0, 20) as $post) {
             $url = $this->xml(absolute_url('/' . $locale . '/posts/' . rawurlencode($post['slug'])));
             $xml .= '<item><title>' . $this->xml($post['title']) . '</title><link>' . $url . '</link><guid isPermaLink="true">'

@@ -22,7 +22,7 @@ final class AdminController
         $settings = new \App\Repositories\Settings($this->db, $this->i18n);
         $flash = $_SESSION['flash'] ?? ''; unset($_SESSION['flash']);
         return $this->view->render('admin/' . $template, $data + ['title' => $title, 'flash' => $flash, 'i18n' => $this->i18n,
-            'siteIcon' => $settings->icon(), 'siteTitle' => $settings->get('site_title', $this->i18n->defaultLocale(), 'Meteor'),
+            'siteIcon' => $settings->icon(), 'siteTitle' => $settings->get('site_title', $this->i18n->defaultLocale(), 'Meteor Blog'),
             'user' => $this->auth->user(), 'active' => $template, 'pendingComments' => (new \App\Repositories\Comments($this->db))->pendingCount(), 'fontSource' => $settings->global('font_source', 'local'), 'error' => ''], 'layouts/admin');
     }
     public function handle(string $path): string

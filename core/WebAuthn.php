@@ -4,7 +4,7 @@ namespace Core;
 
 final class WebAuthn
 {
-    public function __construct(private Database $db, private string $origin, private string $rpId, private string $rpName = 'Meteor') {}
+    public function __construct(private Database $db, private string $origin, private string $rpId, private string $rpName = 'Meteor Blog') {}
     public static function encode(string $bytes): string { return rtrim(strtr(base64_encode($bytes), '+/', '-_'), '='); }
     public static function decode(string $text): string
     {

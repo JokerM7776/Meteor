@@ -11,7 +11,7 @@ final class InstallController
         $scheme = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
         // Fields are prefixed db_: some host firewalls reject any request with both "host" and "port".
         $values += ['db_driver' => 'mysql', 'db_host' => '127.0.0.1', 'db_port' => '3306', 'db_name' => 'meteor', 'db_user' => 'meteor', 'db_path' => 'storage/meteor.sqlite',
-            'url' => $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost'), 'title' => 'Meteor', 'username' => ''];
+            'url' => $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost'), 'title' => 'Meteor Blog', 'username' => ''];
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             try {
                 if ($this->installer->installFromEnv($values['url'])) {

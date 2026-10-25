@@ -219,7 +219,7 @@ and storage/installed.lock. It redirects to sign-in; / then serves the site.
 
 Install from .env (no form): when .env sets ADMIN_USER and ADMIN_PASS, the first GET of /
 installs with the .env database settings, APP_URL (else the request's address) and
-SITE_TITLE (default "Meteor"), removes ADMIN_USER and ADMIN_PASS from .env and redirects to
+SITE_TITLE (default "Meteor Blog"), removes ADMIN_USER and ADMIN_PASS from .env and redirects to
 sign-in. If it fails, the form is shown with the error.
 Until both .env and the lock exist, non-asset requests redirect to the installer.
 Install promptly before exposing an unconfigured site to other users.

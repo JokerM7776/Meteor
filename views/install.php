@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en" data-theme="auto"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Install Meteor</title>
+<html lang="en" data-theme="auto"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Install Meteor Blog</title>
 <?php require __DIR__ . '/partials/fonts.php' ?>
 <link rel="stylesheet" href="<?= e(asset('assets/admin.css')) ?>"></head>
 <body class="admin bg-slate-50 font-display text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 <main class="mx-auto max-w-2xl space-y-6 px-6 py-12">
-<h1 class="text-3xl font-bold">Install Meteor</h1>
+<h1 class="text-3xl font-bold">Install Meteor Blog</h1>
 <p>Connect an empty database and create your first admin account. If this form is blocked by your host, see <code>config/.env.example</code> to install from a <code>.env</code> file instead.</p>
 <ul class="rounded-xl border border-slate-200 p-5">
 <?php foreach ($checks as $label => $passed): ?><li><?= $passed ? '✓' : '✗' ?> <?= e($label) ?></li><?php endforeach ?>
@@ -19,5 +19,5 @@
 <?php foreach (['db_password' => 'Database password (MySQL)', 'password' => 'Admin password (at least 12 characters)', 'confirm' => 'Confirm admin password'] as $key => $label): ?>
 <label class="block"><?= e($label) ?><input class="mt-1 min-h-11 w-full rounded-lg border p-2" type="password" autocomplete="new-password" name="<?= e($key) ?>"></label>
 <?php endforeach ?>
-<div class="flex gap-3"><button class="inline-flex min-h-11 items-center rounded-[10px] border border-slate-300 px-4 text-sm font-semibold hover:border-slate-500" name="action" value="test">Test connection</button><button class="inline-flex min-h-11 items-center rounded-[10px] border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-40" name="action" value="install" <?= in_array(false, $checks, true) ? 'disabled' : '' ?>>Install Meteor</button></div>
+<div class="flex gap-3"><button class="inline-flex min-h-11 items-center rounded-[10px] border border-slate-300 px-4 text-sm font-semibold hover:border-slate-500" name="action" value="test">Test connection</button><button class="inline-flex min-h-11 items-center rounded-[10px] border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-40" name="action" value="install" <?= in_array(false, $checks, true) ? 'disabled' : '' ?>>Install Meteor Blog</button></div>
 </form></main></body></html>

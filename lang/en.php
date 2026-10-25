@@ -6,7 +6,7 @@ declare(strict_types=1);
 return [
     // Layout & navigation
     'skip_content' => 'Skip to content',
-    'site_name' => 'Meteor',
+    'site_name' => 'Meteor Blog',
     'menu' => 'Menu',
     'language' => 'Language',
     'home' => 'Home',

@@ -31,7 +31,7 @@ final class Installer
         $get = static fn (string $key): string => getenv($key) === false ? (string) ($env[$key] ?? '') : (string) getenv($key);
         if ($get('ADMIN_USER') === '' || $get('ADMIN_PASS') === '') { return false; }
         $config = (static fn (string $file): array => require $file)($this->root . '/config/config.php');
-        $this->install($config['database'], $get('APP_URL') ?: $fallbackUrl, $get('SITE_TITLE') ?: 'Meteor', $get('ADMIN_USER'), $get('ADMIN_PASS'));
+        $this->install($config['database'], $get('APP_URL') ?: $fallbackUrl, $get('SITE_TITLE') ?: 'Meteor Blog', $get('ADMIN_USER'), $get('ADMIN_PASS'));
         return true;
     }
     public function install(array $config, string $url, string $title, string $username, string $password): Database

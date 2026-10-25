@@ -9,7 +9,7 @@ header('X-Robots-Tag: noindex, nofollow');
 $esc = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 ?>
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Set up Meteor</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Set up Meteor Blog</title>
 <style>
 body { margin: 0; background: #f8fafc; color: #0f172a; font: 17px/1.6 system-ui, sans-serif; }
 main { max-width: 42rem; margin: 0 auto; padding: 3rem 1.5rem; }
@@ -19,7 +19,7 @@ code { font: 0.9em ui-monospace, monospace; background: #e2e8f0; padding: 0.1em 
 @media (prefers-color-scheme: dark) { body { background: #020617; color: #f1f5f9; } code { background: #1e293b; } }
 </style></head>
 <body><main>
-<h1>Meteor needs one more server step</h1>
+<h1>Meteor Blog needs one more server step</h1>
 <?php if ($problem === 'subfolder'): ?>
 <p>Meteor is running in a sub-folder (<code><?= $esc($base) ?></code>). It must be the root of a domain or subdomain.</p>
 <ul>
