@@ -1,5 +1,5 @@
-<?php $sideToc = !$isPage && $item['toc_html'] !== ''; // Without the side table of contents, center a single reading column. ?>
-<div class="<?= $isPage ? '' : 'h-entry ' ?>mx-auto flex <?= $sideToc ? 'max-w-[1120px]' : 'max-w-[748px]' ?> flex-col gap-6 px-4 py-5 md:gap-10 md:px-6 md:py-12">
+<?php $sideToc = !$isPage && $item['toc_html'] !== ''; // Without the side table of contents, the text uses the full width. ?>
+<div class="<?= $isPage ? '' : 'h-entry ' ?>mx-auto flex max-w-[1120px] flex-col gap-6 px-4 py-5 md:gap-10 md:px-6 md:py-12">
 <?php $otherTranslations = array_values(array_filter($translations, fn ($t) => $t['code'] !== $locale)); if ($otherTranslations):
 // Up to three languages are buttons; with more, two buttons and a menu with the rest.
 $shown = count($otherTranslations) > 3 ? array_slice($otherTranslations, 0, 2) : $otherTranslations; $hidden = array_slice($otherTranslations, count($shown));
@@ -17,7 +17,7 @@ $choice = 'inline-flex min-h-11 w-full items-center justify-center gap-2 whitesp
 </header>
 <?php if (!$isPage && !empty($item['cover_image'])): ?><figure class="h-[220px] overflow-hidden rounded-2xl md:h-[380px]"><?php $post = $item; require __DIR__ . '/../partials/cover.php' ?></figure><?php endif ?>
 <?php if (!$isPage && $item['toc_html'] !== ''): ?><details class="rounded-xl border border-slate-200 bg-white md:hidden dark:border-slate-800 dark:bg-slate-900"><summary class="flex min-h-12 cursor-pointer items-center justify-between px-4 font-semibold"><?= e(__('on_this_page')) ?><span aria-hidden="true">⌄</span></summary><div class="toc-meteor p-3"><?= $item['toc_html'] ?></div></details><?php endif ?>
-<div class="flex items-start gap-14"><article class="e-content prose-meteor min-w-0 flex-1 md:flex-[0_1_700px]"><?= $item['content_html'] ?></article>
+<div class="flex items-start gap-14"><article class="e-content prose-meteor min-w-0 flex-1<?= $sideToc ? ' md:flex-[0_1_700px]' : '' ?>"><?= $item['content_html'] ?></article>
 <?php if ($sideToc): ?><aside aria-labelledby="toc-title" class="sticky top-6 hidden min-w-60 flex-[1_1_240px] rounded-[14px] border border-slate-200 bg-white p-6 md:block dark:border-slate-800 dark:bg-slate-900"><h2 id="toc-title" class="eyebrow mb-3"><?= e(__('on_this_page')) ?></h2><div class="toc-meteor"><?= $item['toc_html'] ?></div><?php if (!empty($item['category_name'])): ?><div class="mt-4 border-t border-slate-200 pt-3 dark:border-slate-800"><p class="text-sm text-slate-600 dark:text-slate-400"><?= e(__('category')) ?></p><a class="accent inline-flex min-h-11 items-center font-semibold" href="<?= e('/' . $locale . '/categories/' . rawurlencode($item['category_slug'])) ?>"><?= e($item['category_name']) ?></a></div><?php endif ?></aside><?php endif ?></div>
 <?php if (!$isPage): $authorCard = $author !== null && $settings->global('post_author_card') === '1'; ?>
 <?php if ($tags || $authorCard): // Tags (on small screens) and the author card, below a line like the one above Previous/Next. ?>
