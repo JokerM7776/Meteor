@@ -13,6 +13,7 @@ $remember = Core\Remember::forRequest($db, $config);
 if ($adminRequest || isset($_COOKIE[$config['session_name']]) || $remember->present()) {
     Core\Session::start($config['session_name'], $secure);
 }
+Core\Dates::load($db);
 $i18n = new Core\I18n($db, require __DIR__ . '/lang/en.php');
 $GLOBALS['i18n'] = $i18n;
 $auth = new Core\Auth($db);

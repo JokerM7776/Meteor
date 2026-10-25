@@ -25,6 +25,7 @@ return [
     'scheme_dark' => 'Dark',
     'announcements' => 'Announcements',
     'announcement_position' => 'Announcement {number} of {total}',
+    'back_to_top' => 'Back to top',
     // Footer
     'read_in' => 'Read in',
     'feeds' => 'Feeds',

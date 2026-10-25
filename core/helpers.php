@@ -37,10 +37,17 @@ function absolute_url(string $path): string
     return rtrim($GLOBALS['config']['app_url'], '/') . url($path);
 }
 
-function localized_date(string $date, string $pattern = 'dd MMM yyyy'): string
+/** A stored UTC date in the page language, the site's time zone and date format (or an ICU $pattern). */
+function localized_date(string $date, ?string $pattern = null): string
 {
-    $formatter = new IntlDateFormatter($GLOBALS['i18n']->locale(), IntlDateFormatter::NONE, IntlDateFormatter::NONE, 'UTC', null, $pattern);
-    return $formatter->format(new DateTimeImmutable($date, new DateTimeZone('UTC')));
+    return Core\Dates::date($date, $GLOBALS['i18n']->locale(), $pattern);
+}
+
+/** A stored UTC time for admin pages: the site's time zone, date format and clock; empty → "—". */
+function site_time(?string $utc, bool $withTime = true): string
+{
+    if ($utc === null || trim($utc) === '') { return '—'; }
+    return $withTime ? Core\Dates::dateTime($utc, 'en') : Core\Dates::date($utc, 'en');
 }
 
 // Public asset URL with a version stamp, so browsers and CDNs fetch the new file after an update.
@@ -72,4 +79,25 @@ function language_list(array $locales, int $max = 3): string
     if ($items) { $list = strtr(e(__('list_two')), ['{first}' => array_pop($items), '{second}' => $list]); }
     while ($items) { $list = strtr(e(__('list_many')), ['{first}' => array_pop($items), '{rest}' => $list]); }
     return $list;
+}
+
+/**
+ * Gzips a text response (HTML, RSS, sitemap, JSON) when the browser accepts it, so pages are about
+ * a fifth of their size even on hosts that do not compress. Skipped when PHP or a header already does.
+ */
+function compressed(string $body): string
+{
+    if (strlen($body) < 1024 || headers_sent() || !function_exists('gzencode') || ini_get('zlib.output_compression')
+        || !preg_match('/\bgzip\b/i', (string) ($_SERVER['HTTP_ACCEPT_ENCODING'] ?? ''))) { return $body; }
+    $type = '';
+    foreach (headers_list() as $header) {
+        if (stripos($header, 'content-encoding:') === 0) { return $body; }
+        if (stripos($header, 'content-type:') === 0) { $type = strtolower($header); }
+    }
+    if (!preg_match('~text/|xml|json~', $type)) { return $body; }
+    $gzip = gzencode($body, 6);
+    if ($gzip === false) { return $body; }
+    header('Content-Encoding: gzip');
+    header('Vary: Accept-Encoding', false);
+    return $gzip;
 }

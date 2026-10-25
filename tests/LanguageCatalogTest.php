@@ -127,7 +127,7 @@ test('Admin HTTP: Languages page lists the last catalog check with Add and Updat
             'ms' => $entry('Malay', 'Bahasa Melayu', hash_file('sha256', $c->root . '/lang/ms.json'))]]));
         $c->db->query("INSERT INTO locales (code, name, native_name, status, sort_order) VALUES ('ms', 'Malay', 'Bahasa Melayu', 'off', 2)");
         [, $html] = $c->request('/admin/languages');
-        contains('Checked 2026-10-24 09:30 UTC', $html); contains('<span class="font-semibold" lang="fr" dir="ltr">Français</span>', $html);
+        contains('Checked 24 Oct 2026, 09:30', $html); contains('<span class="font-semibold" lang="fr" dir="ltr">Français</span>', $html);
         contains('Add<span class="sr-only"> French</span>', $html); contains('Update<span class="sr-only"> Japanese</span>', $html);
         ok(!str_contains($html, '<span class="sr-only"> Malay</span></button>')); contains('Up to date', $html); contains('Newer text available', $html);
         [$h] = $c->request('/admin/languages', 'POST', ['action' => 'download', 'code' => 'fr']); contains('403', $h);

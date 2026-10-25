@@ -8,7 +8,7 @@
 <?= e($title) ?> · <?= e($siteTitle) ?> Admin</title>
 <?php require __DIR__ . '/../partials/favicon.php' ?>
 <?php require __DIR__ . '/../partials/fonts.php' ?>
-<link rel="stylesheet" href="<?= e(asset('assets/style.css')) ?>">
+<link rel="stylesheet" href="<?= e(asset('assets/admin.css')) ?>">
 <script src="<?= e(asset('assets/admin.js')) ?>" defer></script>
 </head>
 <body class="admin min-h-screen <?= $active === 'login' || $active === 'editor' ? 'bg-slate-100' : 'bg-slate-50' ?> font-display text-slate-900 dark:bg-slate-950 dark:text-slate-100">

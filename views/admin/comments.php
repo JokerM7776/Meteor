@@ -26,7 +26,7 @@ $chip = ['pending' => 'bg-amber-100 text-amber-950', 'approved' => 'bg-slate-900
 <div class="sheet">
 <table>
 <caption class="sr-only">Comments, newest first</caption>
-<thead><tr><th scope="col" class="w-px"><span class="sr-only">Select</span></th><th scope="col">Author</th><th scope="col" class="min-w-80">Comment</th><th scope="col">Post</th><th scope="col">Status</th><th scope="col">Date (UTC)</th><th scope="col" class="sheet-end">Actions</th></tr></thead>
+<thead><tr><th scope="col" class="w-px"><span class="sr-only">Select</span></th><th scope="col">Author</th><th scope="col" class="min-w-80">Comment</th><th scope="col">Post</th><th scope="col">Status</th><th scope="col">Date</th><th scope="col" class="sheet-end">Actions</th></tr></thead>
 <tbody>
 <?php foreach ($rows as $row): $postUrl = '/' . $row['locale'] . '/posts/' . rawurlencode((string) $row['post_slug']); $name = $row['author_name'] !== '' ? $row['author_name'] : (string) parse_url($row['source_url'], PHP_URL_HOST); ?>
 <tr>
@@ -43,7 +43,7 @@ $chip = ['pending' => 'bg-amber-100 text-amber-950', 'approved' => 'bg-slate-900
 </td>
 <td class="max-w-56"><a class="text-orange-700 underline dark:text-orange-400" href="<?= e($postUrl . '#comment-' . $row['id']) ?>" target="_blank" rel="noopener"><?= e($row['post_title'] ?? $row['post_slug']) ?></a> <span class="font-mono text-xs text-slate-500 dark:text-slate-400" lang="<?= e($row['locale']) ?>"><?= e($row['locale']) ?></span></td>
 <td><span class="status-chip <?= $chip[$row['status']] ?>"><?= e(ucfirst($row['status'])) ?></span></td>
-<td class="whitespace-nowrap font-mono text-xs"><?= e(substr((string) $row['created_at'], 0, 16)) ?></td>
+<td class="whitespace-nowrap font-mono text-xs"><?= e(site_time($row['created_at'])) ?></td>
 <td class="sheet-end"><div class="flex justify-end gap-1">
 <?php if ($row['status'] !== 'approved'): ?><button class="btn" name="row" value="approve:<?= e($row['id']) ?>">Approve</button><?php endif ?>
 <?php if (!\App\Repositories\Comments::isReaction($row)): ?><a class="btn" href="/admin/comments/<?= e($row['id']) ?>/reply">Reply</a><?php endif ?>
@@ -95,7 +95,7 @@ $chip = ['pending' => 'bg-amber-100 text-amber-950', 'approved' => 'bg-slate-900
 <h2 id="queue-heading" class="text-xl font-bold">Background tasks</h2>
 <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">Webmentions are checked and sent right after the page that queued them has been delivered, when the server supports it (PHP-FPM, LiteSpeed). For retries and scheduled posts, add a cron job that runs every 10 minutes:</p>
 <pre class="overflow-x-auto rounded-[10px] bg-slate-900 p-3 font-mono text-sm text-slate-100">*/10 * * * * php <?= e($root) ?>/bin/cron.php</pre>
-<p class="text-sm">Waiting: <?= (int) ($queue['in'] ?? 0) ?> received, <?= (int) ($queue['out'] ?? 0) ?> to send<?= $lastRun !== '' ? ' · last run ' . e($lastRun) . ' UTC' : ' · not run yet' ?></p>
+<p class="text-sm">Waiting: <?= (int) ($queue['in'] ?? 0) ?> received, <?= (int) ($queue['out'] ?? 0) ?> to send<?= $lastRun !== '' ? ' · last run ' . e(site_time($lastRun)) : ' · not run yet' ?></p>
 <form method="post" action="/admin/comments/process"><?= \Core\Csrf::field() ?><button class="btn">Process now</button></form>
 </section>
 <?php endif ?>

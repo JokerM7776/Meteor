@@ -115,7 +115,8 @@ final class SiteController
         }
         $groups = [];
         foreach (array_slice($posts, ((int) $page - 1) * $perPage, $perPage) as $post) {
-            $groups[substr($post['published_at'], 0, 4)][substr($post['published_at'], 0, 7)][] = $post;
+            $local = \Core\Dates::local($post['published_at']);
+            $groups[$local->format('Y')][$local->format('Y-m')][] = $post;
         }
         $suffix = '/' . $kind . ($slug !== null ? '/' . rawurlencode($slug) : '');
         return $this->render('archive', $locale, compact('categories', 'tags', 'selected', 'groups', 'page', 'totalPages', 'suffix') + [

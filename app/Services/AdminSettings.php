@@ -31,6 +31,9 @@ final class AdminSettings
                 }
             }
         }
+        if (array_key_exists('date_format', $input) && !isset(\Core\Dates::FORMATS[(string) $input['date_format']])) { throw new \InvalidArgumentException('Choose a date format from the list.'); }
+        if (array_key_exists('time_format', $input) && !in_array($input['time_format'], ['12', '24'], true)) { throw new \InvalidArgumentException('Choose a 12- or 24-hour clock.'); }
+        if (array_key_exists('timezone', $input) && !\Core\Dates::validZone((string) $input['timezone'])) { throw new \InvalidArgumentException('Choose a time zone from the list.'); }
         $globals = array_column($this->db->all('SELECT `key`, value FROM settings WHERE locale_scope = ?', ['']), 'value', 'key');
         $current = $globals['site_icon'] ?? '';
         $icon = array_key_exists('site_icon', $input) ? SiteIcon::choose($this->db, is_string($input['site_icon']) ? $input['site_icon'] : '', $current) : $current;
@@ -48,6 +51,9 @@ final class AdminSettings
             }
             if (array_key_exists('markdown_extended_default', $input)) {
                 $this->db->upsert('settings', ['key' => 'markdown_extended_default', 'locale' => null, 'value' => $input['markdown_extended_default'] === '1' ? '1' : '0'], ['key', 'locale_scope']);
+            }
+            foreach (['date_format', 'time_format', 'timezone'] as $key) {
+                if (array_key_exists($key, $input)) { $this->db->upsert('settings', ['key' => $key, 'locale' => null, 'value' => (string) $input[$key]], ['key', 'locale_scope']); }
             }
             if (array_key_exists('custom_css', $input)) {
                 $this->db->upsert('settings', ['key' => 'custom_css', 'locale' => null, 'value' => (string) $input['custom_css']], ['key', 'locale_scope']);

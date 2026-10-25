@@ -132,7 +132,7 @@
 <form method="post" class="flex flex-wrap items-center gap-3">
 <?= \Core\Csrf::field() ?>
 <input type="hidden" name="action" value="catalog">
-<?php if ($checked): ?><p class="text-sm text-slate-500 dark:text-slate-400">Checked <?= e(str_replace(['T', 'Z'], [' ', ' UTC'], substr($checked['checked_at'], 0, 16) . 'Z')) ?></p><?php endif ?>
+<?php if ($checked): ?><p class="text-sm text-slate-500 dark:text-slate-400">Checked <?= e(site_time($checked['checked_at'])) ?></p><?php endif ?>
 <button class="btn">Check for languages</button>
 </form>
 </div>

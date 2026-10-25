@@ -41,7 +41,7 @@ test('Public: all HTML routes render without scripts and with root-relative navi
         $html = publicRequest($app, $route);
         same(200, http_response_code());
         ok(!str_contains(strtolower($html), '<script'), $route);
-        ok(preg_match('~href="/assets/style\.css\?v=\d+"~', $html) === 1, 'versioned style.css');
+        ok(preg_match('~href="/assets/public\.css\?v=\d+"~', $html) === 1, 'versioned public.css');
         ok(!preg_match('~<a[^>]+href="https://meteor.example~', $html));
         ok(!str_contains($html, 'href="/ms/'));
     }

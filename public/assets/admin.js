@@ -251,6 +251,8 @@ for (const field of document.querySelectorAll('[data-media-field]')) {
   const switcher = root.querySelector('[data-mode-switch]');
   let mode = 'markdown';
   let dirty = false;
+  const extendedBox = textarea.form.querySelector('input[name="markdown_extended"]');
+  const extended = () => Boolean(extendedBox && extendedBox.checked);
 
   // Markdown -> HTML for the Visual mode. Mirrors the subset of core/Markdown.php.
   const esc = text => text.replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
@@ -259,19 +261,30 @@ for (const field of document.querySelectorAll('[data-media-field]')) {
     const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(url);
     return !scheme || (image ? ['http', 'https'] : ['http', 'https', 'mailto']).includes(scheme[1].toLowerCase());
   };
+  // With Extended Markdown, strikethrough, highlight, sub- and superscript show formatted; escapes,
+  // footnote references, automatic links and emoji codes stay as typed so they survive the round trip.
+  const BASE = String.raw`\x60(?<code>[^\x60\n]+)\x60|(?<bang>!?)\[(?<label>[^\]\n]*)\]\((?<href>[^\s()]+)(?:\s+"(?<title>[^"\n]*)")?\)|\*\*(?<b1>.+?)\*\*|__(?<b2>.+?)__|\*(?<i1>[^*\n]+)\*|(?<!\w)_(?<i2>[^_\n]+)_(?!\w)`;
+  const KEEP = String.raw`\\[!-\/:-@\[-\x60{-~]|<(?:https?:\/\/[^\s<>]+|[^\s<>@:]+@[^\s<>@]+\.[A-Za-z]{2,})>|\[\^[^\]\s]+\]|`;
+  const MORE = String.raw`|~~(?<del>.+?)~~|==(?<mark>[^\s=](?:[^\n]*?[^\s=])?)==|(?<!~)~(?<sub>[^~\s]+)~(?!~)|\^(?<sup>[^\^\s]+)\^`;
   const inline = text => {
-    const pattern = /`([^`\n]+)`|(!?)\[([^\]\n]*)\]\(([^\s()]+)(?:\s+"([^"\n]*)")?\)|\*\*(.+?)\*\*|__(.+?)__|\*([^*\n]+)\*|(?<!\w)_([^_\n]+)_(?!\w)/gu;
+    const pattern = new RegExp(extended() ? KEEP + BASE + MORE : BASE, 'gu');
     let html = '', last = 0, m;
     while ((m = pattern.exec(text))) {
+      const g = m.groups;
       html += esc(text.slice(last, m.index));
-      if (m[1] !== undefined) html += '<code>' + esc(m[1]) + '</code>';
-      else if (m[3] !== undefined) {
-        const image = m[2] === '!';
-        const title = m[5] !== undefined ? ` title="${esc(m[5])}"` : '';
-        if (!safeUrl(m[4], image)) html += esc(m[0]);
-        else html += image ? `<img src="${esc(m[4])}" alt="${esc(m[3])}"${title}>` : `<a href="${esc(m[4])}"${title}>${esc(m[3])}</a>`;
-      } else if (m[6] !== undefined || m[7] !== undefined) html += '<strong>' + inline(m[6] ?? m[7]) + '</strong>';
-      else html += '<em>' + inline(m[8] ?? m[9]) + '</em>';
+      if (g.code !== undefined) html += '<code>' + esc(g.code) + '</code>';
+      else if (g.label !== undefined) {
+        const image = g.bang === '!';
+        const title = g.title !== undefined ? ` title="${esc(g.title)}"` : '';
+        if (!safeUrl(g.href, image)) html += esc(m[0]);
+        else html += image ? `<img src="${esc(g.href)}" alt="${esc(g.label)}"${title}>` : `<a href="${esc(g.href)}"${title}>${esc(g.label)}</a>`;
+      } else if (g.b1 !== undefined || g.b2 !== undefined) html += '<strong>' + inline(g.b1 ?? g.b2) + '</strong>';
+      else if (g.i1 !== undefined || g.i2 !== undefined) html += '<em>' + inline(g.i1 ?? g.i2) + '</em>';
+      else if (g.del !== undefined) html += '<del>' + inline(g.del) + '</del>';
+      else if (g.mark !== undefined) html += '<mark>' + inline(g.mark) + '</mark>';
+      else if (g.sub !== undefined) html += '<sub>' + esc(g.sub) + '</sub>';
+      else if (g.sup !== undefined) html += '<sup>' + esc(g.sup) + '</sup>';
+      else html += esc(m[0]);
       last = pattern.lastIndex;
     }
     return html + esc(text.slice(last));
@@ -347,6 +360,9 @@ for (const field of document.querySelectorAll('[data-media-field]')) {
       if (tag === 'BR') out += '\n';
       else if (tag === 'STRONG' || tag === 'B') out += wrap(inlineOf(node.childNodes), '**');
       else if (tag === 'EM' || tag === 'I') out += wrap(inlineOf(node.childNodes), '*');
+      else if (tag === 'DEL' || tag === 'S' || tag === 'STRIKE') out += wrap(inlineOf(node.childNodes), '~~');
+      else if (tag === 'MARK') out += wrap(inlineOf(node.childNodes), '==');
+      else if (tag === 'SUB' || tag === 'SUP') { const text = inlineOf(node.childNodes), mark = tag === 'SUB' ? '~' : '^'; out += text.trim() && !/\s/.test(text.trim()) ? wrap(text, mark) : text; }
       else if (tag === 'CODE') { const code = node.textContent.replace(/[`\n]/g, ''); if (code) out += '`' + code + '`'; }
       else if (tag === 'A') { const text = label(inlineOf(node.childNodes)); const url = node.getAttribute('href') || ''; out += url ? `[${text || url}](${href(url)}${title})` : text; }
       else if (tag === 'IMG') { const src = node.getAttribute('src') || ''; if (src) out += `![${label(node.getAttribute('alt') || '')}](${href(src)}${title})`; }
@@ -519,6 +535,54 @@ for (const field of document.querySelectorAll('[data-media-field]')) {
     if (code && visual.contains(code) && !code.closest('pre')) { code.replaceWith(document.createTextNode(code.textContent)); dirty = true; return; }
     insertHtml('<code>' + esc(selectedText() || 'code') + '</code>');
   };
+  // Extended Markdown. Inline marks are real elements in the Visual mode; the block syntax is
+  // inserted as text, which the Visual mode keeps as typed.
+  const toggleMark = () => {
+    const node = getSelection().anchorNode;
+    const mark = node && (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement).closest('mark');
+    if (mark && visual.contains(mark)) { mark.replaceWith(...mark.childNodes); dirty = true; return; }
+    insertHtml('<mark>' + esc(selectedText() || 'highlight') + '</mark>');
+  };
+  const insertBlock = lines => {
+    if (mode === 'markdown') { fence(lines.join('\n'), ''); return; }
+    insertHtml('<p>' + lines.map(esc).join('<br>') + '</p>');
+  };
+  const taskItem = () => {
+    if (mode === 'markdown') {
+      const TASK = /^(\s*)[-+*]\s+\[[ xX]\]\s+/;
+      lines(rows => {
+        const all = rows.filter(row => row.trim()).every(row => TASK.test(row));
+        return rows.map(row => !row.trim() ? row : all ? row.replace(TASK, '$1') : '- [ ] ' + row.replace(PREFIX, ''));
+      });
+      return;
+    }
+    const at = () => { const node = getSelection().anchorNode; return node && (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement).closest('li'); };
+    if (!at() || !visual.contains(at())) document.execCommand('insertUnorderedList');
+    const item = at();
+    if (!item || !visual.contains(item)) return;
+    const first = item.firstChild;
+    if (first && first.nodeType === Node.TEXT_NODE && /^\[[ xX]\] /.test(first.nodeValue)) first.nodeValue = first.nodeValue.slice(4);
+    else item.prepend(document.createTextNode('[ ] '));
+    dirty = true;
+  };
+  const footnote = () => {
+    const text = mode === 'markdown' ? textarea.value : toMarkdown(visual);
+    let n = 1;
+    while (text.includes(`[^${n}]`)) n++;
+    if (mode === 'markdown') {
+      const at = textarea.selectionEnd;
+      replace(at, at, `[^${n}]`);
+      const value = textarea.value;
+      const note = (value.endsWith('\n\n') ? '' : value.endsWith('\n') ? '\n' : '\n\n') + `[^${n}]: Note text`;
+      replace(value.length, value.length, note, value.length + note.length - 9, value.length + note.length);
+      return;
+    }
+    insertHtml(esc(`[^${n}]`));
+    const p = document.createElement('p'); p.textContent = `[^${n}]: Note text`; visual.append(p);
+    const range = document.createRange(); range.selectNodeContents(p.firstChild); range.setStart(p.firstChild, p.textContent.length - 9);
+    const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
+    dirty = true;
+  };
   const markdownImage = (url, alt) => `![${label(alt)}](${href(url)})`;
   const commands = {
     p: () => mode === 'visual' ? formatBlock('p') : lines(rows => rows.map(row => row.replace(PREFIX, ''))),
@@ -532,6 +596,14 @@ for (const field of document.querySelectorAll('[data-media-field]')) {
     quote: () => mode === 'visual' ? formatBlock('blockquote') : prefix('> ', false),
     codeblock: () => mode === 'visual' ? formatBlock('pre') : fence('```\n', '\n```'),
     hr: () => mode === 'visual' ? document.execCommand('insertHorizontalRule') : fence('---', ''),
+    strike: () => mode === 'visual' ? document.execCommand('strikeThrough') : surround('~~', '~~', 'struck text'),
+    mark: () => mode === 'visual' ? toggleMark() : surround('==', '==', 'highlight'),
+    sub: () => mode === 'visual' ? document.execCommand('subscript') : surround('~', '~', '2'),
+    sup: () => mode === 'visual' ? document.execCommand('superscript') : surround('^', '^', '2'),
+    task: () => taskItem(),
+    table: () => insertBlock(['| Column | Column |', '| --- | --- |', '| Cell | Cell |']),
+    footnote: () => footnote(),
+    deflist: () => insertBlock(['Term', ': Definition']),
     link: () => openLink(),
     image: () => openPicker(),
   };
@@ -544,6 +616,43 @@ for (const field of document.querySelectorAll('[data-media-field]')) {
   };
   toolbar.addEventListener('mousedown', event => { if (event.target.closest('[data-cmd]')) event.preventDefault(); });
   toolbar.addEventListener('click', event => { const button = event.target.closest('[data-cmd]'); if (button) run(button.dataset.cmd); });
+
+  // The Extended Markdown row follows the checkbox; the Visual mode redraws with or without its marks.
+  const extendedTools = toolbar.querySelector('[data-extended-tools]');
+  if (extendedBox && extendedTools) {
+    extendedBox.addEventListener('change', () => {
+      extendedTools.hidden = !extendedBox.checked;
+      if (mode === 'visual') { sync(); visual.innerHTML = toHtml(textarea.value); dirty = false; }
+    });
+  }
+  // Emoji menu: inserts the character itself, which every mode and feed shows as is.
+  const emojiToggle = toolbar.querySelector('[data-emoji-toggle]');
+  const emojiMenu = toolbar.querySelector('[data-emoji-menu]');
+  if (emojiToggle && emojiMenu) {
+    const closeEmoji = focus => { emojiMenu.hidden = true; emojiToggle.setAttribute('aria-expanded', 'false'); if (focus) emojiToggle.focus(); };
+    emojiToggle.addEventListener('mousedown', event => event.preventDefault());
+    emojiToggle.addEventListener('click', () => {
+      const open = emojiMenu.hidden;
+      if (open) remember();
+      emojiMenu.hidden = !open; emojiToggle.setAttribute('aria-expanded', String(open));
+      if (open) emojiMenu.querySelector('button').focus();
+    });
+    emojiMenu.addEventListener('click', event => {
+      const button = event.target.closest('[data-emoji]');
+      if (!button) return;
+      closeEmoji(false); restore();
+      if (mode === 'markdown') replace(textarea.selectionStart, textarea.selectionEnd, button.dataset.emoji);
+      else { document.execCommand('insertText', false, button.dataset.emoji); dirty = true; }
+    });
+    emojiMenu.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { event.preventDefault(); closeEmoji(true); return; }
+      const buttons = [...emojiMenu.querySelectorAll('button')], i = buttons.indexOf(document.activeElement);
+      const columns = buttons.filter(button => button.offsetTop === buttons[0].offsetTop).length;
+      const step = {ArrowRight: 1, ArrowLeft: -1, ArrowDown: columns, ArrowUp: -columns}[event.key];
+      if (step && i >= 0) { event.preventDefault(); buttons[Math.min(buttons.length - 1, Math.max(0, i + step))].focus(); }
+    });
+    document.addEventListener('click', event => { if (!emojiMenu.hidden && !event.target.closest('[data-emoji-menu], [data-emoji-toggle]')) closeEmoji(false); });
+  }
   const shortcuts = event => {
     if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
     const name = {b: 'bold', i: 'italic', k: 'link'}[event.key.toLowerCase()];
@@ -558,7 +667,10 @@ for (const field of document.querySelectorAll('[data-media-field]')) {
     const format = inside ? (document.queryCommandValue('formatBlock') || '').toLowerCase() : '';
     const state = name => inside && document.queryCommandState(name);
     const heading = /^h[1-6]$/.test(format);
+    const node = inside ? getSelection().anchorNode : null;
+    const within = tag => Boolean(node && (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement).closest(tag));
     const pressed = {bold: !heading && state('bold'), italic: state('italic'), ul: state('insertUnorderedList'), ol: state('insertOrderedList'),
+      strike: state('strikeThrough'), sub: state('subscript'), sup: state('superscript'), mark: within('mark'),
       h2: format === 'h2', h3: format === 'h3', quote: format === 'blockquote', codeblock: format === 'pre'};
     for (const button of toolbar.querySelectorAll('[data-cmd]')) {
       if (button.dataset.cmd in pressed) button.setAttribute('aria-pressed', String(Boolean(pressed[button.dataset.cmd])));

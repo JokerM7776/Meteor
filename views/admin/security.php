@@ -27,7 +27,7 @@
 <h2 class="text-xl font-bold">Password</h2>
 <span class="rounded-full bg-slate-100 px-3 py-1 font-mono text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300">Fallback · on</span>
 </div>
-<p class="text-sm text-slate-600 dark:text-slate-400">Fallback sign-in when a passkey isn’t available. Last changed <?= e(substr($user['password_changed_at'], 0, 10)) ?>.</p>
+<p class="text-sm text-slate-600 dark:text-slate-400">Fallback sign-in when a passkey isn’t available. Last changed <?= e(site_time($user['password_changed_at'], false)) ?>.</p>
 <label class="field">Current password<input type="password" name="current_password" autocomplete="current-password" required>
 </label>
 <div class="grid gap-4 sm:grid-cols-2">
@@ -102,18 +102,18 @@ $help = ['turnstile' => 'Create a widget for this site’s domain in <a class="u
 <caption class="sr-only">Browsers that stay signed in</caption>
 <thead><tr>
 <th scope="col" class="sheet-key">Device</th>
-<th scope="col">Signed in (UTC)</th>
-<th scope="col">Last used (UTC)</th>
-<th scope="col">Expires (UTC)</th>
+<th scope="col">Signed in</th>
+<th scope="col">Last used</th>
+<th scope="col">Expires</th>
 <th scope="col" class="sheet-end">Actions</th>
 </tr></thead>
 <tbody>
 <?php foreach ($devices as $device): ?>
 <tr>
 <th scope="row" class="sheet-key"><span class="font-semibold"><?= e($device['device']) ?></span><?php if ($device['current']): ?> <span class="font-mono text-xs font-normal text-orange-800 dark:text-orange-300">this device</span><?php endif ?></th>
-<td class="whitespace-nowrap font-mono text-xs"><?= e(substr((string) $device['created_at'], 0, 16)) ?></td>
-<td class="whitespace-nowrap font-mono text-xs"><?= e($device['last_used_at'] ? substr((string) $device['last_used_at'], 0, 16) : '—') ?></td>
-<td class="whitespace-nowrap font-mono text-xs"><?= e(substr((string) $device['expires_at'], 0, 10)) ?></td>
+<td class="whitespace-nowrap font-mono text-xs"><?= e(site_time($device['created_at'])) ?></td>
+<td class="whitespace-nowrap font-mono text-xs"><?= e(site_time($device['last_used_at'])) ?></td>
+<td class="whitespace-nowrap font-mono text-xs"><?= e(site_time($device['expires_at'], false)) ?></td>
 <td class="sheet-end">
 <?php if ($device['current']): ?><span class="whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">Sign out from the menu</span><?php else: ?>
 <form method="post" action="/admin/security" class="flex justify-end"><?= \Core\Csrf::field() ?><input type="hidden" name="id" value="<?= e($device['id']) ?>">
@@ -145,16 +145,16 @@ $help = ['turnstile' => 'Create a widget for this site’s domain in <a class="u
 <caption class="sr-only">Your passkeys</caption>
 <thead><tr>
 <th scope="col" class="sheet-key">Name</th>
-<th scope="col">Added (UTC)</th>
-<th scope="col">Last used (UTC)</th>
+<th scope="col">Added</th>
+<th scope="col">Last used</th>
 <th scope="col" class="sheet-end">Actions</th>
 </tr></thead>
 <tbody>
 <?php foreach ($keys as $key): $form = 'passkey-' . $key['id']; ?>
 <tr>
 <th scope="row" class="sheet-key"><input form="<?= e($form) ?>" name="name" value="<?= e($key['name']) ?>" maxlength="191" required aria-label="Name of passkey <?= e($key['name']) ?>"></th>
-<td class="whitespace-nowrap font-mono text-xs"><?= e(substr($key['created_at'], 0, 16)) ?></td>
-<td class="whitespace-nowrap font-mono text-xs"><?= e($key['last_used_at'] ? substr($key['last_used_at'], 0, 16) : 'Not used yet') ?></td>
+<td class="whitespace-nowrap font-mono text-xs"><?= e(site_time($key['created_at'])) ?></td>
+<td class="whitespace-nowrap font-mono text-xs"><?= e($key['last_used_at'] ? site_time($key['last_used_at']) : 'Not used yet') ?></td>
 <td class="sheet-end">
 <form id="<?= e($form) ?>" method="post" action="/admin/security" class="flex justify-end gap-2">
 <?= \Core\Csrf::field() ?>

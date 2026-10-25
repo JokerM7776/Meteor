@@ -89,14 +89,14 @@ final class ContentEditor
         return $id;
     }
     /** Compiled content_html, toc_html and reading_minutes. Footnote labels use the content's language. */
-    /** "2024-05-01T09:30" from a datetime-local field (UTC) → "2024-05-01 09:30:00"; empty → null (keep or set automatically). */
+    /** "2024-05-01T09:30" from a datetime-local field, in the site's time zone → "2024-05-01 01:30:00" UTC; empty → null (keep or set automatically). */
     public static function date(mixed $value): ?string
     {
         if ($value === null || (is_string($value) && trim($value) === '')) { return null; }
         $value = is_string($value) ? trim($value) : '';
         foreach (['Y-m-d\TH:i', 'Y-m-d\TH:i:s', 'Y-m-d H:i', 'Y-m-d H:i:s'] as $format) {
-            $date = \DateTimeImmutable::createFromFormat('!' . $format, $value, new \DateTimeZone('UTC'));
-            if ($date && $date->format($format) === $value && $date->format('Y') >= 1970 && $date->format('Y') <= 9999) { return $date->format('Y-m-d H:i:s'); }
+            $date = \DateTimeImmutable::createFromFormat('!' . $format, $value, \Core\Dates::zone());
+            if ($date && $date->format($format) === $value && $date->format('Y') >= 1970 && $date->format('Y') <= 9999) { return \Core\Dates::toUtc($date); }
         }
         throw new \InvalidArgumentException('Date: choose a valid date and time.');
     }

@@ -48,7 +48,7 @@
 <thead><tr>
 <th scope="col" class="sheet-key">Backup</th>
 <th scope="col">Version</th>
-<th scope="col">Created (UTC)</th>
+<th scope="col">Created</th>
 <th scope="col" class="sheet-end">Size</th>
 <th scope="col" class="sheet-end">Actions</th>
 </tr></thead>
@@ -57,7 +57,7 @@
 <tr>
 <th scope="row" class="sheet-key max-w-none! font-mono text-xs break-all text-slate-600 dark:text-slate-300"><?= e($backup['name']) ?></th>
 <td class="font-mono text-xs"><?= e($backup['version']) ?></td>
-<td class="whitespace-nowrap font-mono text-xs"><?= e($backup['created']) ?></td>
+<td class="whitespace-nowrap font-mono text-xs"><?= e(site_time($backup['created'])) ?></td>
 <td class="sheet-end whitespace-nowrap font-mono text-xs"><?= e(\App\Services\MediaLibrary::size($backup['size'])) ?></td>
 <td class="sheet-end"><a class="btn" href="/admin/updates/restore?<?= e(http_build_query(['backup' => $backup['name']])) ?>">Restore…<span class="sr-only"> <?= e($backup['name']) ?></span></a></td>
 </tr>

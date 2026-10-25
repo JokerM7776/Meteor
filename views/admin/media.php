@@ -73,7 +73,7 @@ $isUpload = ($old['id'] ?? null) === null;
 <td class="min-w-48"><input form="<?= e($form) ?>" name="alt" maxlength="255" value="<?= e($o['alt'] ?? $row['alt_text']) ?>" placeholder="Missing" aria-label="Alt text of <?= e($label) ?>"></td>
 <td class="min-w-40"><input form="<?= e($form) ?>" name="category" list="media-categories" maxlength="191" value="<?= e($o['category'] ?? $row['category']) ?>" aria-label="Category of <?= e($label) ?>"></td>
 <td class="min-w-48"><input form="<?= e($form) ?>" name="tags" maxlength="1500" value="<?= e($o['tags'] ?? implode(', ', $row['tags'])) ?>" aria-label="Tags of <?= e($label) ?>"></td>
-<td class="whitespace-nowrap font-mono text-xs text-slate-500 dark:text-slate-400"><?= e(substr($row['created_at'], 0, 10)) ?></td>
+<td class="whitespace-nowrap font-mono text-xs text-slate-500 dark:text-slate-400"><?= e(site_time($row['created_at'], false)) ?></td>
 <td class="sheet-end">
 <form id="<?= e($form) ?>" method="post" action="<?= e($action) ?>" class="flex justify-end gap-2">
 <?= \Core\Csrf::field() ?>

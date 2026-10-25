@@ -41,7 +41,7 @@ test('Admin HTTP: sign-in keeps the username, security headers, editor bars and 
         $c->db->query("INSERT INTO posts (slug, base_locale, is_published, published_at) VALUES ('hello', 'en', 1, '2026-01-01 00:00:00')");
         $c->db->query("INSERT INTO post_translations (post_id, locale, title, summary, content_md, content_html, toc_html, status, updated_at) VALUES (1, 'en', 'Hello', '', 'Hi', '<p>Hi</p>', '', 'published', '2026-10-01 09:30:00')");
         [, $html] = $c->request('/admin/editor?post=1&locale=en&kind=post');
-        contains('>✓ Published<span class="sr-only"> · en</span>', $html); contains('Saved 2026-10-01 09:30 UTC', $html);
+        contains('>✓ Published<span class="sr-only"> · en</span>', $html); contains('Saved 01 Oct 2026, 09:30', $html);
         same(2, substr_count($html, '>Unpublish</button>')); same(2, substr_count($html, '>Update</button>'));
         ok(preg_match('/value="published"[^>]*data-save-default/', $html) === 1); same(2, substr_count($html, '>Delete post…</a>'));
     } finally { $c->close(); }

@@ -1,0 +1,71 @@
+/* Shared by public.css and admin.css: theme, dark mode, base rules and article text. */
+/* Dark mode follows <html data-theme>: "dark" always, "auto" when the device prefers dark. */
+@custom-variant dark {
+  &:where([data-theme=dark], [data-theme=dark] *) { @slot; }
+  @media (prefers-color-scheme: dark) {
+    &:where([data-theme=auto], [data-theme=auto] *) { @slot; }
+  }
+}
+@theme {
+  --font-display: "Source Sans 3", "Noto Sans SC", system-ui, sans-serif;
+  --font-serif: "Source Serif 4", "Noto Serif SC", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --color-meteor: var(--color-orange-500);
+}
+
+@layer base {
+  /* JetBrains Mono joins pairs like == and ~~ into one symbol; code must show what to type. */
+  code, kbd, pre, samp, .font-mono { font-variant-ligatures: none; }
+  [data-theme=light] { color-scheme: light; }
+  [data-theme=dark] { color-scheme: dark; }
+  [data-theme=auto] { color-scheme: light dark; }
+  a, summary { @apply focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-500; }
+  /* Tailwind's reset gives buttons the arrow cursor; everything clickable shows the hand. */
+  button:not(:disabled), [role="button"], summary, select, label:has(> input:is([type=checkbox], [type=radio])), input:is([type=checkbox], [type=radio], [type=file], [type=submit], [type=color]):not(:disabled) { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+}
+
+@layer components {
+  .prose-meteor { @apply font-serif text-[17px] leading-[1.85] text-slate-800 md:text-xl md:leading-[1.7] dark:text-slate-300; }
+  .prose-meteor > * + * { @apply mt-5; }
+  .prose-meteor h1, .prose-meteor h2, .prose-meteor h3, .prose-meteor h4 { @apply scroll-mt-6 font-display font-bold tracking-tight text-slate-900 dark:text-slate-50; }
+  .prose-meteor h2 { @apply mt-10 text-[22px] leading-tight md:text-[32px]; }
+  .prose-meteor h3 { @apply mt-8 text-xl leading-tight md:text-2xl; }
+  .prose-meteor ul { @apply list-disc ps-6; }
+  .prose-meteor ol { @apply list-decimal ps-6; }
+  .prose-meteor li + li { @apply mt-2; }
+  .prose-meteor blockquote { @apply border-s-4 border-orange-500 py-1 ps-6 text-slate-700 italic md:text-[22px] dark:text-slate-300; }
+  .prose-meteor code { @apply rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[.82em] text-orange-800 dark:bg-slate-800 dark:text-orange-300; }
+  .prose-meteor pre { @apply overflow-x-auto rounded-xl border border-slate-800 bg-slate-900 p-4 text-[12.5px] leading-[1.7] text-slate-200 md:p-5 md:text-sm; }
+  .prose-meteor pre code { @apply rounded-none bg-transparent p-0 text-inherit; font-size: inherit; }
+  .prose-meteor img { @apply h-auto max-w-full rounded-xl; }
+  .prose-meteor a { @apply text-orange-700 underline underline-offset-4 dark:text-orange-400; }
+  .prose-meteor hr { @apply border-slate-200 dark:border-slate-800; }
+  /* Extended Markdown. Table alignment uses classes because the CSP blocks inline styles. */
+  .prose-meteor .md-table { @apply overflow-x-auto; }
+  .prose-meteor table { @apply w-full border-collapse font-display text-base leading-normal; }
+  .prose-meteor th, .prose-meteor td { @apply border-b border-slate-200 px-3 py-2 text-start align-top dark:border-slate-800; }
+  .prose-meteor th { @apply border-b-2 border-slate-300 font-semibold text-slate-900 dark:border-slate-700 dark:text-slate-50; }
+  .prose-meteor .md-center { @apply text-center; }
+  .prose-meteor .md-right { @apply text-right; }
+  .prose-meteor dt { @apply font-display font-semibold text-slate-900 dark:text-slate-50; }
+  .prose-meteor dd { @apply ps-6; }
+  .prose-meteor dd + dt { @apply mt-3; }
+  .prose-meteor li.task { @apply -ms-6 flex list-none items-baseline gap-2; }
+  .prose-meteor li.task input { @apply size-4 shrink-0 translate-y-0.5 accent-orange-700; }
+  .prose-meteor mark { @apply rounded bg-amber-200 px-0.5 text-inherit dark:bg-amber-400/30; }
+  .prose-meteor del { @apply text-slate-500 dark:text-slate-400; }
+  .prose-meteor sup, .prose-meteor sub { @apply text-[.75em] leading-none; }
+  .prose-meteor .footnote-ref a { @apply px-0.5 font-display no-underline; }
+  .prose-meteor [id^="fn"] { @apply scroll-mt-6; }
+  .prose-meteor .footnotes { @apply mt-12 border-t border-slate-200 pt-6 text-base dark:border-slate-800; }
+  .prose-meteor .footnotes ol { @apply list-decimal ps-6; }
+  .prose-meteor .footnote-back { @apply no-underline; }
+  .syntax-comment { @apply text-slate-400; }
+  .syntax-string { @apply text-green-300; }
+  .syntax-keyword { @apply text-violet-300; }
+  .syntax-variable { @apply text-orange-400; }
+  .comment-body { @apply font-serif text-[17px] leading-relaxed text-slate-800 dark:text-slate-300; }
+  .comment-body > * + * { @apply mt-3; }
+  .comment-body a { @apply break-words text-orange-700 underline underline-offset-4 dark:text-orange-400; }
+}

@@ -3,7 +3,7 @@
 <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
 <dt class="text-slate-500 dark:text-slate-400">Backup</dt><dd class="font-mono text-xs break-all"><?= e($backup['name']) ?></dd>
 <dt class="text-slate-500 dark:text-slate-400">Version</dt><dd class="font-mono text-xs"><?= e($backup['version']) ?></dd>
-<dt class="text-slate-500 dark:text-slate-400">Created</dt><dd class="font-mono text-xs"><?= e($backup['created']) ?> UTC</dd>
+<dt class="text-slate-500 dark:text-slate-400">Created</dt><dd class="font-mono text-xs"><?= e(site_time($backup['created'])) ?></dd>
 </dl>
 <p class="text-sm text-slate-600 dark:text-slate-400">The code goes back to this copy. Your posts, uploads and settings stay as they are, and database changes made by later updates are not reversed.</p>
 <form method="post" action="/admin/updates" class="space-y-4">

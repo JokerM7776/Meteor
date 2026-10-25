@@ -1,0 +1,43 @@
+/* Public pages. Built to public/assets/public.css by bin/build-css.sh. */
+@import "tailwindcss" source(none);
+@import "./base.css";
+@source "../views/public";
+@source "../views/partials";
+@source "../views/layouts/public.php";
+
+@layer base {
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+}
+
+@layer components {
+  .back-to-top { @apply pointer-events-auto sticky top-[calc(100svh-4.5rem)] ms-auto me-4 mt-[calc(100svh+10rem)] flex size-12 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-700 shadow-lg backdrop-blur hover:text-slate-900 md:me-6 dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-200 dark:hover:text-white; }
+  /* Chip rows that fold to a few rows without JavaScript. Every chip is 2.75rem tall, so the
+     box shows --rows rows plus one row for "View all". That row only fits in the box when the
+     chips need more than --rows rows; otherwise the box is shorter and clips it away. */
+  .chip-rows { --rows: 3; position: relative; overflow: hidden; max-height: calc((var(--rows) + 1) * (2.75rem + var(--gap)) - var(--gap)); }
+  @media (width >= 48rem) { .chip-rows { --rows: 2; } }
+  .chip-more { position: absolute; inset-inline: 0; top: calc(var(--rows) * (2.75rem + var(--gap))); display: flex; height: 2.75rem; align-items: center; cursor: pointer; }
+  .chip-less { cursor: pointer; }
+  .chip-toggle:not(:checked) ~ .chip-less { display: none; }
+  .chip-toggle:checked + .chip-rows { max-height: none; }
+  .chip-toggle:checked + .chip-rows .chip-more { display: none; }
+  .chip-toggle:checked ~ .chip-less { display: inline-flex; }
+  .chip-toggle:focus-visible + .chip-rows .chip-more > span, .chip-toggle:focus-visible ~ .chip-less { outline: 2px solid var(--color-orange-500); outline-offset: 2px; }
+  .eyebrow { @apply font-mono text-xs font-medium uppercase tracking-wider text-slate-600 dark:text-slate-400; }
+  .accent { @apply text-orange-700 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-300; }
+  .button-primary { @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-[10px] bg-slate-900 px-5 text-[15px] font-semibold whitespace-nowrap text-white dark:bg-slate-100 dark:text-slate-900; }
+  .button-secondary { @apply inline-flex min-h-11 items-center justify-center rounded-[10px] border border-slate-300 bg-white px-4 text-[15px] font-medium whitespace-nowrap text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100; }
+  .tag { @apply inline-flex min-h-11 max-w-full items-center overflow-hidden whitespace-nowrap rounded-md bg-slate-100 px-2.5 font-mono text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300; }
+  .button-secondary[aria-current="page"], .tag[aria-current="page"] { @apply bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900; }
+  .toc-meteor { @apply font-display text-sm text-slate-700 dark:text-slate-300; }
+  .toc-meteor a { @apply flex min-h-11 items-center rounded-lg px-3 py-2 hover:bg-orange-50 hover:text-orange-800 dark:hover:bg-orange-950 dark:hover:text-orange-300; }
+  .toc-meteor ol ol, .toc-meteor ul ul { @apply ps-3; }
+  /* Announcement bar. With several, the one after the checked radio is shown (see partials/announcements.php). */
+  .announcement { @apply mx-auto flex max-w-[1120px] flex-wrap items-center gap-x-4 gap-y-1 px-4 py-1.5 text-sm md:px-6; }
+  .announcements > input:not(:checked) + .announcement { @apply hidden; }
+  .announcements > input:focus-visible + .announcement { @apply outline-2 -outline-offset-2 outline-orange-500; }
+  .search-snippet mark { @apply rounded bg-amber-200 px-0.5 text-inherit dark:bg-amber-400/30; }
+  .comment-input { @apply min-h-11 min-w-0 rounded-[10px] border border-slate-400 bg-white px-3 py-2 text-base font-normal text-slate-900 focus:outline-2 focus:outline-orange-500 aria-[invalid=true]:border-red-600 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100; }
+  /* Honeypot: off-screen for people, still in the form for bots. */
+  .comment-trap { @apply absolute -start-[9999px] size-px overflow-hidden; }
+}

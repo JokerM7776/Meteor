@@ -18,11 +18,11 @@
 <?php if (!empty($webmention)): ?><link rel="webmention" href="<?= e($webmention) ?>">
 <?php endif ?><?php require __DIR__ . '/../partials/favicon.php' ?>
 <?php require __DIR__ . '/../partials/fonts.php' ?>
-<link rel="stylesheet" href="<?= e(asset('assets/style.css')) ?>">
+<link rel="stylesheet" href="<?= e(asset('assets/public.css')) ?>">
 <?php if ($themeCss !== ''): ?><link rel="stylesheet" href="<?= e($themeCss) ?>"><?php endif ?>
 <?php if (trim($settings->get('custom_css')) !== ''): ?><link rel="stylesheet" href="/custom.css"><?php endif ?>
 </head>
-<body class="flex min-h-screen flex-col <?= $is404 ? 'bg-slate-900 text-slate-100' : 'bg-slate-50' ?> font-display text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+<body id="top" class="relative flex min-h-screen flex-col <?= $is404 ? 'bg-slate-900 text-slate-100' : 'bg-slate-50' ?> font-display text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
 <a class="sr-only focus:not-sr-only focus:inline-flex focus:self-start focus:min-h-11 focus:items-center" href="#main"><?= e(__('skip_content')) ?></a>
 <?php if (!empty($announcements)) { require __DIR__ . '/../partials/announcements.php'; } ?>
 <header class="<?= $is404 ? '[&]:bg-slate-900 [&]:text-slate-100 [&]:border-slate-800' : '' ?> border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
@@ -66,7 +66,7 @@
 $brand = $settings->global('footer_brand', 'site');
 if ($brand === 'author' && $author === null) { $brand = 'site'; }
 $columns = ($settings->enabled('footer_show_languages') && $live) || ($settings->enabled('footer_show_feeds') && $live) || ($settings->enabled('footer_show_site') && $footerLinks);
-$copyright = $settings->enabled('footer_show_copyright') ? str_replace(['{year}', '{site}'], [gmdate('Y'), $settings->label('site_title')], $settings->get('copyright', $locale, '© {year} {site}')) : '';
+$copyright = $settings->enabled('footer_show_copyright') ? str_replace(['{year}', '{site}'], [(new DateTimeImmutable('now', Core\Dates::zone()))->format('Y'), $settings->label('site_title')], $settings->get('copyright', $locale, '© {year} {site}')) : '';
 ?>
 <?php if ($brand !== 'none' || $columns || $copyright !== ''): ?>
 <footer class="bg-slate-900 text-slate-300">
@@ -90,4 +90,7 @@ $copyright = $settings->enabled('footer_show_copyright') ? str_replace(['{year}'
 <?php if ($copyright !== ''): ?><div class="<?= $brand !== 'none' || $columns ? 'border-t border-slate-800' : '' ?>"><p class="mx-auto max-w-[1120px] px-4 py-5 text-sm text-slate-400 md:px-6"><?= e($copyright) ?></p></div><?php endif ?>
 </footer>
 <?php endif ?>
+<?php // Back to top, without JavaScript: the link sits a screen and a bit down the page and sticks to the
+// bottom corner once scrolled into view; on short pages it stays clipped away. ?>
+<div class="pointer-events-none absolute inset-0 overflow-clip print:hidden"><a href="#top" class="back-to-top" title="<?= e(__('back_to_top')) ?>"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 16V4M4.5 9.5 10 4l5.5 5.5"/></svg><span class="sr-only"><?= e(__('back_to_top')) ?></span></a></div>
 </body></html>

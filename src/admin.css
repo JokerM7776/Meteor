@@ -1,99 +1,15 @@
-@import "tailwindcss";
-@source "../views";
+/* Admin pages and the installer. Built to public/assets/admin.css by bin/build-css.sh. */
+@import "tailwindcss" source(none);
+@import "./base.css";
+@source "../views/admin";
+@source "../views/partials/favicon.php";
+@source "../views/partials/fonts.php";
+@source "../views/partials/mark.php";
+@source "../views/layouts/admin.php";
+@source "../views/install.php";
 @source "../public/assets/admin.js";
-/* Dark mode follows <html data-theme>: "dark" always, "auto" when the device prefers dark. */
-@custom-variant dark {
-  &:where([data-theme=dark], [data-theme=dark] *) { @slot; }
-  @media (prefers-color-scheme: dark) {
-    &:where([data-theme=auto], [data-theme=auto] *) { @slot; }
-  }
-}
-@theme {
-  --font-display: "Source Sans 3", "Noto Sans SC", system-ui, sans-serif;
-  --font-serif: "Source Serif 4", "Noto Serif SC", Georgia, serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --color-meteor: var(--color-orange-500);
-}
 
 @layer base {
-  /* JetBrains Mono joins pairs like == and ~~ into one symbol; code must show what to type. */
-  code, kbd, pre, samp, .font-mono { font-variant-ligatures: none; }
-}
-
-@layer components {
-  /* Chip rows that fold to a few rows without JavaScript. Every chip is 2.75rem tall, so the
-     box shows --rows rows plus one row for "View all". That row only fits in the box when the
-     chips need more than --rows rows; otherwise the box is shorter and clips it away. */
-  .chip-rows { --rows: 3; position: relative; overflow: hidden; max-height: calc((var(--rows) + 1) * (2.75rem + var(--gap)) - var(--gap)); }
-  @media (width >= 48rem) { .chip-rows { --rows: 2; } }
-  .chip-more { position: absolute; inset-inline: 0; top: calc(var(--rows) * (2.75rem + var(--gap))); display: flex; height: 2.75rem; align-items: center; cursor: pointer; }
-  .chip-less { cursor: pointer; }
-  .chip-toggle:not(:checked) ~ .chip-less { display: none; }
-  .chip-toggle:checked + .chip-rows { max-height: none; }
-  .chip-toggle:checked + .chip-rows .chip-more { display: none; }
-  .chip-toggle:checked ~ .chip-less { display: inline-flex; }
-  .chip-toggle:focus-visible + .chip-rows .chip-more > span, .chip-toggle:focus-visible ~ .chip-less { outline: 2px solid var(--color-orange-500); outline-offset: 2px; }
-  .eyebrow { @apply font-mono text-xs font-medium uppercase tracking-wider text-slate-600 dark:text-slate-400; }
-  .accent { @apply text-orange-700 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-300; }
-  .button-primary { @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-[10px] bg-slate-900 px-5 text-[15px] font-semibold whitespace-nowrap text-white dark:bg-slate-100 dark:text-slate-900; }
-  .button-secondary { @apply inline-flex min-h-11 items-center justify-center rounded-[10px] border border-slate-300 bg-white px-4 text-[15px] font-medium whitespace-nowrap text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100; }
-  .tag { @apply inline-flex min-h-11 max-w-full items-center overflow-hidden whitespace-nowrap rounded-md bg-slate-100 px-2.5 font-mono text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300; }
-  .button-secondary[aria-current="page"], .tag[aria-current="page"] { @apply bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900; }
-  .prose-meteor { @apply font-serif text-[17px] leading-[1.85] text-slate-800 md:text-xl md:leading-[1.7] dark:text-slate-300; }
-  .prose-meteor > * + * { @apply mt-5; }
-  .prose-meteor h1, .prose-meteor h2, .prose-meteor h3, .prose-meteor h4 { @apply scroll-mt-6 font-display font-bold tracking-tight text-slate-900 dark:text-slate-50; }
-  .prose-meteor h2 { @apply mt-10 text-[22px] leading-tight md:text-[32px]; }
-  .prose-meteor h3 { @apply mt-8 text-xl leading-tight md:text-2xl; }
-  .prose-meteor ul { @apply list-disc ps-6; }
-  .prose-meteor ol { @apply list-decimal ps-6; }
-  .prose-meteor li + li { @apply mt-2; }
-  .prose-meteor blockquote { @apply border-s-4 border-orange-500 py-1 ps-6 text-slate-700 italic md:text-[22px] dark:text-slate-300; }
-  .prose-meteor code { @apply rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[.82em] text-orange-800 dark:bg-slate-800 dark:text-orange-300; }
-  .prose-meteor pre { @apply overflow-x-auto rounded-xl border border-slate-800 bg-slate-900 p-4 text-[12.5px] leading-[1.7] text-slate-200 md:p-5 md:text-sm; }
-  .prose-meteor pre code { @apply rounded-none bg-transparent p-0 text-inherit; font-size: inherit; }
-  .prose-meteor img { @apply h-auto max-w-full rounded-xl; }
-  .prose-meteor a { @apply text-orange-700 underline underline-offset-4 dark:text-orange-400; }
-  .prose-meteor hr { @apply border-slate-200 dark:border-slate-800; }
-  /* Extended Markdown. Table alignment uses classes because the CSP blocks inline styles. */
-  .prose-meteor .md-table { @apply overflow-x-auto; }
-  .prose-meteor table { @apply w-full border-collapse font-display text-base leading-normal; }
-  .prose-meteor th, .prose-meteor td { @apply border-b border-slate-200 px-3 py-2 text-start align-top dark:border-slate-800; }
-  .prose-meteor th { @apply border-b-2 border-slate-300 font-semibold text-slate-900 dark:border-slate-700 dark:text-slate-50; }
-  .prose-meteor .md-center { @apply text-center; }
-  .prose-meteor .md-right { @apply text-right; }
-  .prose-meteor dt { @apply font-display font-semibold text-slate-900 dark:text-slate-50; }
-  .prose-meteor dd { @apply ps-6; }
-  .prose-meteor dd + dt { @apply mt-3; }
-  .prose-meteor li.task { @apply -ms-6 flex list-none items-baseline gap-2; }
-  .prose-meteor li.task input { @apply size-4 shrink-0 translate-y-0.5 accent-orange-700; }
-  .prose-meteor mark { @apply rounded bg-amber-200 px-0.5 text-inherit dark:bg-amber-400/30; }
-  .prose-meteor del { @apply text-slate-500 dark:text-slate-400; }
-  .prose-meteor sup, .prose-meteor sub { @apply text-[.75em] leading-none; }
-  .prose-meteor .footnote-ref a { @apply px-0.5 font-display no-underline; }
-  .prose-meteor [id^="fn"] { @apply scroll-mt-6; }
-  .prose-meteor .footnotes { @apply mt-12 border-t border-slate-200 pt-6 text-base dark:border-slate-800; }
-  .prose-meteor .footnotes ol { @apply list-decimal ps-6; }
-  .prose-meteor .footnote-back { @apply no-underline; }
-  .toc-meteor { @apply font-display text-sm text-slate-700 dark:text-slate-300; }
-  .toc-meteor a { @apply flex min-h-11 items-center rounded-lg px-3 py-2 hover:bg-orange-50 hover:text-orange-800 dark:hover:bg-orange-950 dark:hover:text-orange-300; }
-  .toc-meteor ol ol, .toc-meteor ul ul { @apply ps-3; }
-  /* Announcement bar. With several, the one after the checked radio is shown (see partials/announcements.php). */
-  .announcement { @apply mx-auto flex max-w-[1120px] flex-wrap items-center gap-x-4 gap-y-1 px-4 py-1.5 text-sm md:px-6; }
-  .announcements > input:not(:checked) + .announcement { @apply hidden; }
-  .announcements > input:focus-visible + .announcement { @apply outline-2 -outline-offset-2 outline-orange-500; }
-  .syntax-comment { @apply text-slate-400; }
-  .syntax-string { @apply text-green-300; }
-  .syntax-keyword { @apply text-violet-300; }
-  .syntax-variable { @apply text-orange-400; }
-}
-@layer base {
-  [data-theme=light] { color-scheme: light; }
-  [data-theme=dark] { color-scheme: dark; }
-  [data-theme=auto] { color-scheme: light dark; }
-  a, summary { @apply focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-500; }
-  /* Tailwind's reset gives buttons the arrow cursor; everything clickable shows the hand. */
-  button:not(:disabled), [role="button"], summary, select, label:has(> input:is([type=checkbox], [type=radio])), input:is([type=checkbox], [type=radio], [type=file], [type=submit], [type=color]):not(:disabled) { cursor: pointer; }
-  button:disabled { cursor: not-allowed; }
   /* Keep focused fields clear of the editor's sticky bars (WCAG 2.4.11). */
   html:has(.editor-bottom) { scroll-padding-bottom: 7rem; }
   @media (width >= 48rem) { html:has(.editor-top) { scroll-padding-top: 6.5rem; scroll-padding-bottom: 5rem; } }
@@ -142,9 +58,16 @@
   /* Content editor: mode switch, toolbar, Visual surface, and the dialogs it opens. */
   .admin .mode-switch { @apply inline-flex rounded-[10px] border border-slate-300 bg-slate-100 p-0.5 dark:border-slate-600 dark:bg-slate-800; }
   .admin .mode-switch button { @apply min-h-11 rounded-lg px-3 text-sm font-semibold text-slate-600 hover:text-slate-900 aria-pressed:bg-white aria-pressed:text-slate-900 aria-pressed:shadow-sm dark:text-slate-300 dark:hover:text-white dark:aria-pressed:bg-slate-950 dark:aria-pressed:text-white; }
-  .admin .md-toolbar { @apply flex flex-wrap items-center gap-0.5 rounded-t-[10px] border border-b-0 border-slate-500 bg-slate-50 p-1 dark:border-slate-500 dark:bg-slate-800; }
+  .admin .md-toolbar { @apply relative flex flex-wrap items-center gap-0.5 rounded-t-[10px] border border-b-0 border-slate-500 bg-slate-50 p-1 dark:border-slate-500 dark:bg-slate-800; }
   .admin .md-toolbar button { @apply inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-2 text-sm text-slate-700 hover:bg-white hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-orange-600 aria-pressed:bg-slate-900 aria-pressed:text-white dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white dark:aria-pressed:bg-slate-100 dark:aria-pressed:text-slate-900; }
   .admin .md-toolbar .md-sep { @apply mx-1 h-6 w-px bg-slate-300 dark:bg-slate-600; }
+  /* Second toolbar row for Extended Markdown, and its emoji menu. */
+  .admin .md-extended { @apply mt-0.5 flex basis-full flex-wrap items-center gap-0.5 border-t border-slate-300 pt-1 dark:border-slate-600; }
+  .admin .md-extended[hidden] { @apply hidden; }
+  .admin .md-toolbar .md-mark { @apply rounded bg-amber-200 px-1 text-slate-900 dark:bg-amber-400/30 dark:text-slate-100; }
+  .admin .md-emoji { @apply absolute inset-x-1 top-full z-30 mt-1 grid grid-cols-[repeat(auto-fill,minmax(2.75rem,1fr))] gap-0.5 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-900; }
+  .admin .md-emoji[hidden] { @apply hidden; }
+  .admin .md-emoji button { @apply text-xl; }
   .admin textarea.md-joined, .admin .md-visual { @apply rounded-t-none; }
   .admin .md-visual { @apply min-h-[560px] overflow-x-auto rounded-b-[10px] border border-slate-500 bg-white px-5 py-4 font-normal text-[17px] leading-[1.75] focus:outline-2 focus:outline-slate-900 md:text-[17px] md:leading-[1.75] dark:border-slate-500 dark:bg-slate-950 dark:focus:outline-slate-300; }
   .admin .md-visual h1 { @apply text-3xl; }
@@ -178,15 +101,4 @@
   .admin [data-nav=collapsed] .nav-version { @apply md:hidden; }
   .admin [data-nav=collapsed] .nav-badge { @apply md:absolute md:top-0.5 md:right-0.5 md:px-1.5 md:text-[10px] md:leading-4; }
   .admin [data-nav=collapsed] .nav-toggle svg { @apply rotate-180; }
-}
-@layer components {
-  .search-snippet mark { @apply rounded bg-amber-200 px-0.5 text-inherit dark:bg-amber-400/30; }
-}
-@layer components {
-  .comment-body { @apply font-serif text-[17px] leading-relaxed text-slate-800 dark:text-slate-300; }
-  .comment-body > * + * { @apply mt-3; }
-  .comment-body a { @apply break-words text-orange-700 underline underline-offset-4 dark:text-orange-400; }
-  .comment-input { @apply min-h-11 min-w-0 rounded-[10px] border border-slate-400 bg-white px-3 py-2 text-base font-normal text-slate-900 focus:outline-2 focus:outline-orange-500 aria-[invalid=true]:border-red-600 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100; }
-  /* Honeypot: off-screen for people, still in the form for bots. */
-  .comment-trap { @apply absolute -start-[9999px] size-px overflow-hidden; }
 }

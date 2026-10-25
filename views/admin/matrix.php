@@ -98,7 +98,7 @@ if ($row['is_published'] && ($pageContent || ($row['published_at'] !== null && $
 }
 ?>
 <span class="flex items-center justify-end gap-3">
-<span class="whitespace-nowrap font-mono text-xs text-slate-500 dark:text-slate-400"><?= e(substr($row['updated_at'], 0, 10)) ?></span>
+<span class="whitespace-nowrap font-mono text-xs text-slate-500 dark:text-slate-400"><?= e(site_time($row['updated_at'], false)) ?></span>
 <?php if ($viewLocale !== null): ?>
 <a class="btn whitespace-nowrap" href="<?= e('/' . $viewLocale . ($pageContent ? '/' : '/posts/') . rawurlencode($row['slug'])) ?>" target="_blank" rel="noopener">View ↗<span class="sr-only"> <?= e($row['translations'][$viewLocale]['title'] ?? $row['slug']) ?> (opens in a new tab)</span></a>
 <?php else: ?>

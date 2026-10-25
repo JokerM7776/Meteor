@@ -155,9 +155,11 @@ for online updates — the application files. For photos allow `upload_max_files
   20 per page with page numbers. *View ↗* opens the public page. In the editor, pick the language
   from the menu next to Save; the slug is generated from the title when left empty; a post's
   cover is chosen from the media library.
-- **Dates:** Shared settings → *Publish date (UTC)* sets the date shown on a post (e.g. for posts
+- **Dates:** Shared settings → *Publish date* sets the date shown on a post (e.g. for posts
   moved from another blog); a future date schedules it. Left empty, it is set when the post is
-  first published. Pages have a *Date* too.
+  first published. Pages have a *Date* too. Settings → Site → *Date & time* picks the time zone
+  (used by the site and this field), the date format (e.g. `25 Oct 2026`, `Oct 25, 2026`,
+  `2026-10-25`, or each language's own style) and a 12- or 24-hour clock. Times are stored in UTC.
 - **Writing:** the editor has a **Visual** mode with a toolbar (headings, bold, italic, links,
   lists, quotes, code, images) and a **Markdown** mode that shows the `#`, `**`, `-` syntax. Both
   edit the same text; the toolbar works in either mode.
@@ -165,7 +167,9 @@ for online updates — the application files. For photos allow `upload_max_files
   [extended syntax](https://www.markdownguide.org/extended-syntax/) to a post or page: tables,
   footnotes `[^1]`, heading ids `## Title {#id}`, definition lists, task lists `- [x]`,
   `~~strikethrough~~`, `==highlight==`, `H~2~O`, `X^2^`, emoji shortcodes `:tada:`, automatic links
-  and `\` escapes. It applies to every language of that item. Visual mode shows this syntax as text.
+  and `\` escapes. It applies to every language of that item. While it is ticked, a second toolbar
+  row inserts strikethrough, highlight, sub- and superscript, task lists, tables, footnotes,
+  definition lists and emoji; Visual mode shows the first four formatted and the rest as text.
   To start every new post and page with it ticked, use Settings → Site → *Enable Extended Markdown*.
 - **Search:** a search icon in the header opens `/<language>/search`, which finds published posts
   and pages in that language (every word must match). No JavaScript: results load as a normal
@@ -295,7 +299,10 @@ credentials you just chose. Use `localhost` (not `127.0.0.1`) so passkeys work.
 | Run migrations | `php bin/migrate.php` |
 | Build a release zip | `php bin/package.php` → `dist/meteor-<version>.zip` |
 
-The compiled `public/assets/style.css` is committed, so servers never need Tailwind.
+The compiled `public/assets/public.css` and `public/assets/admin.css` are committed, so servers
+never need Tailwind. Public pages load only `public.css` (built from `src/public.css` +
+`src/base.css`); admin pages and the installer load only `admin.css`. Pages are sent gzipped when
+the browser accepts it, and `public/.htaccess` asks Apache to compress CSS and JavaScript.
 
 ## 10. Releases (GitHub Actions)
 

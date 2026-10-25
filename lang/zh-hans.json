@@ -25,6 +25,7 @@
         "scheme_dark": "深色",
         "announcements": "公告",
         "announcement_position": "第 {number} 条公告，共 {total} 条",
+        "back_to_top": "回到顶部",
         "read_in": "阅读语言",
         "feeds": "订阅",
         "language_rss": "{language} RSS 订阅",

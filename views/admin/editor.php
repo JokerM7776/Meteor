@@ -62,9 +62,9 @@ $saveButtons = function (string $extra) use ($state): string {
 <span id="slug-hint" class="text-sm font-normal text-slate-500 dark:text-slate-400">Leave empty to generate it from the <?= e($registry[$base]['name'] ?? $base) ?> title.</span>
 </div>
 <?php $stored = $page ? ($id ? $item['created_at'] : null) : ($item['published_at'] ?? null);
-$dateValue = array_key_exists('date', $values) ? (string) $values['date'] : ($stored ? str_replace(' ', 'T', substr((string) $stored, 0, 16)) : ''); ?>
+$dateValue = array_key_exists('date', $values) ? (string) $values['date'] : ($stored ? \Core\Dates::toInput((string) $stored) : ''); ?>
 <div class="field">
-<label for="date"><?= $page ? 'Date' : 'Publish date' ?> (UTC)</label>
+<label for="date"><?= $page ? 'Date' : 'Publish date' ?> (<?= e(str_replace('_', ' ', \Core\Dates::zone()->getName())) ?>)</label>
 <input id="date" type="datetime-local" name="date" step="60" value="<?= e($dateValue) ?>" aria-describedby="date-hint">
 <span id="date-hint" class="text-sm font-normal text-slate-500 dark:text-slate-400"><?= $page ? 'When the page was written. Leave empty for now.' : 'Shown on the post. Leave empty to use the moment it is first published; a future date schedules it.' ?></span>
 </div>
@@ -96,7 +96,7 @@ $fieldHint = 'Shown on cards and at the top of the post.'; $pickerTitle = 'Choos
 <div class="sm:col-span-2 lg:col-span-3">
 <label class="flex min-h-11 items-center gap-2">
 <input type="checkbox" name="markdown_extended" aria-describedby="extended-hint" <?= !empty($values['markdown_extended']) ? 'checked' : '' ?>>Extended Markdown</label>
-<p id="extended-hint" class="ms-7 text-sm text-slate-500 dark:text-slate-400">Adds tables, footnotes <code class="font-mono">[^1]</code>, task lists <code class="font-mono">- [x]</code>, <code class="font-mono">~~strikethrough~~</code>, <code class="font-mono">==highlight==</code>, H<code class="font-mono">~2~</code>O, X<code class="font-mono">^2^</code>, <code class="font-mono">:emoji:</code>, heading ids <code class="font-mono">{#id}</code>, definition lists, automatic links and <code class="font-mono">\</code> escapes. Visual mode shows this syntax as plain text. <a class="underline" href="https://www.markdownguide.org/extended-syntax/" target="_blank" rel="noopener">Syntax guide ↗<span class="sr-only"> (opens in a new tab)</span></a></p>
+<p id="extended-hint" class="ms-7 text-sm text-slate-500 dark:text-slate-400">Adds tables, footnotes <code class="font-mono">[^1]</code>, task lists <code class="font-mono">- [x]</code>, <code class="font-mono">~~strikethrough~~</code>, <code class="font-mono">==highlight==</code>, H<code class="font-mono">~2~</code>O, X<code class="font-mono">^2^</code>, <code class="font-mono">:emoji:</code>, heading ids <code class="font-mono">{#id}</code>, definition lists, automatic links and <code class="font-mono">\</code> escapes. The second toolbar row inserts it; Visual mode shows strikethrough, highlight, subscript and superscript formatted and the rest as plain text. <a class="underline" href="https://www.markdownguide.org/extended-syntax/" target="_blank" rel="noopener">Syntax guide ↗<span class="sr-only"> (opens in a new tab)</span></a></p>
 </div>
 </div>
 </details>
@@ -157,6 +157,18 @@ $fieldHint = 'Shown on cards and at the top of the post.'; $pickerTitle = 'Choos
 <button type="button" data-cmd="<?= e($command) ?>" title="<?= e($name) ?>" aria-label="<?= e($name) ?>" class="<?= $command === 'bold' ? 'font-bold' : ($command === 'italic' ? 'italic font-serif' : ($command === 'code' || $command === 'codeblock' ? 'font-mono' : '')) ?>"><?= e($text) ?></button>
 <?php endif ?>
 <?php endforeach ?>
+<?php // Second row: Extended Markdown, shown while that box is ticked. ?>
+<div class="md-extended" role="group" aria-label="Extended Markdown" data-extended-tools<?= empty($values['markdown_extended']) ? ' hidden' : '' ?>>
+<?php foreach ([['strike', 'S', 'Strikethrough', 'line-through'], ['mark', 'Highlight', 'Highlight', 'md-mark'], ['sub', 'X₂', 'Subscript', ''], ['sup', 'X²', 'Superscript', ''], null,
+    ['task', '☐ Task', 'Task list', ''], ['table', 'Table', 'Table', ''], ['footnote', 'Note¹', 'Footnote', ''], ['deflist', 'Term:', 'Definition list', '']] as $tool): ?>
+<?php if ($tool === null): ?><span class="md-sep" aria-hidden="true"></span><?php else: [$command, $text, $name, $class] = $tool; ?>
+<button type="button" data-cmd="<?= e($command) ?>" title="<?= e($name) ?>" aria-label="<?= e($name) ?>"<?= $class === 'line-through' ? ' class="line-through"' : '' ?>><?= $class === 'md-mark' ? '<span class="md-mark">' . e($text) . '</span>' : e($text) ?></button>
+<?php endif ?>
+<?php endforeach ?>
+<span class="md-sep" aria-hidden="true"></span>
+<button type="button" data-emoji-toggle aria-expanded="false" aria-controls="emoji-menu" title="Emoji" aria-label="Emoji">☺</button>
+<div id="emoji-menu" class="md-emoji" role="group" aria-label="Emoji" data-emoji-menu hidden><?php foreach (array_slice(\Core\Emoji::CODES, 0, 48, true) as $code => $emoji): ?><button type="button" data-emoji="<?= e($emoji) ?>" title=":<?= e($code) ?>:" aria-label="<?= e(str_replace('_', ' ', $code)) ?>"><?= e($emoji) ?></button><?php endforeach ?></div>
+</div>
 </div>
 <div class="md-visual prose-meteor" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="content-label" spellcheck="true" data-visual hidden></div>
 <textarea id="content-md" name="content_md" class="min-h-[560px] font-mono text-sm leading-7" rows="22" spellcheck="false">
@@ -176,7 +188,7 @@ $fieldHint = 'Shown on cards and at the top of the post.'; $pickerTitle = 'Choos
 <div class="editor-bottom sticky bottom-0 z-30 flex flex-wrap items-center justify-between gap-x-6 gap-y-2" role="region" aria-label="Save status">
 <p class="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
 <span class="status-chip <?= $state === 'published' ? 'bg-slate-900 text-white dark:bg-slate-700' : ($state === 'draft' ? 'bg-amber-100 text-amber-950' : 'border border-dashed border-slate-500 text-slate-700 dark:text-slate-300') ?>"><?= e($state === 'published' ? '✓ Published' : ($state === 'draft' ? '◐ Draft' : 'Not saved yet')) ?><span class="sr-only"> · <?= e($registry[$locale]['name']) ?></span></span>
-<span class="text-slate-600 dark:text-slate-400" data-save-state data-saved="<?= $savedAt && !$error ? '1' : '0' ?>" aria-live="polite"><?= $error ? 'Not saved: fix the problem above.' : ($savedAt ? 'Saved ' . e(substr((string) $savedAt, 0, 16)) . ' UTC' : 'Not saved yet') ?></span>
+<span class="text-slate-600 dark:text-slate-400" data-save-state data-saved="<?= $savedAt && !$error ? '1' : '0' ?>" aria-live="polite"><?= $error ? 'Not saved: fix the problem above.' : ($savedAt ? 'Saved ' . e(site_time((string) $savedAt)) : 'Not saved yet') ?></span>
 <span class="hidden text-xs text-slate-600 lg:inline dark:text-slate-400"><kbd class="font-mono">Ctrl</kbd>+<kbd class="font-mono">S</kbd> <?= $state === 'published' ? 'updates' : 'saves a draft' ?></span>
 </p>
 <div class="flex items-center gap-3">

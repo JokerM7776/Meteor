@@ -11,7 +11,7 @@ use Core\{Database, LanguagePack};
 final class UiStrings
 {
     public const GROUPS = [
-        'Layout & navigation' => ['skip_content', 'site_name', 'menu', 'language', 'home', 'posts', 'tags', 'about', 'rss', 'sitemap', 'site', 'opens_new_tab', 'breadcrumb', 'pagination', 'color_scheme', 'scheme_auto', 'scheme_light', 'scheme_dark', 'announcements', 'announcement_position'],
+        'Layout & navigation' => ['skip_content', 'site_name', 'menu', 'language', 'home', 'posts', 'tags', 'about', 'rss', 'sitemap', 'site', 'opens_new_tab', 'breadcrumb', 'pagination', 'color_scheme', 'scheme_auto', 'scheme_light', 'scheme_dark', 'announcements', 'announcement_position', 'back_to_top'],
         'Footer' => ['read_in', 'feeds', 'language_rss'],
         'Home' => ['pinned', 'latest', 'view_all_posts', 'read_archive', 'empty_posts', 'browse_categories', 'about_author', 'read', 'also_available', 'more_languages', 'list_two', 'list_many'],
         'Articles & pages' => ['published', 'reading_minutes', 'on_this_page', 'translation', 'available_translations', 'category', 'more_posts', 'previous', 'next', 'footnotes', 'footnote_back'],

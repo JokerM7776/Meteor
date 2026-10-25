@@ -56,7 +56,7 @@ try {
     }
     require dirname(__DIR__) . '/app/routes.php';
     $body = $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);
-    if ($_SERVER['REQUEST_METHOD'] !== 'HEAD') { echo $body; }
+    if ($_SERVER['REQUEST_METHOD'] !== 'HEAD') { echo compressed($body); }
 } catch (Throwable $error) {
     error_log((string) $error);
     http_response_code(503);
