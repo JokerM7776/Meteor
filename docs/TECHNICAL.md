@@ -124,7 +124,7 @@ path, never by public requests.
 
 ```sh
 php tests/run.php
-find . -name '*.php' -not -path './design/*' -print0 | xargs -0 -n1 php -l
+find . -name '*.php' -print0 | xargs -0 -n1 php -l
 bin/build-css.sh
 ```
 

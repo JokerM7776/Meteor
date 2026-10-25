@@ -14,7 +14,6 @@
 
 # Build output and tooling
 /dist/
-/.codex-runs/
 
 # Editor and OS files
 .DS_Store

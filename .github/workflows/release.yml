@@ -25,7 +25,7 @@ jobs:
         run: sudo apt-get install -y php8.3-cgi
       - name: Lint and test
         run: |
-          find . -name '*.php' -not -path './design/*' -print0 | xargs -0 -n1 php -l
+          find . -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/run.php
       - name: Update language index
         # lang/index.json is the catalog sites download from; contributors don't need to edit it.

@@ -290,7 +290,7 @@ credentials you just chose. Use `localhost` (not `127.0.0.1`) so passkeys work.
 | Task | Command |
 |---|---|
 | Run tests | `php tests/run.php` |
-| Lint PHP | `find . -name '*.php' -not -path './design/*' -print0 \| xargs -0 -n1 php -l` |
+| Lint PHP | `find . -name '*.php' -print0 \| xargs -0 -n1 php -l` |
 | Rebuild CSS | `bin/build-css.sh` (needs the [Tailwind v4 standalone CLI](https://tailwindcss.com/blog/standalone-cli), e.g. `brew install tailwindcss`) |
 | Run migrations | `php bin/migrate.php` |
 | Build a release zip | `php bin/package.php` → `dist/meteor-<version>.zip` |
@@ -322,8 +322,8 @@ bin/        install, seed, migrate, update, package, reset-password, sign-out, c
 public/     web root: index.php, assets, uploads
 config/     config.php, .env.example
 storage/    runtime data (database, logs, backups) — not in git
+docs/       TECHNICAL.md: architecture, security model, update internals
 tests/      php tests/run.php
-design/     design mockups (reference only)
 ```
 
 ## License

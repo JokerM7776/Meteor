@@ -58,10 +58,19 @@ are added switched Off, and a site's own text edits are always kept.
 
 ## Code changes
 
-Read [`AGENTS.md`](AGENTS.md) for the architecture and rules: no frameworks or packages, no
-JavaScript on public pages, and prepared statements everywhere. Before opening a pull request, run:
+[`docs/TECHNICAL.md`](docs/TECHNICAL.md) explains the architecture. The rules:
+
+- No frameworks, no Composer and no npm. Standard PHP extensions only.
+- Public pages ship no `<script>` tags; the admin may load `/assets/admin.js` only.
+- Escape every dynamic value with `e()`, and use prepared statements for every query with input.
+- Every POST form and admin JSON request carries the CSRF token.
+- SQL must work on MariaDB/MySQL and SQLite; update both files in `database/`.
+- Code that runs right after an online update (migrations, language sync) may only call methods
+  the previous release already had. `tests/UpgradeTest.php` checks this.
+
+Before opening a pull request, run:
 
 ```sh
 php tests/run.php
-find . -name '*.php' -not -path './design/*' -print0 | xargs -0 -n1 php -l
+find . -name '*.php' -print0 | xargs -0 -n1 php -l
 ```
