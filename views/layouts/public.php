@@ -13,6 +13,14 @@
 <meta property="og:description" content="<?= e($description) ?>">
 <meta property="og:type" content="<?= isset($item) && !$isPage ? 'article' : 'website' ?>">
 <meta property="og:site_name" content="<?= e($settings->label('site_title')) ?>">
+<?php if (!empty($shareImage)): ?><meta property="og:image" content="<?= e($shareImage['url']) ?>">
+<?php if ($shareImage['type'] !== ''): ?><meta property="og:image:type" content="<?= e($shareImage['type']) ?>">
+<?php endif ?><?php if ($shareImage['width'] > 0 && $shareImage['height'] > 0): ?><meta property="og:image:width" content="<?= e($shareImage['width']) ?>">
+<meta property="og:image:height" content="<?= e($shareImage['height']) ?>">
+<?php endif ?><?php if ($shareImage['alt'] !== ''): ?><meta property="og:image:alt" content="<?= e($shareImage['alt']) ?>">
+<?php endif ?><meta name="twitter:card" content="summary_large_image">
+<?php else: ?><meta name="twitter:card" content="summary">
+<?php endif ?>
 <?php foreach ($alternates as $code => $href): ?><link rel="alternate" hreflang="<?= e($code) ?>" href="<?= e(absolute_url($href)) ?>"><?php endforeach ?>
 <?php if (!$preview): ?><link rel="alternate" type="application/rss+xml" title="<?= e(__('rss')) ?>" href="<?= e('/' . $locale . '/rss.xml') ?>"><?php endif ?>
 <?php if (!empty($webmention)): ?><link rel="webmention" href="<?= e($webmention) ?>">

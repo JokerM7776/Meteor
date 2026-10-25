@@ -55,6 +55,7 @@ final class SiteController
             'locale' => $locale, 'registry' => $this->i18n->registry(), 'preview' => $preview,
             'headerLinks' => $this->menus->links('header', $menu), 'footerLinks' => $this->menus->links('footer', $menu),
             'live' => $this->i18n->enabledLocales(), 'switcher' => $switcher,
+            'shareImage' => $status === 200 ? \App\Services\ShareImage::pick($this->db, $this->settings, $data['item']['cover_image'] ?? null) : null,
             'announcements' => $status === 200 ? $this->announcements->live($locale) : [],
             'alternates' => $preview || $status !== 200 ? [] : $alternates,
             'canonical' => $status === 200 ? '/' . $locale . $suffix : null,

@@ -81,7 +81,7 @@ $dateValue = array_key_exists('date', $values) ? (string) $values['date'] : ($st
 <label class="field">Tags · comma separated<input name="tags" value="<?= e($values['tags'] ?? '') ?>">
 </label>
 <?php $fieldName = 'cover_image'; $fieldValue = (string) ($values['cover_image'] ?? ''); $fieldLabel = 'Cover'; $emptyText = 'No cover';
-$fieldHint = 'Shown on cards and at the top of the post.'; $pickerTitle = 'Choose cover'; $pickerAction = 'Use as cover'; require __DIR__ . '/media-field.php'; ?>
+$fieldHint = 'Shown on cards, at the top of the post and when the post is shared. 2400 × 1200 px works best; keep the subject in the middle.'; $pickerTitle = 'Choose cover'; $pickerAction = 'Use as cover'; require __DIR__ . '/media-field.php'; ?>
 <label class="flex min-h-11 items-center gap-2">
 <input type="checkbox" name="is_pinned" <?= !empty($values['is_pinned']) ? 'checked' : '' ?>>Pinned</label>
 <?php else: ?>

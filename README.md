@@ -171,6 +171,10 @@ for online updates — the application files. For photos allow `upload_max_files
   row inserts strikethrough, highlight, sub- and superscript, task lists, tables, footnotes,
   definition lists and emoji; Visual mode shows the first four formatted and the rest as text.
   To start every new post and page with it ticked, use Settings → Site → *Enable Extended Markdown*.
+- **Social sharing:** links shared on social media or in chat apps show the post's cover
+  (Open Graph and Twitter card tags; a 2:1 cover around 2400 × 1200 px works best). Settings →
+  Site → *Social sharing* sets a default image (1200 × 630 px) and whether to use it for posts
+  without a cover and for every other page.
 - **Search:** a search icon in the header opens `/<language>/search`, which finds published posts
   and pages in that language (every word must match). No JavaScript: results load as a normal
   page. Turn it off under Header & footer → *Show search*.

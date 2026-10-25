@@ -34,10 +34,12 @@ final class AdminSettings
         if (array_key_exists('date_format', $input) && !isset(\Core\Dates::FORMATS[(string) $input['date_format']])) { throw new \InvalidArgumentException('Choose a date format from the list.'); }
         if (array_key_exists('time_format', $input) && !in_array($input['time_format'], ['12', '24'], true)) { throw new \InvalidArgumentException('Choose a 12- or 24-hour clock.'); }
         if (array_key_exists('timezone', $input) && !\Core\Dates::validZone((string) $input['timezone'])) { throw new \InvalidArgumentException('Choose a time zone from the list.'); }
+        $shareCurrent = $this->db->one('SELECT value FROM settings WHERE `key` = ? AND locale_scope = ?', ['share_image', ''])['value'] ?? '';
+        $share = array_key_exists('share_image', $input) ? ShareImage::choose($this->db, is_string($input['share_image']) ? $input['share_image'] : '', $shareCurrent) : $shareCurrent;
         $globals = array_column($this->db->all('SELECT `key`, value FROM settings WHERE locale_scope = ?', ['']), 'value', 'key');
         $current = $globals['site_icon'] ?? '';
         $icon = array_key_exists('site_icon', $input) ? SiteIcon::choose($this->db, is_string($input['site_icon']) ? $input['site_icon'] : '', $current) : $current;
-        $this->db->transaction(function () use ($input, $text, $icon, $current) {
+        $this->db->transaction(function () use ($input, $text, $icon, $current, $share, $shareCurrent) {
             if ($icon !== $current) {
                 $this->db->query('DELETE FROM settings WHERE `key` = ? AND locale_scope = ?', ['site_icon', '']);
                 if ($icon !== '') { $this->db->upsert('settings', ['key' => 'site_icon', 'locale' => null, 'value' => $icon], ['key', 'locale_scope']); }
@@ -51,6 +53,13 @@ final class AdminSettings
             }
             if (array_key_exists('markdown_extended_default', $input)) {
                 $this->db->upsert('settings', ['key' => 'markdown_extended_default', 'locale' => null, 'value' => $input['markdown_extended_default'] === '1' ? '1' : '0'], ['key', 'locale_scope']);
+            }
+            if ($share !== $shareCurrent) {
+                $this->db->query('DELETE FROM settings WHERE `key` = ? AND locale_scope = ?', ['share_image', '']);
+                if ($share !== '') { $this->db->upsert('settings', ['key' => 'share_image', 'locale' => null, 'value' => $share], ['key', 'locale_scope']); }
+            }
+            if (array_key_exists('share_image_default', $input)) {
+                $this->db->upsert('settings', ['key' => 'share_image_default', 'locale' => null, 'value' => $input['share_image_default'] === '1' ? '1' : '0'], ['key', 'locale_scope']);
             }
             foreach (['date_format', 'time_format', 'timezone'] as $key) {
                 if (array_key_exists($key, $input)) { $this->db->upsert('settings', ['key' => $key, 'locale' => null, 'value' => (string) $input[$key]], ['key', 'locale_scope']); }

@@ -33,6 +33,18 @@ $fieldHint = 'Square, at least 180 × 180 px. PNG, JPG or WebP work best. Remove
 $pickerTitle = 'Choose site icon'; $pickerAction = 'Use as site icon'; require __DIR__ . '/media-field.php'; ?>
 <p class="text-sm text-slate-500 dark:text-slate-400">Header and footer items are on <a class="text-orange-700 underline dark:text-orange-400" href="/admin/menus">Header &amp; footer</a>.</p>
 </section>
+<?php $shareValue = (string) ($old['share_image'] ?? ($db->one('SELECT value FROM settings WHERE `key` = ? AND locale_scope = ?', ['share_image', ''])['value'] ?? ''));
+$shareDefault = (string) ($old['share_image_default'] ?? ($db->one('SELECT value FROM settings WHERE `key` = ? AND locale_scope = ?', ['share_image_default', ''])['value'] ?? '0')); ?>
+<section class="panel space-y-4" aria-labelledby="share-heading">
+<h2 id="share-heading" class="text-xl font-bold">Social sharing · all languages</h2>
+<p class="max-w-3xl text-sm text-slate-500 dark:text-slate-400">The picture shown when a link to your site is shared on social media or in chat apps. A post with a cover always uses its cover.</p>
+<?php $fieldName = 'share_image'; $fieldValue = $shareValue; $fieldLabel = 'Default share image'; $emptyText = 'None';
+$fieldHint = '1200 × 630 px works best (PNG, JPG or WebP). Keep text and logos away from the edges; some apps crop it to a square.';
+$pickerTitle = 'Choose share image'; $pickerAction = 'Use as share image'; require __DIR__ . '/media-field.php'; ?>
+<input type="hidden" name="share_image_default" value="0">
+<label class="flex min-h-11 items-center gap-3"><input type="checkbox" name="share_image_default" value="1" aria-describedby="share-default-hint" <?= $shareDefault === '1' ? 'checked' : '' ?>>Use it for posts without a cover and for every other page</label>
+<p id="share-default-hint" class="-mt-2 max-w-3xl text-sm text-slate-500 dark:text-slate-400">Home, archive, categories, tags, pages and search. Untick to share those links without a picture.</p>
+</section>
 <section class="panel space-y-3" aria-labelledby="writing-heading">
 <h2 id="writing-heading" class="text-xl font-bold">Writing</h2>
 <?php $extendedDefault = (string) ($old['markdown_extended_default'] ?? ($db->one('SELECT value FROM settings WHERE `key` = ? AND locale_scope = ?', ['markdown_extended_default', ''])['value'] ?? '0')); ?>
@@ -50,7 +62,7 @@ $zones = []; foreach (\DateTimeZone::listIdentifiers() as $id) { $zones[str_cont
 <?php foreach (\Core\Dates::FORMATS as $pattern => $label): ?><option value="<?= e($pattern) ?>" <?= $pattern === $dateFormat ? 'selected' : '' ?>><?= e($label) ?> — <?= e(\Core\Dates::date($now, 'en', $pattern)) ?></option><?php endforeach ?>
 </select><span id="date-format-hint" class="text-sm font-normal text-slate-500 dark:text-slate-400">Month names follow each language. “Each language’s own style” shows, for example, 2026年10月25日 in Chinese.</span></label>
 <fieldset class="field"><legend class="mb-2">Time</legend>
-<?php foreach (['24' => '24-hour', '12' => '12-hour'] as $value => $label): $value = (string) $value; // array keys arrive as integers ?><label class="flex min-h-11 items-center gap-3 font-normal"><input type="radio" name="time_format" value="<?= $value ?>" <?= $clock === $value ? 'checked' : '' ?>><?= $label ?> <span class="font-mono text-sm text-slate-500 dark:text-slate-400"><?= e(\Core\Dates::date('2026-01-01 14:30:00', 'en', $value === '12' ? 'h:mm a' : 'HH:mm')) ?></span></label><?php endforeach ?>
+<?php foreach (['24' => '24-hour', '12' => '12-hour'] as $value => $label): $value = (string) $value; // array keys arrive as integers ?><label class="flex min-h-11 items-center gap-3 font-normal"><input type="radio" name="time_format" value="<?= $value ?>" <?= $clock === $value ? 'checked' : '' ?>><?= $label ?> <span class="font-mono text-sm text-slate-500 dark:text-slate-400"><?= $value === '12' ? '2:30 PM' : '14:30' ?></span></label><?php endforeach ?>
 </fieldset>
 <label class="field">Time zone<select name="timezone" aria-describedby="timezone-hint">
 <option value="UTC" <?= $zone === 'UTC' ? 'selected' : '' ?>>UTC</option>
