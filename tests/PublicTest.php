@@ -250,3 +250,15 @@ test('Public: optional author card ends posts as the h-entry p-author h-card', f
     $author->save(['text' => [], 'author_links' => '', 'post_author_card' => '0']);
     ok(!str_contains($post(), 'p-author')); ok(!str_contains($post(), '<script'));
 });
+test('Public: post cards show a Read link and the other languages as text', function () {
+    $app = publicApp();
+    $rows = array_map(fn ($c) => ['code' => $c, 'native_name' => strtoupper($c) . '<'], ['a', 'b', 'c', 'd', 'e']);
+    same('<span lang="a">A&lt;</span>', language_list(array_slice($rows, 0, 1)));
+    same('<span lang="a">A&lt;</span> and <span lang="b">B&lt;</span>', language_list(array_slice($rows, 0, 2)));
+    same('<span lang="a">A&lt;</span>, <span lang="b">B&lt;</span> and <span lang="c">C&lt;</span>', language_list(array_slice($rows, 0, 3)));
+    same('<span lang="a">A&lt;</span>, <span lang="b">B&lt;</span> and 3 more languages', language_list($rows));
+    $html = publicRequest($app, '/en/');
+    contains('Also available in <span lang="zh-hans">简体中文</span>', $html);
+    contains('Read<span class="sr-only">: ', $html);
+    ok(!str_contains($html, 'href="/zh-hans/posts/'));
+});

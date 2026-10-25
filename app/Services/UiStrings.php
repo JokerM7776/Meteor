@@ -13,7 +13,7 @@ final class UiStrings
     public const GROUPS = [
         'Layout & navigation' => ['skip_content', 'site_name', 'menu', 'language', 'home', 'posts', 'tags', 'about', 'rss', 'sitemap', 'site', 'opens_new_tab', 'breadcrumb', 'pagination', 'color_scheme', 'scheme_auto', 'scheme_light', 'scheme_dark', 'announcements', 'announcement_position'],
         'Footer' => ['read_in', 'feeds', 'language_rss'],
-        'Home' => ['pinned', 'latest', 'view_all_posts', 'read_archive', 'empty_posts', 'browse_categories', 'about_author'],
+        'Home' => ['pinned', 'latest', 'view_all_posts', 'read_archive', 'empty_posts', 'browse_categories', 'about_author', 'read', 'also_available', 'more_languages', 'list_two', 'list_many'],
         'Articles & pages' => ['published', 'reading_minutes', 'on_this_page', 'translation', 'available_translations', 'category', 'more_posts', 'previous', 'next', 'footnotes', 'footnote_back'],
         'Search' => ['search', 'search_label', 'search_button', 'search_results', 'search_empty', 'search_hint'],
         'Comments' => ['comments', 'mentions', 'comment_leave', 'comment_name', 'comment_email', 'comment_website', 'comment_text', 'comment_submit', 'comment_reply', 'comment_replying', 'comment_cancel_reply', 'comment_pending', 'comment_published', 'comment_owner', 'comment_via', 'comment_error_name', 'comment_error_text', 'comment_error_email', 'comment_error_url', 'comment_error_rate', 'comment_error_check', 'comment_error_expired', 'comment_check_title', 'comment_check_text', 'comment_check_noscript', 'comments_closed', 'mention_like', 'mention_repost', 'mention_bookmark', 'mention_mention', 'back_to_post'],

@@ -37,6 +37,11 @@ return [
     'empty_posts' => 'No posts yet.',
     'browse_categories' => 'Browse by category',
     'about_author' => 'About the author',
+    'read' => 'Read',
+    'also_available' => 'Also available in {languages}',
+    'more_languages' => '{count} more languages',
+    'list_two' => '{first} and {second}',
+    'list_many' => '{first}, {rest}',
     // Articles & pages
     'published' => 'Published',
     'reading_minutes' => '{minutes} min read',

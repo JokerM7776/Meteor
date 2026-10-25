@@ -22,15 +22,15 @@ if ($section === 'intro'): ?>
 <div class="flex flex-wrap items-center gap-2 font-mono text-xs text-slate-600 dark:text-slate-400"><?php if ($post['category_name']): ?><a class="accent inline-flex min-h-11 min-w-11 items-center uppercase" href="<?= e('/' . $locale . '/categories/' . rawurlencode($post['category_slug'])) ?>"><?= e($post['category_name']) ?></a><span aria-hidden="true">·</span><?php endif ?><time datetime="<?= e($post['published_at']) ?>"><?= e(localized_date($post['published_at'])) ?></time><span aria-hidden="true">·</span><span><?= e(__('reading_minutes', ['minutes' => $post['reading_minutes']])) ?></span></div>
 <h3 class="text-2xl leading-[1.15] font-bold tracking-tight md:text-[28px]"><a class="-my-2 inline-block py-2" href="<?= e($postUrl($post)) ?>"><?= e($post['title']) ?></a></h3>
 <?php if ($post['summary'] !== ''): ?><p class="font-serif text-lg leading-relaxed text-slate-700 dark:text-slate-300"><?= e($post['summary']) ?></p><?php endif ?>
-<div class="mt-auto"><?php require __DIR__ . '/../partials/badges.php' ?></div></article><?php endforeach ?>
+<div class="mt-auto"><?php $readButton = true; require __DIR__ . '/../partials/read-link.php' ?></div></article><?php endforeach ?>
 </div></section>
 <?php elseif ($section === 'latest'): ?>
 <section aria-labelledby="latest" class="mx-auto max-w-[1120px] px-4 pt-10 pb-6 md:px-6 md:pt-14">
 <div class="mb-2 flex items-baseline justify-between gap-4 md:mb-4"><h2 id="latest" class="eyebrow"><?= e(__('latest')) ?></h2><?php if ($hasPosts): ?><a class="accent inline-flex min-h-11 items-center font-semibold" href="<?= e('/' . $locale . '/posts') ?>"><?= e(__('view_all_posts')) ?> →</a><?php endif ?></div>
 <?php foreach ($latest as $post): ?><article class="flex flex-wrap gap-x-8 gap-y-1.5 border-t border-slate-200 py-5 md:py-6 dark:border-slate-800">
 <time class="w-full pt-1.5 font-mono text-xs text-slate-600 md:w-30 dark:text-slate-400" datetime="<?= e($post['published_at']) ?>"><?= e(localized_date($post['published_at'])) ?></time>
-<div class="min-w-0 flex-[999_1_420px]"><h3 class="text-xl font-semibold tracking-tight md:mb-1.5 md:text-[22px]"><a class="-my-2 inline-block py-2" href="<?= e($postUrl($post)) ?>"><?= e($post['title']) ?></a></h3><?php if ($post['summary'] !== ''): ?><p class="font-serif text-[17px] text-slate-600 dark:text-slate-400"><?= e($post['summary']) ?></p><?php endif ?></div>
-<div class="hidden md:block"><?php require __DIR__ . '/../partials/badges.php' ?></div></article><?php endforeach ?>
+<div class="min-w-0 flex-[999_1_420px]"><h3 class="text-xl font-semibold tracking-tight md:mb-1.5 md:text-[22px]"><a class="-my-2 inline-block py-2" href="<?= e($postUrl($post)) ?>"><?= e($post['title']) ?></a></h3><?php if ($post['summary'] !== ''): ?><p class="font-serif text-[17px] text-slate-600 dark:text-slate-400"><?= e($post['summary']) ?></p><?php endif ?>
+<div class="mt-1"><?php $readButton = false; require __DIR__ . '/../partials/read-link.php' ?></div></div></article><?php endforeach ?>
 <?php if (!$latest): ?><p class="border-t border-slate-200 py-6 text-slate-600 dark:border-slate-800 dark:text-slate-400"><?= e(__('empty_posts')) ?></p><?php endif ?>
 </section>
 <?php elseif ($section === 'categories' && $categories): ?>

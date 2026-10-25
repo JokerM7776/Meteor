@@ -57,3 +57,19 @@ function security_policy(string $scripts, string $frames = ''): string
     return "default-src 'self'; script-src $scripts; " . ($frames !== '' ? "frame-src $frames; " : '')
         . "style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https:; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 }
+
+/**
+ * Language names joined as HTML ("A, B and C"), each escaped and marked with its lang. Past $max
+ * names, the rest become one "N more languages" item. $locales: rows with code and native_name.
+ */
+function language_list(array $locales, int $max = 3): string
+{
+    $items = array_map(fn (array $l) => '<span lang="' . e($l['code']) . '">' . e($l['native_name']) . '</span>', $locales);
+    if (count($items) > $max) {
+        $items = [...array_slice($items, 0, $max - 1), e(__('more_languages', ['count' => count($items) - $max + 1]))];
+    }
+    $list = (string) array_pop($items);
+    if ($items) { $list = strtr(e(__('list_two')), ['{first}' => array_pop($items), '{second}' => $list]); }
+    while ($items) { $list = strtr(e(__('list_many')), ['{first}' => array_pop($items), '{rest}' => $list]); }
+    return $list;
+}
