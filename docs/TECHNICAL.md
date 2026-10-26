@@ -118,6 +118,7 @@ path, never by public requests.
 - `Session::login` regenerates the session ID after verified credentials. Password and passkey authentication both use it; session versions are verified on every request.
 - *Keep me signed in* (`Core\Remember`): the cookie `<SESSION_NAME>_remember` (HttpOnly, SameSite=Lax, Secure on HTTPS, 30 days) holds `selector:secret`; `remember_tokens` stores the selector, the SHA-256 of the secret, the user's `session_version`, the user agent and the last use. When no session is signed in, `bootstrap.php` signs in from the cookie. A wrong secret deletes the row; a changed `session_version` (new password, *Sign out everywhere else*, `bin/sign-out.php`, `bin/reset-password.php`) makes every row useless. A session started from a row keeps `remember_id`, and `Auth::user()` ends it when the row is gone (device signed out on the Security page).
 - CAPTCHA (`App\Services\CaptchaSettings`, `Core\Captcha`): keys for Cloudflare Turnstile and Google reCAPTCHA v2 are stored side by side; `captcha_provider` picks the one used for both the sign-in page (`turnstile_enabled`, a name kept from older versions) and comments (`comments_captcha`). Older sites without `captcha_provider` fall back to `comments_captcha_provider`. `CAPTCHA=off` (or `TURNSTILE=off`) in `.env` skips the sign-in check only. Turning the sign-in check on verifies the secret with a dummy token (`invalid-input-secret`).
+- Secret sign-in address (`App\Services\LoginPath`, setting `login_path`, empty by default): when set, `/<login_path>` serves the sign-in form and records `login_gate` in the session, which opens the two passkey sign-in endpoints. For signed-out visitors without that mark, `bootstrap.php` sets `$adminRequest` to false before any session starts, so `/admin/*` gets the public router's 404 page with public headers and no cookie, the same as any missing URL. Paths are 8–64 of `[a-z0-9_-]`, must not look like a language code or match a file in `public/`. `bin/login-path.php` shows, sets or clears it.
   Admin forms use `csrf_token`; JSON endpoints require `X-CSRF-Token`. Invalid tokens return HTTP 403.
 
 ## Checks
@@ -140,7 +141,7 @@ DB environment as the application. This idempotently adds translation publicatio
 timestamps and backfills published translations. Fresh installations already include
 the columns. Migrations also normalize usernames to lowercase; passwords and article content are preserved.
 
-Open `/admin/login`. Password sign-in is limited to five failed attempts per
+Open `/admin/login` (or the secret sign-in address set on the Security page). Password sign-in is limited to five failed attempts per
 IP and username in fifteen minutes. Passkeys require HTTPS (localhost also works),
 `APP_URL` set to the exact origin, and `WEBAUTHN_RP_ID` set to its hostname without
 scheme or port. Use Security to add, name, rename or remove passkeys. Passwords remain

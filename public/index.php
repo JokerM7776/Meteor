@@ -12,16 +12,17 @@ if (PHP_SAPI === 'cli-server') {
 }
 $adminRequest = preg_match('~^/admin(?:/|$)~', rawurldecode((string) parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH))) === 1;
 require_once dirname(__DIR__) . '/core/helpers.php';
-header('Content-Security-Policy: ' . security_policy($adminRequest ? "'self'" : "'none'"));
+$adminHeaders = static function (bool $admin): void {
+    header('Content-Security-Policy: ' . security_policy($admin ? "'self'" : "'none'"));
+    if ($admin) { header('Cache-Control: no-store'); header('X-Robots-Tag: noindex, nofollow'); }
+    else { header_remove('X-Robots-Tag'); }
+};
+$adminHeaders($adminRequest);
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Cross-Origin-Opener-Policy: same-origin');
 header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()');
 header('Content-Type: text/html; charset=UTF-8');
-if ($adminRequest) {
-    header('Cache-Control: no-store');
-    header('X-Robots-Tag: noindex, nofollow');
-}
 try {
     require_once dirname(__DIR__) . '/core/autoload.php';
     $root = dirname(__DIR__);
@@ -48,11 +49,12 @@ try {
         exit;
     }
     $app = require dirname(__DIR__) . '/bootstrap.php';
+    // Bootstrap may turn a hidden /admin request into a public one, or the secret sign-in path into an admin one.
+    $adminHeaders($adminRequest);
     header('Cache-Control: ' . ($adminRequest ? 'no-store' : ($isAdmin ? 'private, no-store' : 'public, max-age=300')));
-    if ($adminRequest) { header('X-Robots-Tag: noindex, nofollow'); }
-    else { header('Vary: Cookie', false); }
-    if ($adminRequest && !$isAdmin && !in_array(rawurldecode((string) parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)), ['/admin/login', '/admin/passkey/login/options', '/admin/passkey/login/verify'], true)) {
-        header('Location: /admin/login', true, 302); exit;
+    if (!$adminRequest) { header('Vary: Cookie', false); }
+    if ($adminRequest && !$isAdmin && !$loginPage && !in_array($requestPath, [App\Services\LoginPath::DEFAULT_URL, ...App\Services\LoginPath::PASSKEY], true)) {
+        header('Location: ' . App\Services\LoginPath::DEFAULT_URL, true, 302); exit;
     }
     require dirname(__DIR__) . '/app/routes.php';
     $body = $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);

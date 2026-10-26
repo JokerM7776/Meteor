@@ -42,6 +42,34 @@
 </div>
 </form>
 </div>
+<?php $loginForm = ($old['action'] ?? '') === 'login_path' ? $old : []; ?>
+<form class="panel flex flex-col gap-4" method="post" action="/admin/security" aria-labelledby="login-path-heading">
+<?= \Core\Csrf::field() ?>
+<input type="hidden" name="action" value="login_path">
+<input type="hidden" name="username" value="<?= e($user['username']) ?>" autocomplete="username">
+<div class="flex flex-wrap items-center justify-between gap-2">
+<h2 id="login-path-heading" class="text-xl font-bold">Sign-in address</h2>
+<?php if ($loginPath !== ''): ?><span class="status-chip bg-slate-900 text-white dark:bg-slate-700">Hidden · /<?= e($loginPath) ?></span>
+<?php else: ?><span class="status-chip border border-dashed border-slate-400 text-slate-600 dark:text-slate-300">Default · /admin/login</span><?php endif ?>
+</div>
+<p class="max-w-4xl text-sm text-slate-600 dark:text-slate-400">Move the sign-in page to an address only you know. While one is set, signed-out visitors to any /admin page get the site’s ordinary “page not found” page, so bots can’t find the sign-in form. Useful when CAPTCHA isn’t set up.</p>
+<div class="grid gap-4 sm:grid-cols-2">
+<div class="field">
+<label for="login-path">Sign-in address</label>
+<div class="flex items-center gap-1">
+<span class="shrink-0 font-mono text-sm font-normal text-slate-500 dark:text-slate-400"><?= e($siteUrl ?? '') ?>/</span>
+<input id="login-path" name="login_path" maxlength="64" class="min-w-0 flex-1 font-mono" value="<?= e($loginForm['login_path'] ?? $loginPath) ?>" placeholder="<?= e(\App\Services\LoginPath::suggestion()) ?>" aria-describedby="login-path-hint" spellcheck="false" autocomplete="off" autocapitalize="none">
+</div>
+<span id="login-path-hint" class="text-sm font-normal text-slate-500 dark:text-slate-400">8–64 letters, digits, hyphens or underscores. Leave empty to use /admin/login.</span>
+</div>
+<label class="field">Current password<input type="password" name="current_password" autocomplete="current-password" required>
+</label>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-400">Bookmark the new address before you sign out. Forgot it? On the server, <code class="font-mono">php bin/login-path.php</code> shows it and <code class="font-mono">php bin/login-path.php --clear</code> moves sign-in back to /admin/login.</p>
+<div class="flex justify-end">
+<button class="btn">Save sign-in address</button>
+</div>
+</form>
 <?php
 $captchaKeys = $captcha->values(); $form = ($old['action'] ?? '') === 'captcha' ? $old : [];
 $provider = $form['captcha_provider'] ?? $captchaKeys['captcha_provider'];

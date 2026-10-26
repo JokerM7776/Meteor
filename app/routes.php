@@ -27,7 +27,11 @@ $router->add('GET', '~^/search$~', fn ($p, $l) => $site->search($l), true);
 $router->add('GET', '~^/posts/(?P<slug>[^/]+)$~u', fn ($p, $l) => $site->item($l, $p['slug']), true);
 $router->add('GET', '~^/(?P<slug>[^/]+)$~u', fn ($p, $l) => $site->item($l, $p['slug'], true), true);
 
-$admin = new \App\Controllers\Admin\AdminController($db, $i18n, $view, $config ?? $GLOBALS['config']);
-foreach (['GET', 'POST'] as $method) {
-    $router->add($method, '~^(?P<path>/admin(?:/.*)?)$~', fn ($p) => $admin->handle($p['path']));
+// Hidden /admin requests (secret sign-in address set, visitor signed out) arrive with $adminRequest false.
+if ($adminRequest ?? true) {
+    $admin = new \App\Controllers\Admin\AdminController($db, $i18n, $view, $config ?? $GLOBALS['config']);
+    foreach (['GET', 'POST'] as $method) {
+        $router->add($method, '~^(?P<path>/admin(?:/.*)?)$~', fn ($p) => $admin->handle($p['path']));
+        if ($loginPage ?? false) { $router->add($method, '~^/' . preg_quote($loginPath, '~') . '$~D', fn () => $admin->handle('/admin/login')); }
+    }
 }

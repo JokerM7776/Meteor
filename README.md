@@ -282,6 +282,13 @@ php bin/sign-out.php <username>   # one admin
 
 Every session and every “Keep me signed in” browser ends; sign in again with a password or passkey.
 
+If you moved the sign-in page to a secret address (Security → *Sign-in address*) and forgot it:
+
+```sh
+php bin/login-path.php            # show the sign-in address
+php bin/login-path.php --clear    # move sign-in back to /admin/login
+```
+
 ## 9. Local development
 
 ```sh
@@ -329,7 +336,7 @@ app/        controllers, repositories, services, routes
 core/       router, database, i18n, Markdown, auth, WebAuthn, installer, updater
 views/      PHP templates (public + admin)
 database/   schema.mysql.sql, schema.sqlite.sql, migrations/
-bin/        install, seed, migrate, update, package, reset-password, sign-out, cron, build-css
+bin/        install, seed, migrate, update, package, reset-password, sign-out, login-path, cron, build-css
 public/     web root: index.php, assets, uploads
 config/     config.php, .env.example
 storage/    runtime data (database, logs, backups) — not in git

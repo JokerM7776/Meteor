@@ -33,6 +33,8 @@ final class Account
             $this->keepThisSession((int) $user['id']);
         } elseif ($action === 'sign_out_device') {
             $this->db->query('DELETE FROM remember_tokens WHERE id = ? AND user_id = ?', [(int) ($input['id'] ?? 0), $user['id']]);
+        } elseif ($action === 'login_path') {
+            LoginPath::save($this->db, (string) ($input['login_path'] ?? ''));
         } elseif ($action === 'captcha') {
             ($this->captcha ?? new CaptchaSettings($this->db))->save($input);
         } elseif ($action === 'rename' || $action === 'remove') {

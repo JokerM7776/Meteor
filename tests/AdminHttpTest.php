@@ -413,3 +413,60 @@ test('Admin HTTP: author tab toggles the card at the end of posts', function () 
         same('0', $c->db->one("SELECT value FROM settings WHERE `key` = 'post_author_card'")['value']);
     } finally { $c->close(); }
 });
+test('Login path: validation of the secret sign-in address', function () {
+    same('', App\Services\LoginPath::normalize('  '));
+    same('studio-door_7', App\Services\LoginPath::normalize(' /Studio-Door_7/ '));
+    foreach (['short7', 'bad/path-123', 'ends-with-', 'my-sign-in', 'zh-hans-cn', 'webmention', 'index.php', str_repeat('a', 65)] as $bad) {
+        throws(fn () => App\Services\LoginPath::normalize($bad), InvalidArgumentException::class);
+    }
+    ok(App\Services\LoginPath::normalize(App\Services\LoginPath::suggestion()) !== '');
+    $db = database(); same('/admin/login', App\Services\LoginPath::url($db));
+    $db->upsert('settings', ['key' => 'login_path', 'locale' => null, 'value' => 'not valid'], ['key', 'locale_scope']); same('/admin/login', App\Services\LoginPath::url($db));
+});
+test('Admin HTTP: a secret sign-in address hides /admin from signed-out visitors', function () {
+    $c = new AdminHttpClient();
+    try {
+        $token = $c->token(); $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']);
+        $token = $c->token('/admin/security');
+        [, $html] = $c->request('/admin/security'); contains('Default · /admin/login', $html);
+        $c->request('/admin/security', 'POST', ['csrf_token' => $token, 'action' => 'login_path', 'login_path' => 'studio-door-7', 'current_password' => 'wrong password']);
+        same(null, $c->db->one("SELECT value FROM settings WHERE `key` = 'login_path'"));
+        $c->request('/admin/security', 'POST', ['csrf_token' => $token, 'action' => 'login_path', 'login_path' => 'my-sign-in', 'current_password' => 'a long password']);
+        [, $html] = $c->request('/admin/security'); contains('looks like a language code', $html); contains('value="my-sign-in"', $html);
+        [$h] = $c->request('/admin/security', 'POST', ['csrf_token' => $token, 'action' => 'login_path', 'login_path' => 'Studio-Door-7', 'current_password' => 'a long password']);
+        contains('Location: /admin/security', $h);
+        [, $html] = $c->request('/admin/security'); contains('The sign-in page is now at /studio-door-7.', $html); contains('Hidden · /studio-door-7', $html);
+        [$h] = $c->request('/admin/posts'); contains('200 OK', $h);
+        [$h] = $c->request('/admin/logout', 'POST', ['csrf_token' => $token]); contains('Location: /studio-door-7', $h);
+        // A stranger: every admin URL looks like any missing page — public headers, no session cookie.
+        $c->cookie = '';
+        [$missing] = $c->request('/nothing-here');
+        foreach (['/admin', '/admin/', '/admin/login', '/admin/posts', '/admin/security', '/admin/passkey/login/options'] as $path) {
+            foreach (['GET', 'POST'] as $method) {
+                [$h] = $c->request($path, $method, [], str_contains($path, 'passkey'));
+                contains('404 Not Found', $h); ok(!str_contains($h, 'Set-Cookie:'), $path); ok(!str_contains($h, 'X-Robots-Tag'), $path); ok(!str_contains($h, 'Location:'), $path);
+                contains("script-src 'none'", $h);
+                if ($method === 'GET') { contains('Cache-Control: public, max-age=300', $h); }
+                same('', $c->cookie);
+            }
+        }
+        contains('404 Not Found', $missing);
+        // The secret address serves the form, and opens passkey sign-in for that session.
+        [$h, $html] = $c->request('/studio-door-7'); contains('200 OK', $h); contains('Set-Cookie:', $h); contains('X-Robots-Tag: noindex, nofollow', $h); contains("script-src 'self'", $h); contains('Cache-Control: no-store', $h);
+        contains('action="/studio-door-7"', $html);
+        preg_match('/name="csrf-token" content="([^"]+)"/', $html, $m); $token = $m[1];
+        [$h] = $c->request('/admin/passkey/login/options', 'POST', [], true, $token); contains('200 OK', $h);
+        [$h] = $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']); contains('404 Not Found', $h);
+        [$h] = $c->request('/studio-door-7', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'wrong']); contains('Location: /studio-door-7', $h);
+        [$h] = $c->request('/studio-door-7', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']); contains('Location: /admin/posts', $h);
+        [$h] = $c->request('/admin/posts'); contains('200 OK', $h);
+        [$h] = $c->request('/studio-door-7'); contains('Location: /admin/posts', $h);
+        // Clearing it brings back /admin/login.
+        $token = $c->token('/admin/security');
+        $c->request('/admin/security', 'POST', ['csrf_token' => $token, 'action' => 'login_path', 'login_path' => '', 'current_password' => 'a long password']);
+        same('', $c->db->one("SELECT value FROM settings WHERE `key` = 'login_path'")['value']);
+        $c->cookie = '';
+        [$h] = $c->request('/admin/posts'); contains('Location: /admin/login', $h);
+        [$h] = $c->request('/studio-door-7'); contains('404 Not Found', $h);
+    } finally { $c->close(); }
+});

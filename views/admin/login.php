@@ -1,4 +1,4 @@
-<form action="/admin/login" method="post" class="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-8 shadow-lg shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900">
+<form action="<?= e($action ?? '/admin/login') ?>" method="post" class="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-8 shadow-lg shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900">
 <div>
 <h1 class="text-[26px] font-bold tracking-tight">Sign in</h1>
 <p class="mt-1 text-[15px] text-slate-600 dark:text-slate-400">Write and translate posts.</p>

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace App\Controllers\Admin;
 use Core\{Auth, Csrf, Database, I18n, Session, View, WebAuthn};
-use App\Services\{Account, AdminSettings, Appearance, Author, CaptchaSettings, ContentEditor, HomePage, LanguageDownloads, Languages, MenuEditor, TaxonomyEditor, UiStrings};
+use App\Services\{Account, AdminSettings, LoginPath, Appearance, Author, CaptchaSettings, ContentEditor, HomePage, LanguageDownloads, Languages, MenuEditor, TaxonomyEditor, UiStrings};
 
 final class AdminController
 {
@@ -28,8 +28,8 @@ final class AdminController
     public function handle(string $path): string
     {
         $user = $this->auth->user();
-        $open = in_array($path, ['/admin/login', '/admin/passkey/login/options', '/admin/passkey/login/verify'], true);
-        if (!$user && !$open) { header('Location: /admin/login', true, 302); return ''; }
+        $open = in_array($path, [LoginPath::DEFAULT_URL, ...LoginPath::PASSKEY], true);
+        if (!$user && !$open) { header('Location: ' . LoginPath::url($this->db), true, 302); return ''; }
         $post = $_SERVER['REQUEST_METHOD'] === 'POST';
         $json = str_starts_with($path, '/admin/passkey/') || in_array($path, ['/admin/security/passkeys/options', '/admin/security/passkeys'], true);
         if ($post && !Csrf::verify($json ? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? null) : ($_POST['csrf_token'] ?? null))) {
@@ -45,20 +45,20 @@ final class AdminController
             if ($user) { return $this->go('/admin/posts'); }
             $captcha = $this->captcha();
             if ($post) {
-                if (!$captcha->passes($_POST, $_SERVER['REMOTE_ADDR'] ?? '')) { return $this->go('/admin/login', 'Complete the security check and try again.'); }
+                if (!$captcha->passes($_POST, $_SERVER['REMOTE_ADDR'] ?? '')) { return $this->go(LoginPath::url($this->db), 'Complete the security check and try again.'); }
                 if ($this->auth->password((string) ($_POST['username'] ?? ''), (string) ($_POST['password'] ?? ''), $_SERVER['REMOTE_ADDR'] ?? '')) {
                     if (($_POST['remember'] ?? '') === '1') { $this->remember()->issue((int) $_SESSION['user_id'], (int) $_SESSION['session_version']); }
                     return $this->go('/admin/posts', 'Welcome back.');
                 }
                 $_SESSION['login_username'] = mb_substr(trim((string) ($_POST['username'] ?? '')), 0, 191);
-                return $this->go('/admin/login', 'Unable to sign in. Check your credentials or try again later.');
+                return $this->go(LoginPath::url($this->db), 'Unable to sign in. Check your credentials or try again later.');
             }
             $username = (string) ($_SESSION['login_username'] ?? ''); unset($_SESSION['login_username']);
             $check = $captcha->signIn();
             if ($check !== null) { header('Content-Security-Policy: ' . security_policy("'self' " . $check['scripts'], $check['frames'])); }
-            return $this->render('login', 'Sign in', ['captcha' => $check, 'username' => $username]);
+            return $this->render('login', 'Sign in', ['captcha' => $check, 'username' => $username, 'action' => LoginPath::url($this->db)]);
         }
-        if ($path === '/admin/logout' && $post) { $this->remember()->forget(); Session::logout(); return $this->go('/admin/login', 'Signed out.'); }
+        if ($path === '/admin/logout' && $post) { $this->remember()->forget(); Session::logout(); return $this->go(LoginPath::url($this->db), 'Signed out.'); }
         if ($path === '/admin') { return $this->go('/admin/posts'); }
         if (str_starts_with($path, '/admin/media') || $path === '/admin/optimization') {
             $media = new MediaController($this->db, $this->render(...), $this->go(...), dirname(__DIR__, 3) . '/public');
@@ -150,7 +150,7 @@ final class AdminController
                         'author' => (new Author($this->db))->save($_POST),
                         'appearance' => (new Appearance($this->db))->save($_POST),
                     };
-                    return $this->go($path . $this->query($section), $section === 'security' ? (['remove' => 'Passkey removed. Password sign-in remains available.', 'sign_out_device' => 'That device was signed out.', 'sign_out_others' => 'Every other device and browser was signed out.'][$_POST['action'] ?? ''] ?? 'Changes saved.') : 'Changes saved.');
+                    return $this->go($path . $this->query($section), $section === 'security' ? (['remove' => 'Passkey removed. Password sign-in remains available.', 'sign_out_device' => 'That device was signed out.', 'sign_out_others' => 'Every other device and browser was signed out.', 'login_path' => $this->loginPathSaved()][$_POST['action'] ?? ''] ?? 'Changes saved.') : 'Changes saved.');
                 } catch (\InvalidArgumentException $e) {
                     $safe = $_POST; foreach (['current_password', 'new_password', 'new_password_confirm', 'turnstile_secret_key', 'recaptcha_secret_key'] as $key) { unset($safe[$key]); }
                     $_SESSION['old'][$section] = $safe;
@@ -160,7 +160,7 @@ final class AdminController
             $locale = (string) ($_GET['locale'] ?? $this->i18n->defaultLocale());
             if (!isset($this->i18n->registry()[$locale])) { $locale = $this->i18n->defaultLocale(); }
             $data = ['db' => $this->db, 'locale' => $locale, 'old' => $old, 'settings' => new \App\Repositories\Settings($this->db, $this->i18n)];
-            if ($section === 'security') { $data['captcha'] = $this->captcha(); $data['commentsCaptcha'] = (new \App\Services\CommentSettings($this->db))->captcha() !== null; $data['devices'] = $this->remember()->devices((int) $user['id']); }
+            if ($section === 'security') { $data['captcha'] = $this->captcha(); $data['commentsCaptcha'] = (new \App\Services\CommentSettings($this->db))->captcha() !== null; $data['devices'] = $this->remember()->devices((int) $user['id']); $data['loginPath'] = LoginPath::current($this->db); $data['siteUrl'] = rtrim((string) ($this->config['app_url'] ?? ''), '/'); }
             if ($section === 'menus') {
                 $menus = new \App\Repositories\Menus($this->db); $menus->ensureDefaults();
                 $data['menus'] = ['header' => $menus->rows('header'), 'footer' => $menus->rows('footer')];
@@ -212,6 +212,11 @@ final class AdminController
         (new Account($this->db, $this->captcha()))->update($user, $action, $_POST);
         // A new password or "sign out everywhere else" forgets every remembered browser; keep this one if it was.
         if (in_array($action, ['password', 'sign_out_others'], true) && $remembered) { $this->remember()->issue((int) $user['id'], (int) $_SESSION['session_version']); }
+    }
+    private function loginPathSaved(): string
+    {
+        $url = LoginPath::url($this->db);
+        return $url === LoginPath::DEFAULT_URL ? 'The sign-in page is back at /admin/login.' : 'The sign-in page is now at ' . $url . '. Bookmark it: signed-out visitors to /admin now get “page not found”.';
     }
     private function captcha(): CaptchaSettings { return new CaptchaSettings($this->db, $this->config['captcha'] ?? true); }
     /** Query string to return to after saving a section, so the admin lands on the same view. */
