@@ -40,6 +40,7 @@ final class AdminController
             if ($json || $path === '/admin/media/upload') { header('Content-Type: application/json'); return json_encode(['error' => $message]); }
             return $this->render('message', 'Request rejected', ['message' => $message]);
         }
+        if ($path === '/admin/import') { return (new ImportController($this->db, $this->render(...)))->handle($post); }
         if ($json) { return $this->passkey($path, $user, $post); }
         if ($path === '/admin/login') {
             if ($user) { return $this->go('/admin/posts'); }

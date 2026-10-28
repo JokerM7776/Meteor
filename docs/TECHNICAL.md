@@ -357,3 +357,46 @@ if that release already exists, the create step refuses to overwrite it.
 Tests use disposable application copies, SQLite, generated archives and a fake
 HttpClient; they make no network requests. Live GitHub publication/downloads and
 MySQL execution require deployment smoke testing.
+
+## Content importers
+
+`app/Services/Import/` implements Hexo and Typecho ingestion with no schema changes.
+Sources parse into normalized item arrays; `Writer` validates and compiles Markdown with
+`ContentEditor::compile()` before inserting masters and translations. Groups share a master
+only within the current run. The target language is the base when present. Existing slugs
+are skipped or renamed. An untouched installer About page is replaceable only when every
+translation still matches the default title, body, empty summary and draft status. Terms reuse language names
+or slugs. Check uses in-memory slug, term and image reservations, and makes no database or
+media writes. Reports include item results, warnings, totals and comment status counts.
+
+Each translation is stored in its own transaction. MediaLibrary has its own transaction,
+so new images are stored immediately before the content transaction and removed if it fails.
+Images are deduplicated by SHA-1 of source bytes for the run, imported via temporary files
+under storage, and rewritten to media URLs. Temporary files are deleted in finally blocks.
+A successful earlier translation survives a later translation failure. Check validates
+image formats without running the optimizer or testing disk write permissions.
+
+Zip entries are read in memory, never extracted. Both archives and folders have limits of
+20,000 entries and 512 MB uncompressed, with 5 MB per Markdown file and MediaLibrary's
+15 MB image limit. Traversal paths, absolute paths, dotfiles, excluded build directories
+and directory symlinks are skipped. Archives require ext-zip; folders do not. HTML uses
+DOMDocument with LIBXML_NONET, falls back to stripped text without ext-dom, and never
+passes raw HTML to public templates. Markdown is compiled on import.
+
+Typecho uses a separate PDO connection and SELECT statements only. SQLite headers are
+validated and files opened with SQLite's read-only flag. Admin SQLite uploads receive random
+names in private `storage/imports/<32-hex-token>/` directories. Successful admin Checks
+retain the source zip, SQLite file and uploads zip for up to two hours; session state contains
+only the token, source and whitelisted options. Import/Cancel verifies the session token and
+deletes the directory. Every visit prunes expired directories. Files use mode 0600 and
+directories 0700. MySQL passwords must be entered again and never enter saved state. MySQL uses utf8mb4 and a
+five-second connection timeout. Table prefixes are validated against
+`/^[A-Za-z0-9_]{0,32}$/D` before composing identifiers. Attachment metadata is inspected by a
+path regex, never unserialize. Connection errors do not expose credentials; passwords are
+not saved in forms, sessions, logs or reports. Comment IPs are hashed with Meteor's existing
+app secret, or left empty when none exists. Imports never create a secret during Check.
+
+Reference links are resolved outside code before HTML conversion and media rewriting.
+Used definitions are removed; unused definitions and footnotes stay. Same-language slug
+collisions become distinct groups, so skip/rename applies instead of discarding translations.
+Only successfully resolved media-library URLs are stored as covers; unresolved covers become NULL.

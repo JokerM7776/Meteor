@@ -21,8 +21,11 @@ final class AdminHttpClient
         if ($upload !== null) {
             $boundary = 'Meteor' . bin2hex(random_bytes(12)); $body = '';
             foreach ($data as $key => $value) { $body .= "--$boundary\r\nContent-Disposition: form-data; name=\"$key\"\r\n\r\n$value\r\n"; }
-            $field = $upload['field'] ?? 'cover'; $filename = $upload['filename'] ?? 'cover.png';
-            $body .= "--$boundary\r\nContent-Disposition: form-data; name=\"$field\"; filename=\"$filename\"\r\nContent-Type: application/octet-stream\r\n\r\n" . $upload['bytes'] . "\r\n--$boundary--\r\n";
+            foreach (array_is_list($upload) ? $upload : [$upload] as $part) {
+                $field = $part['field'] ?? 'cover'; $filename = $part['filename'] ?? 'cover.png';
+                $body .= "--$boundary\r\nContent-Disposition: form-data; name=\"$field\"; filename=\"$filename\"\r\nContent-Type: application/octet-stream\r\n\r\n" . $part['bytes'] . "\r\n";
+            }
+            $body .= "--$boundary--\r\n";
             $contentType = 'multipart/form-data; boundary=' . $boundary;
         }
         $environment = array_merge(getenv(), ['DB_DRIVER' => 'sqlite', 'DB_PATH' => $this->directory . '/db.sqlite', 'APP_URL' => 'https://meteor.example', 'WEBAUTHN_RP_ID' => 'meteor.example',
@@ -469,4 +472,25 @@ test('Admin HTTP: a secret sign-in address hides /admin from signed-out visitors
         [$h] = $c->request('/admin/posts'); contains('Location: /admin/login', $h);
         [$h] = $c->request('/studio-door-7'); contains('404 Not Found', $h);
     } finally { $c->close(); }
+});
+test('Admin HTTP: import tabs, active nav, CSRF and Hexo Check upload', function () {
+    $c = new AdminHttpClient(); $root = importFixture();
+    try {
+        $token = $c->token(); $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']);
+        [, $html] = $c->request('/admin/import'); contains('href="/admin/import" aria-current="page"', $html); contains('Hexo', $html); contains('Typecho', $html);
+        [$headers] = $c->request('/admin/import', 'POST', ['action' => 'check']); contains('403 Forbidden', $headers);
+        [, $html] = $c->request('/admin/import?source=typecho'); contains('name="password" autocomplete="off"', $html); contains('name="sqlite"', $html);
+        $token = $c->token('/admin/import');
+        if (class_exists(ZipArchive::class)) {
+            $zip = importZip($root, ['source/_posts/hello.md' => "---\ntitle: Hello\n---\nHi"]);
+            [$headers, $html] = $c->request('/admin/import', 'POST', ['csrf_token' => $token, 'action' => 'check', 'locale' => 'en'], false, null,
+                ['field' => 'archive', 'filename' => 'hexo.zip', 'bytes' => file_get_contents($zip)]);
+            contains('200 OK', $headers); contains('Check results — nothing was imported yet', $html); contains('would import', $html); same(0, (int) $c->db->one('SELECT COUNT(*) n FROM posts')['n']);
+        }
+        [, $html] = $c->request('/admin/import?source=typecho', 'POST', ['csrf_token' => $token, 'driver' => 'sqlite', 'password' => 'never-echo-this']); ok(!str_contains($html, 'never-echo-this'));
+        $path = typechoFixture($root);
+        [$headers, $html] = $c->request('/admin/import?source=typecho', 'POST', ['csrf_token' => $token, 'driver' => 'sqlite', 'action' => 'check', 'locale' => 'en'], false, null, ['field' => 'sqlite', 'filename' => 'typecho.db', 'bytes' => file_get_contents($path)]);
+        contains('200 OK', $headers); contains('Check results — nothing was imported yet', $html); ok(count(glob($c->root . '/storage/imports/*')) === 1);
+        same(0, (int) $c->db->one('SELECT COUNT(*) n FROM posts')['n']);
+    } finally { $c->close(); Core\ReleasePackage::removeTree($root); }
 });

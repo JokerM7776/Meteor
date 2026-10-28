@@ -356,3 +356,37 @@ Meteor is free software, licensed under the
 
 Copyright (C) 2026 the Meteor authors. This program comes with ABSOLUTELY NO WARRANTY;
 see the license for details.
+
+## Import from Hexo or Typecho
+
+Open **Admin → Import** (`/admin/import`), choose a source and target language, then
+**Check** to preview the report without saving content or media. Choose **Import these items** on the report to reuse
+the checked files, or **Cancel** to delete them. Checked uploads expire after two hours.
+MySQL imports ask for the database password again; it is never saved. Existing slugs are skipped by default; you can choose
+new slugs or import everything as drafts. Automatic language selection uses Hexo’s
+`_config.yml` language when it matches an existing Meteor locale, otherwise the site default.
+Use `--locale=xx` or choose a target language to override that fallback. Language front matter
+and recognized language folders still identify translations.
+
+Hexo accepts a zip of the blog folder or its `source/` folder. The CLI also reads folders.
+Posts, drafts, pages, dates, categories, tags, translations and local images are imported.
+Hexo comments live in third-party services and are not included.
+
+Typecho reads a MySQL/MariaDB database or a SQLite file, including posts, pages, categories,
+tags and threaded comments. Supply an optional zip of `usr/uploads` to bring images along;
+the CLI also accepts an uploads folder. Use an account with SELECT permission for MySQL.
+PostgreSQL is not supported; export to MySQL or SQLite first. The database password is
+never saved. Missing images keep their original URLs and appear in the report.
+
+```sh
+php bin/import.php hexo /path/to/blog --check
+php bin/import.php hexo /path/to/blog.zip --locale=en --drafts
+php bin/import.php typecho --driver=sqlite --file=/path/to/typecho.db --uploads=/path/to/uploads.zip --check
+php bin/import.php typecho --driver=mysql --host=127.0.0.1 --database=typecho --user=reader --prefix=typecho_ --check
+```
+
+The MySQL command prompts for a password without terminal echo when `--password` is omitted.
+Remove `--check` to import. Use `--rename` to append a number to conflicting slugs.
+Themes and plugins are not imported, and old URLs are not redirected. HTML is converted
+to Markdown; unsupported markup and Hexo tags may lose formatting and produce warnings.
+Review the imported drafts before publishing.
