@@ -27,6 +27,7 @@ final class AdminController
     }
     public function handle(string $path): string
     {
+        $this->i18n->useTheme([]);
         $user = $this->auth->user();
         $open = in_array($path, [LoginPath::DEFAULT_URL, ...LoginPath::PASSKEY], true);
         if (!$user && !$open) { header('Location: ' . LoginPath::url($this->db), true, 302); return ''; }
@@ -134,7 +135,27 @@ final class AdminController
             $result = (new CommentsController($this->db, $this->i18n, $this->render(...), $this->go(...), $user))->handle($path, $post);
             if ($result !== null) { return $result; }
         }
-        if ($path === '/admin/appearance/themes' && $post) { return $this->themes(); }
+        if (($path === '/admin/appearance/themes' || $path === '/admin/themes') && $post) { return $this->themes(); }
+        if ($path === '/admin/themes' && !$post) { return $this->render('themes', 'Themes', ['db' => $this->db]); }
+        if (preg_match('~^/admin/themes/([^/]+)/(delete|download)$~D', $path, $m)) {
+            $themes = new \App\Services\Themes($this->db);
+            $theme = $themes->find($m[1]);
+            if (!$theme) { http_response_code(404); return $this->render('message', 'Not found', ['message' => 'This theme is not installed.']); }
+            if ($m[2] === 'delete' && !$post) { return $this->render('theme-delete', 'Delete theme', ['row' => $theme, 'isActive' => $themes->activeSlug() === $m[1]]); }
+            if ($m[2] === 'download' && !$post) {
+                try {
+                    $file = $themes->download($m[1]);
+                    try {
+                        header('Content-Type: application/zip');
+                        $version = preg_replace('/[^a-zA-Z0-9._-]/', '-', $theme['version']);
+                        header('Content-Disposition: attachment; filename="' . $m[1] . '-' . $version . '.zip"');
+                        header('X-Content-Type-Options: nosniff');
+                        readfile($file);
+                        return '';
+                    } finally { unlink($file); }
+                } catch (\InvalidArgumentException $e) { return $this->go('/admin/themes', $e->getMessage()); }
+            }
+        }
         $section = match ($path) { '/admin/languages' => 'languages', '/admin/menus' => 'menus', '/admin/settings' => 'settings', '/admin/strings' => 'strings', '/admin/taxonomy' => 'taxonomy', '/admin/security' => 'security',
             '/admin/home' => 'home', '/admin/author' => 'author', '/admin/appearance' => 'appearance', default => '' };
         if ($section !== '') {
@@ -327,14 +348,30 @@ final class AdminController
         return $this->render('editor', $id ? 'Edit ' . ($page ? 'page' : 'post') : 'New ' . ($page ? 'page' : 'post'),
             compact('page', 'id', 'locale', 'item', 'values', 'error', 'target', 'ts', 'from') + ['commentsOn' => (new \App\Repositories\Settings($this->db, $this->i18n))->global('comments_enabled', '0') === '1', 'reference' => $ts[$from] ?? [], 'categories' => $this->db->all('SELECT * FROM categories ORDER BY sort_order, slug')]);
     }
-    /** Theme actions from Settings → Appearance: activate, deactivate, preview and theme settings. */
+    /** Theme actions from Settings → Themes: activate, deactivate, preview and theme settings. */
     private function themes(): string
     {
         $themes = new \App\Services\Themes($this->db);
         $slug = is_string($_POST['slug'] ?? null) ? $_POST['slug'] : '';
-        $back = '/admin/appearance#themes';
+        $back = '/admin/themes';
         try {
             switch ($_POST['action'] ?? '') {
+                case 'upload':
+                    $file = $_FILES['theme_zip'] ?? [];
+                    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_string($file['tmp_name'] ?? null)
+                        || !is_uploaded_file($file['tmp_name']) || ($file['size'] ?? 0) > \App\Services\ThemePackage::LIMIT) {
+                        throw new \InvalidArgumentException('Upload a zip up to 20 MB. Check PHP upload_max_filesize and post_max_size if the upload fails.');
+                    }
+                    $theme = $themes->installZip($file['tmp_name'], isset($_POST['replace']));
+                    return $this->go($back, $theme['name'] . ($theme['replaced'] ? ' updated to ' . $theme['version'] : ' ' . $theme['version'] . ' installed') . '.');
+                case 'create':
+                    $theme = $themes->create(is_string($_POST['name'] ?? null) ? $_POST['name'] : '', $slug);
+                    return $this->go($back, $theme['name'] . ' created. Copy a template to start editing.');
+                case 'copy':
+                    return $this->go($back, $themes->copyTemplate($slug, is_string($_POST['template'] ?? null) ? $_POST['template'] : ''));
+                case 'delete':
+                    $themes->delete($slug);
+                    return $this->go($back, 'Theme permanently deleted.');
                 case 'activate':
                     $theme = $themes->activate($slug);
                     if (($_SESSION['theme_preview'] ?? '') === $slug) { unset($_SESSION['theme_preview']); }
@@ -356,9 +393,9 @@ final class AdminController
                     $errors = $themes->saveValues($theme, is_array($_POST['theme'] ?? null) ? $_POST['theme'] : []);
                     if ($errors) {
                         $_SESSION['old']['theme_settings'] = ['slug' => $slug, 'values' => $_POST['theme'] ?? [], 'errors' => $errors];
-                        return $this->go('/admin/appearance#theme-settings', 'Check the highlighted theme settings.');
+                        return $this->go('/admin/themes#theme-settings', 'Check the highlighted theme settings.');
                     }
-                    return $this->go('/admin/appearance#theme-settings', 'Theme settings saved.');
+                    return $this->go('/admin/themes#theme-settings', 'Theme settings saved.');
             }
             throw new \InvalidArgumentException('Unknown theme action.');
         } catch (\InvalidArgumentException $e) { return $this->go($back, $e->getMessage()); }

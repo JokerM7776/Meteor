@@ -10,6 +10,13 @@ $missing = [];
 foreach ($locales as $code => $language) { $missing[$code] = count($builtins) - count($own[$code]); }
 // What visitors of a language see when its cell is empty: the default language, then English.
 $fallback = fn (string $key) => $own[$default][$key] ?? $builtins[$key];
+$groups = \App\Services\UiStrings::GROUPS;
+$themeKeys = $service->themeKeys();
+if ($themeKeys && !$onlyMissing) {
+    $groups['From ' . $service->theme()['name']] = array_keys($themeKeys);
+    $builtins += $themeKeys;
+    foreach ($locales as $code => $language) { $own[$code] += array_intersect_key($overrides[$code] ?? [], $themeKeys); }
+}
 $shown = 0;
 ?>
 <div class="space-y-6">
@@ -36,7 +43,7 @@ $shown = 0;
 <?php require __DIR__ . '/sheet-head.php'; ?>
 <?php endforeach ?>
 </tr></thead>
-<?php foreach (\App\Services\UiStrings::GROUPS as $group => $keys):
+<?php foreach ($groups as $group => $keys):
     $rows = array_filter($keys, function (string $key) use ($needle, $onlyMissing, $own, $builtins, $locales): bool {
         if ($onlyMissing && !array_filter(array_keys($locales), fn ($code) => !isset($own[$code][$key]))) { return false; }
         if ($needle === '') { return true; }
@@ -52,8 +59,8 @@ $shown = 0;
 <tr>
 <th scope="row" class="sheet-key"><span class="font-mono text-xs text-slate-500 dark:text-slate-400"><?= e($key) ?></span><span class="block font-normal"><?= e($builtins[$key]) ?></span></th>
 <?php foreach ($locales as $code => $language): $value = $posted[$code][$key] ?? $own[$code][$key] ?? ''; $unsaved = isset($posted[$code][$key]) && $posted[$code][$key] !== ($own[$code][$key] ?? '') ? ' data-unsaved' : ''; $name = 'strings[' . $code . '][' . $key . ']'; $aria = $key . ', ' . $language['name']; ?>
-<td><?php if ($long): ?><textarea name="<?= e($name) ?>" lang="<?= e($code) ?>" dir="<?= e($language['direction']) ?>" rows="3" maxlength="2000" placeholder="<?= e($fallback($key)) ?>" aria-label="<?= e($aria) ?>"<?= $unsaved ?>><?= e($value) ?></textarea>
-<?php else: ?><input name="<?= e($name) ?>" lang="<?= e($code) ?>" dir="<?= e($language['direction']) ?>" maxlength="2000" value="<?= e($value) ?>" placeholder="<?= e($fallback($key)) ?>" aria-label="<?= e($aria) ?>"<?= $unsaved ?>><?php endif ?></td>
+<td><?php if ($long): ?><textarea name="<?= e($name) ?>" lang="<?= e($code) ?>" dir="<?= e($language['direction']) ?>" rows="3" maxlength="<?= isset($themeKeys[$key]) ? 1000 : 2000 ?>" placeholder="<?= e(isset($themeKeys[$key]) ? ($service->themeBase($code)[$key] ?? $service->themeBase($default)[$key] ?? $service->themeBase('en')[$key] ?? $themeKeys[$key]) : $fallback($key)) ?>" aria-label="<?= e($aria) ?>"<?= $unsaved ?>><?= e($value) ?></textarea>
+<?php else: ?><input name="<?= e($name) ?>" lang="<?= e($code) ?>" dir="<?= e($language['direction']) ?>" maxlength="<?= isset($themeKeys[$key]) ? 1000 : 2000 ?>" value="<?= e($value) ?>" placeholder="<?= e(isset($themeKeys[$key]) ? ($service->themeBase($code)[$key] ?? $service->themeBase($default)[$key] ?? $service->themeBase('en')[$key] ?? $themeKeys[$key]) : $fallback($key)) ?>" aria-label="<?= e($aria) ?>"<?= $unsaved ?>><?php endif ?></td>
 <?php endforeach ?>
 </tr>
 <?php endforeach ?>

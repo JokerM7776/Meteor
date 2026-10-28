@@ -5,14 +5,15 @@ namespace Core;
 final class I18n
 {
     private array $locales = [];
-    private array $strings = [];
     private string $default;
     private string $current;
 
     private array $packs = [];
+    private array $edits = [];
+    private array $themeStrings = [];
 
     /**
-     * Text comes from: site edits (ui_strings) → the language file (a download in storage/lang wins
+     * Text comes from: site edits → rendered theme → language file (a download in storage/lang wins
      * over the bundled lang/<code>.json) → default language → built-in English.
      */
     public function __construct(Database $db, private array $builtins, ?string $packDirectory = null, ?string $downloadDirectory = null)
@@ -28,12 +29,13 @@ final class I18n
         $this->current = $this->default;
         foreach (array_keys($this->locales) as $code) {
             $this->packs[$code] = LanguagePack::strings((string) $code, $builtins, $packDirectory, $downloadDirectory);
-            $this->strings[$code] = $this->packs[$code];
         }
         foreach ($db->all('SELECT locale, `key`, value FROM ui_strings') as $row) {
-            $this->strings[$row['locale']][$row['key']] = $row['value'];
+            $this->edits[$row['locale']][$row['key']] = $row['value'];
         }
     }
+
+    public function useTheme(array $stringsByLocale): void { $this->themeStrings = $stringsByLocale; }
 
     public function registry(): array { return $this->locales; }
     public function builtins(): array { return $this->builtins; }
@@ -69,7 +71,12 @@ final class I18n
     /** The raw text of a key in any language, with the usual fallback chain and no placeholder replacement. */
     public function translateFor(string $locale, string $key): string
     {
-        return $this->strings[$locale][$key] ?? $this->strings[$this->default][$key] ?? $this->builtins[$key] ?? $key;
+        $theme = $this->themeStrings;
+        $code = LanguagePack::RENAMED[$locale] ?? $locale;
+        $default = LanguagePack::RENAMED[$this->default] ?? $this->default;
+        return $this->edits[$locale][$key] ?? $theme[$code][$key] ?? $this->packs[$locale][$key]
+            ?? $this->edits[$this->default][$key] ?? $theme[$default][$key] ?? $this->packs[$this->default][$key]
+            ?? $theme['en'][$key] ?? $this->builtins[$key] ?? $key;
     }
 
     public function negotiate(string $header): string

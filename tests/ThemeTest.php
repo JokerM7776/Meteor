@@ -112,7 +112,7 @@ test('Theme API: the starter theme renders every page type, overrides, slots, CS
             $html = publicRequest($app, $path);
             ok(!str_contains($html, '<script'), $path . ' has a script');
             contains('/themes/starter/theme.css?v=', $html); contains('/theme-settings.css?v=', $html);
-            contains('Starter theme 1.0.0', $html);
+            contains('Starter theme 1.1.0', $html);
         }
         $_SERVER['REQUEST_URI'] = '/en/';
         $home = publicRequest($app, '/en/'); contains('starter-hero', $home); contains('starter-grid--sidebar', $home); ok(!str_contains($home, 'max-w-[16ch]'), 'Theme home replaces the built-in one');
@@ -151,7 +151,7 @@ test('Theme API: preview is only for the signed-in admin and shows Meteor’s ba
         $_SESSION = ['theme_preview' => 'starter'];
         $admin = publicApp(true); (new Themes($admin['db']))->installStarter();
         $html = publicRequest($admin, '/en/');
-        contains('starter-hero', $html); contains('Previewing Starter', $html); contains('href="/admin/appearance#themes"', $html);
+        contains('starter-hero', $html); contains('Previewing Starter', $html); contains('href="/admin/themes#themes"', $html);
         $visitor = publicApp(false);
         $html = publicRequest($visitor, '/en/');
         ok(!str_contains($html, 'starter-hero'), 'Visitors never see a preview'); ok(!str_contains($html, 'Previewing'));
@@ -189,26 +189,26 @@ test('Theme API: deprecated property names log once', function () {
     });
 });
 
-test('Admin HTTP: Appearance lists themes, installs the starter, activates, previews and saves settings', function () {
+test('Admin HTTP: Themes tab lists themes, installs the starter, activates, previews and saves settings', function () {
     $c = new AdminHttpClient();
     try {
-        file_put_contents($c->root . '/VERSION', "0.5.0\n");
+        file_put_contents($c->root . '/VERSION', "0.6.0\n");
         $token = $c->token();
         $c->request('/admin/login', 'POST', ['csrf_token' => $token, 'username' => 'editor', 'password' => 'a long password']);
-        [, $html] = $c->request('/admin/appearance');
+        [, $html] = $c->request('/admin/themes');
         contains('id="themes"', $html); contains('Built-in', $html); contains('Install the starter theme', $html);
-        $token = $c->token('/admin/appearance');
+        $token = $c->token('/admin/themes');
         [$h] = $c->request('/admin/appearance/themes', 'POST', ['action' => 'install_starter']); contains('403 Forbidden', $h);
-        [$h] = $c->request('/admin/appearance/themes', 'POST', ['csrf_token' => $token, 'action' => 'install_starter']); contains('Location: /admin/appearance#themes', $h);
+        [$h] = $c->request('/admin/appearance/themes', 'POST', ['csrf_token' => $token, 'action' => 'install_starter']); contains('Location: /admin/themes', $h);
         ok(is_file($c->root . '/storage/themes/starter/theme.json'), 'Starter copied into storage/themes');
         [$h] = $c->request('/admin/appearance/themes', 'POST', ['csrf_token' => $token, 'action' => 'preview', 'slug' => 'starter']); contains('Location: /en/', $h);
         [$h, $html] = $c->request('/en/'); contains('Previewing Starter', $html); contains('Cache-Control: private, no-store', $h);
-        [, $html] = $c->request('/admin/appearance'); contains('Previewing', $html); contains('Stop preview', $html);
+        [, $html] = $c->request('/admin/themes'); contains('Previewing', $html); contains('Stop preview', $html);
         $c->request('/admin/appearance/themes', 'POST', ['csrf_token' => $token, 'action' => 'activate', 'slug' => 'starter']);
-        [, $html] = $c->request('/admin/appearance'); contains('Starter settings', $html); contains('Show categories next to the latest posts', $html); contains('type="color"', $html);
+        [, $html] = $c->request('/admin/themes'); contains('Starter settings', $html); contains('Show categories next to the latest posts', $html); contains('type="color"', $html);
         [$h] = $c->request('/admin/appearance/themes', 'POST', ['csrf_token' => $token, 'action' => 'settings', 'slug' => 'starter', 'theme' => ['hero' => 'giant', 'accent' => '#123456']]);
-        contains('Location: /admin/appearance#theme-settings', $h);
-        [, $html] = $c->request('/admin/appearance'); contains('Choose one of the options.', $html); contains('aria-invalid="true"', $html);
+        contains('Location: /admin/themes#theme-settings', $h);
+        [, $html] = $c->request('/admin/themes'); contains('Choose one of the options.', $html); contains('aria-invalid="true"', $html);
         $c->request('/admin/appearance/themes', 'POST', ['csrf_token' => $token, 'action' => 'settings', 'slug' => 'starter', 'theme' => ['hero' => 'compact', 'tagline' => 'Hello', 'accent' => '#123456']]);
         $c->request('/admin/appearance/themes', 'POST', ['csrf_token' => $token, 'action' => 'stop_preview']);
         $c->cookie = '';

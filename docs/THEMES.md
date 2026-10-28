@@ -8,7 +8,7 @@ This guide is for **Theme API 1** (Meteor 0.5 and newer).
 
 ## Quick start
 
-1. In the admin, open **Settings → Appearance** and choose **Install the starter theme**. This copies
+1. In the admin, open **Settings → Themes** and choose **Install the starter theme**. This copies
    Meteor's example theme to `storage/themes/starter/`.
 2. Choose **Preview**. You see the site with the theme; visitors still see the current look. A banner
    at the top links back to the admin to stop the preview.
@@ -18,6 +18,90 @@ This guide is for **Theme API 1** (Meteor 0.5 and newer).
    `theme.json`, and start editing.
 
 Themes live in `storage/themes/`, which updates never touch.
+
+## Installing and updating
+
+Open **Settings → Themes**, choose a zip (up to 20 MB), and upload it. Themes run PHP code on
+your server; install only themes from people you trust. Uploading requires PHP's zip extension.
+A zip has `theme.json` at its root or inside one enclosing folder, with a required `slug`.
+Meteor checks the manifest, file paths, file types, language text and PHP syntax before installation.
+Limits: 1000 entries, 50 MB expanded, 5 MB per file. JavaScript and symlinks are rejected;
+dot-files, dot-folders and macOS metadata are skipped.
+
+To update, upload a new version and tick **Replace the installed theme with the same name**.
+The folder is replaced; settings stored under the same slug survive. Keep your own edits in a
+separate theme so an update does not replace them. Preview and activate work as before.
+
+**Delete** opens a confirmation page. It permanently removes the folder and its theme settings,
+and stops its preview. Switch away from an active theme before deleting it. The built-in look
+cannot be deleted. Site interface-text edits are kept separately.
+
+## Creating and sharing
+
+**Create a theme** takes a name and an optional ASCII folder name. Meteor derives a folder name
+when possible (otherwise it uses `theme-<random>`), then writes a manifest and commented `theme.css`.
+It never overwrites an existing folder. The command-line equivalent is:
+
+```sh
+php bin/theme.php new my-theme "My Theme"
+```
+
+**Copy a template** lists every built-in public layout, page and partial with a description.
+It copies the selected file unchanged into your theme and tells you where to edit it. Existing
+files are never overwritten. Start with a slot or one partial rather than copying every template.
+Each theme row lists its overrides, slots, stylesheet and interface text.
+
+**Download** saves `<slug>-<version>.zip`, with the slug as its top folder. Hidden files and
+symlinks are omitted. Share the archive with people who trust your code.
+
+## Interface text
+
+Add `lang/en.json`, `lang/zh-hans.json`, or another language code to your theme. Each is a JSON
+object of key → text, at most 64 KB. Keys match `[a-z][a-z0-9_]{0,80}` and text is at most
+1000 characters. Old `zh` codes map to `zh-hans`. Invalid files make the theme unavailable.
+
+```json
+{
+  "starter_more_posts": "Follow more posts",
+  "latest": "Recent writing"
+}
+```
+
+Prefix your own keys with your slug (use underscores in keys, for example `my_theme_subscribe`).
+Call `t('starter_more_posts')` and escape it with `e()` like any other text; HTML is never interpreted.
+You may reword a built-in key, but must keep exactly its built-in placeholders, such as `{minutes}`.
+
+Precedence: site edits → the rendered theme's text → the language file; then those same three
+for the default language → the theme's English text → built-in English → the key. Only the active
+or previewed theme applies, and admin pages never use theme translations.
+
+**Settings → Interface text** adds a **From <theme name>** group for the active theme's own keys.
+Its text is the base/placeholder; cells save site edits. Only keys belonging to the current active
+theme can be saved. Language export/import and missing-text counts remain built-in-only.
+
+## Checking a theme
+
+```sh
+php bin/theme.php check storage/themes/my-theme
+php bin/theme.php check my-theme.zip
+```
+
+The checker works in release archives without `tests/`. It creates a disposable SQLite site under
+`storage/`, seeds demo articles, languages and comments, installs the theme, and renders home pages,
+archives (including page 2), category/tag lists, a post with comments, a page, search results and
+empty search, 404 and comment verification. It cleans up afterward and never opens the real database.
+It executes PHP from the theme: run it only on code you trust, just as with installation.
+
+Findings include manifest/file/syntax problems, template exceptions and fallbacks (file and line),
+deprecated field reads, script elements, inline styles, style elements, event handlers and missing
+theme assets. Findings go to the report instead of the site theme log. Exit status is 0 for no
+findings and 1 otherwise. This is a fixture-based contract check, not a security sandbox or a proof
+that every possible content/settings combination works.
+
+On the comment verification page, the CAPTCHA provider's script (`$page->commentCheck->script`) is
+Meteor's own and allowed there; the checker accepts exactly that script. A theme that overrides
+`public/comment-check.php` must keep it, or comments cannot be sent while CAPTCHA is on. The checker
+reports a missing CAPTCHA script.
 
 ## The stability promise
 
@@ -77,7 +161,7 @@ number, up to 63 characters.
 | Key | Required | Meaning |
 |---|---|---|
 | `name` | yes | Shown in the admin (up to 100 characters). |
-| `slug` | no | Must match the folder name when present. |
+| `slug` | uploads: yes | Must match the folder name when present. |
 | `api` | yes | The Theme API the theme was built for. Today: `1`. |
 | `version` | no | Your theme's version, shown in the admin and available as `$theme->version`. |
 | `requires` | no | Oldest Meteor version the theme supports, such as `"0.5.0"`. |
@@ -90,7 +174,7 @@ invalid setting) is listed in the admin with the reason and cannot be activated 
 
 ### Settings
 
-Meteor builds the settings form in **Settings → Appearance** for the active theme and stores the values.
+Meteor builds the settings form in **Settings → Themes** for the active theme and stores the values.
 Read them in templates with `$theme->setting('key')`.
 
 | Type | Value | Notes |

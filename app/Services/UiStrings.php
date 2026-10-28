@@ -29,6 +29,14 @@ final class UiStrings
 
     public function builtins(): array { return $this->builtins; }
 
+    public function theme(): ?array { return (new Themes($this->db))->current(false); }
+    public function themeKeys(): array { return ThemeStrings::ownKeys($this->theme(), $this->builtins); }
+    public function themeBase(string $code): array
+    {
+        $strings = $this->theme()['strings'] ?? [];
+        return array_intersect_key($strings[LanguagePack::RENAMED[$code] ?? $code] ?? [], $this->themeKeys());
+    }
+
     /** Text a language has before site edits: its language files, plus lang/en.php for English. */
     public function base(string $code): array
     {
@@ -63,15 +71,19 @@ final class UiStrings
         foreach ($input as $code => $values) {
             $code = (string) $code;
             if (!isset($locales[$code]) || !is_array($values)) { throw new \InvalidArgumentException('Unknown language.'); }
-            $base = $this->base($code);
+            $themeKeys = $this->themeKeys();
+            $base = $this->themeBase($code) + $this->base($code);
             $own = $this->own($code, $overrides);
             foreach ($values as $key => $value) {
-                if (!isset($this->builtins[$key])) { throw new \InvalidArgumentException('Unknown interface text “' . $key . '”.'); }
+                if (!isset($this->builtins[$key]) && !array_key_exists($key, $themeKeys)) { throw new \InvalidArgumentException('Unknown interface text “' . $key . '”.'); }
                 $value = trim(is_string($value) ? $value : '');
                 // Unchanged cells are left alone, even if older data would not pass today's checks.
                 if ($value !== '' && $value === ($own[$key] ?? null)) { continue; }
-                if ($value !== '' && !LanguagePack::validText($value, $this->builtins[$key])) {
-                    $tokens = LanguagePack::placeholders($this->builtins[$key]);
+                if ($value !== '' && !isset($this->builtins[$key]) && (!mb_check_encoding($value, 'UTF-8') || mb_strlen($value) > 1000)) {
+                    throw new \InvalidArgumentException($key . ' · ' . $locales[$code] . ': use up to 1000 characters.');
+                }
+                if ($value !== '' && isset($this->builtins[$key]) && !LanguagePack::validText($value, $this->builtins[$key])) {
+                    $tokens = LanguagePack::placeholders($this->builtins[$key] ?? '');
                     throw new \InvalidArgumentException($key . ' · ' . $locales[$code] . ': ' . ($tokens
                         ? 'keep the placeholder' . (count($tokens) > 1 ? 's ' : ' ') . implode(' ', $tokens) . ' and use up to ' . LanguagePack::MAX_TEXT . ' characters.'
                         : 'remove the {braces} and use up to ' . LanguagePack::MAX_TEXT . ' characters.'));

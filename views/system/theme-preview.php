@@ -1,2 +1,2 @@
 <?php // Shown to a signed-in admin previewing a theme. Rendered by Meteor, never by the theme. ?>
-<p role="status" class="sticky top-0 z-50 flex min-h-11 flex-wrap items-center justify-center gap-x-2 bg-orange-500 px-4 text-sm font-semibold text-slate-950">Previewing <?= e($name) ?> · <a class="inline-flex min-h-11 items-center underline underline-offset-4" href="/admin/appearance#themes">Stop preview</a></p>
+<p role="status" class="sticky top-0 z-50 flex min-h-11 flex-wrap items-center justify-center gap-x-2 bg-orange-500 px-4 text-sm font-semibold text-slate-950">Previewing <?= e($name) ?> · <a class="inline-flex min-h-11 items-center underline underline-offset-4" href="/admin/themes#themes">Stop preview</a></p>

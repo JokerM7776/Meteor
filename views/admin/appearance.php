@@ -63,5 +63,5 @@ $tones = ['slate' => ['bg-slate-100', 'bg-slate-500', 'bg-slate-900'], 'gray' =>
 <a class="inline-flex min-h-11 items-center text-orange-700 underline dark:text-orange-400" href="/<?= e($i18n->defaultLocale()) ?>/" target="_blank" rel="noopener">View site ↗<span class="sr-only"> (opens in a new tab)</span></a>
 </div>
 </form>
-<?php require __DIR__ . '/themes.php'; ?>
+<p><a class="inline-flex min-h-11 items-center text-orange-700 underline dark:text-orange-400" href="/admin/themes">Themes: Settings → Themes</a></p>
 </div>

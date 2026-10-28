@@ -397,9 +397,12 @@ A theme changes the look of the public site: it can replace any public template,
 slots, ship CSS, images and fonts, and offer settings in the admin. Themes live in
 `storage/themes/<name>/`, which updates never touch.
 
-- **Settings → Appearance** lists installed themes. **Install the starter theme** adds an example to
+- **Settings → Themes** lists installed themes. **Install the starter theme** adds an example to
   try and copy from; **Preview** shows a theme only to you; **Activate** switches it on for visitors.
 - A broken theme template falls back to Meteor's own and is logged in `storage/logs/themes.log`.
 - Public pages stay free of JavaScript with any theme.
 
 Writing a theme: [docs/THEMES.md](docs/THEMES.md) (Theme API 1 and the stability promise).
+
+Theme authoring: **Settings → Themes** installs, updates, creates, copies and downloads themes.
+Run `php bin/theme.php check <folder|zip>` before sharing; see [the theme guide](docs/THEMES.md).

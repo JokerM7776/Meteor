@@ -10,6 +10,7 @@ use Core\Database;
  */
 final class Themes
 {
+    use ThemeAuthoring;
     /** Theme API versions this release can run. */
     public const API = [1];
     public const SLUG = '/^[a-z0-9][a-z0-9-]{0,62}$/D';
@@ -24,7 +25,7 @@ final class Themes
     public static ?string $directory = null;
 
     private string $root;
-    public function __construct(private Database $db, ?string $root = null) { $this->root = $root ?? self::$directory ?? dirname(__DIR__, 2) . '/storage/themes'; }
+    public function __construct(private Database $db, ?string $root = null, private ?\Closure $rename = null) { $this->root = $root ?? self::$directory ?? dirname(__DIR__, 2) . '/storage/themes'; }
 
     /** Copies the starter theme into the themes folder (never over an existing one). */
     public function installStarter(): array
@@ -171,7 +172,12 @@ final class Themes
     {
         $path = str_replace('\\', '/', $path);
         if ($path === '' || str_contains($path, "\0") || str_starts_with($path, '/')) { return null; }
-        foreach (explode('/', $path) as $part) { if ($part === '' || $part[0] === '.') { return null; } }
+        $candidate = $themeRoot;
+        foreach (explode('/', $path) as $part) {
+            if ($part === '' || $part[0] === '.') { return null; }
+            $candidate .= '/' . $part;
+            if (is_link($candidate)) { return null; }
+        }
         if (!isset(self::ASSETS[strtolower(pathinfo($path, PATHINFO_EXTENSION))])) { return null; }
         $root = realpath($themeRoot); $file = realpath($themeRoot . '/' . $path);
         if ($root === false || $file === false || !str_starts_with($file, $root . DIRECTORY_SEPARATOR) || !is_file($file)) { return null; }
@@ -183,7 +189,7 @@ final class Themes
     {
         $path = $this->root . '/' . $slug;
         $theme = ['slug' => $slug, 'name' => $slug, 'version' => '', 'api' => 0, 'requires' => '', 'author' => '', 'homepage' => '', 'license' => '',
-            'description' => '', 'settings' => [], 'path' => $path, 'problem' => ''];
+            'description' => '', 'settings' => [], 'strings' => [], 'path' => $path, 'problem' => ''];
         try {
             if (!preg_match(self::SLUG, $slug)) { throw new \UnexpectedValueException('Folder name must use lowercase letters, numbers and hyphens.'); }
             $file = $path . '/theme.json';
@@ -207,6 +213,7 @@ final class Themes
                 throw new \UnexpectedValueException('Needs Meteor ' . $theme['requires'] . ' or newer.');
             }
             $theme['settings'] = self::settings($json['settings'] ?? []);
+            $theme['strings'] = ThemeStrings::read($path);
         } catch (\UnexpectedValueException $e) { $theme['problem'] = $e->getMessage(); }
         return $theme;
     }

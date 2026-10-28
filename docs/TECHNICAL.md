@@ -431,3 +431,19 @@ public contract documented in `docs/THEMES.md`; a test fails when a public prope
   too) and copied to `storage/themes/starter` by **Install the starter theme**.
 - **Upgrade safety:** no schema change. The online-update request redirects without rendering public
   templates, so the old `View` never meets the new templates.
+
+
+### Theme authoring (0.6)
+
+`Themes` uses `ThemeAuthoring` for file operations, `ThemePackage` for archive/file policy and
+`ThemeStrings` for language validation. Uploads stage in hidden folders, validate before renaming,
+and restore the previous folder if promotion fails. Downloads use temporary files under storage.
+The admin lives at `/admin/themes`; the old Appearance POST remains an alias. No schema changes.
+
+`I18n::useTheme()` supplies request-local theme text below site edits and above language packs.
+Public controllers apply it before constructing translated titles/links. The admin clears it;
+`UiStrings` accepts additional keys only from the active theme, keeping export/counts built-in-only.
+
+`ThemeCheck` creates its own SQLite database, seeds `DemoSeeder`, captures template/deprecation
+reports and checks rendered HTML. It requires no test files and restores request globals after
+checking. It executes trusted PHP, not sandboxed code. The golden HTML fixtures remain unchanged.

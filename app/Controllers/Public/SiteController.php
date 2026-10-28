@@ -24,7 +24,7 @@ final class SiteController
     }
     public function render(string $template, string $locale, array $data = [], int $status = 200): string
     {
-        $this->i18n->setLocale($locale, $this->admin);
+        $this->useLocale($locale);
         http_response_code($status);
         $preview = $this->i18n->registry()[$locale]['status'] === 'preview';
         if ($this->admin) { header('Cache-Control: private, no-store'); }
@@ -75,6 +75,11 @@ final class SiteController
         }
         return $html;
     }
+    private function useLocale(string $locale): void
+    {
+        $this->i18n->setLocale($locale, $this->admin);
+        $this->i18n->useTheme($this->themes()->current($this->admin)['strings'] ?? []);
+    }
     public function themes(): \App\Services\Themes { return new \App\Services\Themes($this->db); }
     private function decorate(array $posts): array
     {
@@ -83,7 +88,7 @@ final class SiteController
     }
     public function home(string $locale): string
     {
-        $this->i18n->setLocale($locale, $this->admin);
+        $this->useLocale($locale);
         $sections = array_keys(array_filter(\App\Services\HomePage::sections($this->settings)));
         $posts = $this->decorate($this->posts->published($locale));
         $pinned = in_array('pinned', $sections, true) ? array_values(array_filter($posts, fn ($p) => (bool) $p['is_pinned'])) : [];
@@ -109,7 +114,7 @@ final class SiteController
     }
     public function archive(string $locale, string $kind = 'posts', ?string $slug = null): string
     {
-        $this->i18n->setLocale($locale, $this->admin);
+        $this->useLocale($locale);
         $categories = $this->taxonomy->categories($locale);
         $tags = $this->taxonomy->tags($locale);
         $selected = null;
@@ -214,7 +219,7 @@ final class SiteController
         }
         if ($outcome['result'] === 'error') { return $this->item($locale, $slug, false, $outcome, 422); }
         $captcha = $form->settings()->captcha();
-        $this->i18n->setLocale($locale, $this->admin);
+        $this->useLocale($locale);
         $html = $this->render('comment-check', $locale, ['title' => __('comment_check_title'), 'captcha' => $captcha, 'postUrl' => $url,
             'action' => $url . '/comments', 'values' => $outcome['values'], 'error' => $outcome['error'] ?? '', 'noindex' => true, 'canonical' => null]);
         // The one public page that runs a script: the CAPTCHA widget, after the visitor chose to comment.
@@ -225,7 +230,7 @@ final class SiteController
     {
         // With search turned off, /search is an ordinary page slug again.
         if (!$this->settings->enabled('header_show_search')) { return $this->item($locale, 'search', true); }
-        $this->i18n->setLocale($locale, $this->admin);
+        $this->useLocale($locale);
         $query = $_GET['q'] ?? '';
         $query = is_string($query) && mb_check_encoding($query, 'UTF-8') ? mb_substr(trim($query), 0, Search::MAX_QUERY) : '';
         return $this->render('search', $locale, [
@@ -239,7 +244,7 @@ final class SiteController
     {
         $prefix = explode('/', rawurldecode((string) parse_url($uri, PHP_URL_PATH)))[1] ?? '';
         $locale = in_array($prefix, $this->i18n->enabledLocales($this->admin), true) ? $prefix : $this->i18n->defaultLocale();
-        $this->i18n->setLocale($locale, $this->admin);
+        $this->useLocale($locale);
         return $this->render('not-found', $locale, ['title' => __('not_found'), 'requestedPath' => (string) parse_url($uri, PHP_URL_PATH)], 404);
     }
 }
