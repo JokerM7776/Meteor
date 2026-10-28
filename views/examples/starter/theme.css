@@ -1,0 +1,22 @@
+/* Starter theme. Plain CSS, loaded after Meteor's stylesheet. Color settings arrive as CSS variables
+   (--theme-accent) from /theme-settings.css, because public pages allow no inline styles. */
+.starter-hero { border-bottom: 1px solid rgb(226 232 240); padding: 4rem 1rem 3rem; }
+.starter-hero--compact { padding: 2rem 1rem 1.5rem; }
+.starter-hero h1 { font-size: clamp(2.25rem, 6vw, 4.5rem); font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+.starter-hero--compact h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); }
+.starter-hero p { margin-top: 1rem; max-width: 56ch; font-size: 1.125rem; }
+.starter-wrap { margin: 0 auto; max-width: 70rem; }
+.starter-grid { display: grid; gap: 2.5rem; padding: 2.5rem 1rem 4rem; }
+@media (min-width: 48rem) { .starter-grid--sidebar { grid-template-columns: minmax(0, 1fr) 16rem; } }
+.starter-accent { color: var(--theme-accent, #0f766e); }
+.starter-rule { border-top: 4px solid var(--theme-accent, #0f766e); }
+.starter-post { border-top: 1px solid rgb(226 232 240); padding: 1.25rem 0; }
+.starter-post h2 { font-size: 1.375rem; font-weight: 700; letter-spacing: -.01em; }
+.starter-card { border-radius: 1rem; padding: 1.25rem; background: rgb(241 245 249); }
+.starter-note { margin-top: 2rem; border-radius: .75rem; padding: 1rem 1.25rem; background: rgb(241 245 249); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .starter-hero, :root:not([data-theme="light"]) .starter-post { border-color: rgb(30 41 59); }
+  :root:not([data-theme="light"]) .starter-card, :root:not([data-theme="light"]) .starter-note { background: rgb(15 23 42); }
+}
+:root[data-theme="dark"] .starter-hero, :root[data-theme="dark"] .starter-post { border-color: rgb(30 41 59); }
+:root[data-theme="dark"] .starter-card, :root[data-theme="dark"] .starter-note { background: rgb(15 23 42); }

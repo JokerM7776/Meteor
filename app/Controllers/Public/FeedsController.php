@@ -71,6 +71,44 @@ final class FeedsController
         if (($_SERVER['HTTP_IF_NONE_MATCH'] ?? '') === $etag) { http_response_code(304); return ''; }
         return $css;
     }
+    /**
+     * GET /themes/<slug>/<path>: a CSS, image or font file of the active theme (or, for a signed-in admin,
+     * of any usable theme, for previews). Never PHP, JSON, HTML, JavaScript or dotfiles.
+     */
+    public function themeAsset(string $slug, string $path): string
+    {
+        $themes = $this->site->themes();
+        $theme = $themes->find($slug);
+        $allowed = $theme && $theme['problem'] === '' && ($this->admin || $themes->activeSlug() === $slug);
+        $file = $allowed ? \App\Services\Themes::assetFile($theme['path'], rawurldecode($path)) : null;
+        if ($file === null) {
+            http_response_code(404); header('Content-Type: text/plain; charset=UTF-8'); header('Cache-Control: no-store');
+            return "Not found\n";
+        }
+        $type = \App\Services\Themes::ASSETS[strtolower(pathinfo($file, PATHINFO_EXTENSION))];
+        $hash = hash_file('sha256', $file);
+        header('Content-Type: ' . $type);
+        header('X-Content-Type-Options: nosniff');
+        if ($type === 'image/svg+xml') { header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; img-src data:"); }
+        // A ?v= that matches the file's hash (what $theme->asset() writes) can be cached for good.
+        header('Cache-Control: ' . ($this->admin ? 'private, max-age=0' : (($_GET['v'] ?? '') === $hash ? 'public, max-age=31536000, immutable' : 'public, max-age=300')));
+        header('ETag: "' . $hash . '"');
+        header('Last-Modified: ' . gmdate('D, d M Y H:i:s', (int) filemtime($file)) . ' GMT');
+        if (($_SERVER['HTTP_IF_NONE_MATCH'] ?? '') === '"' . $hash . '"') { http_response_code(304); return ''; }
+        return (string) file_get_contents($file);
+    }
+    /** GET /theme-settings.css: the active (or previewed) theme's color settings as CSS variables. */
+    public function themeSettings(): string
+    {
+        $themes = $this->site->themes();
+        $css = $themes->object($themes->current($this->admin))->settingsCss();
+        $etag = '"' . hash('sha256', $css) . '"';
+        header('Content-Type: text/css; charset=UTF-8');
+        header('Cache-Control: ' . ($this->admin ? 'private, no-store' : 'public, max-age=300'));
+        header('ETag: ' . $etag);
+        if (($_SERVER['HTTP_IF_NONE_MATCH'] ?? '') === $etag) { http_response_code(304); return ''; }
+        return $css;
+    }
     /** The visitor's light/dark choice, kept in a cookie. Works without JavaScript. */
     public function scheme(): string
     {

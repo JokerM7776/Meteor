@@ -4,6 +4,7 @@
 @source "../views/public";
 @source "../views/partials";
 @source "../views/layouts/public.php";
+@source "../views/system/theme-preview.php";
 
 @layer base {
   @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }

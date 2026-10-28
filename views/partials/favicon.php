@@ -1,5 +1,5 @@
-<?php $iconType = \App\Services\SiteIcon::type($siteIcon ?: '/assets/favicon.svg'); ?>
-<link rel="icon" href="<?= e($siteIcon ?: '/assets/favicon.svg') ?>"<?= $iconType !== '' ? ' type="' . e($iconType) . '"' : '' ?>>
-<?php if ($siteIcon !== '' && preg_match('/\.(png|jpg|webp)$/D', $siteIcon)): ?>
-<link rel="apple-touch-icon" href="<?= e($siteIcon) ?>">
+<?php $favicon = $site->favicon; ?>
+<link rel="icon" href="<?= e($favicon->url) ?>"<?= $favicon->type !== '' ? ' type="' . e($favicon->type) . '"' : '' ?>>
+<?php if ($site->icon !== null && preg_match('/\.(png|jpg|webp)$/D', $site->icon->url)): ?>
+<link rel="apple-touch-icon" href="<?= e($site->icon->url) ?>">
 <?php endif ?>

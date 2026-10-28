@@ -1,0 +1,17 @@
+{
+  "name": "Starter",
+  "slug": "starter",
+  "version": "1.0.0",
+  "api": 1,
+  "requires": "0.5.0",
+  "author": "Meteor Team",
+  "homepage": "https://github.com/JokerM7776/Meteor",
+  "license": "MIT",
+  "description": "A small example theme: a new home page, a different author card, two slots and four settings.",
+  "settings": [
+    { "key": "sidebar", "type": "toggle", "label": { "en": "Show categories next to the latest posts", "zh-hans": "在最新文章旁显示分类" }, "default": true },
+    { "key": "hero", "type": "select", "label": { "en": "Home page heading", "zh-hans": "首页标题样式" }, "options": { "large": { "en": "Large", "zh-hans": "大" }, "compact": { "en": "Compact", "zh-hans": "紧凑" } }, "default": "large" },
+    { "key": "tagline", "type": "text", "label": { "en": "Text under the heading (empty: the site tagline)", "zh-hans": "标题下的文字（留空则用网站标语）" }, "max": 200, "default": "" },
+    { "key": "accent", "type": "color", "label": { "en": "Accent color", "zh-hans": "强调色" }, "default": "#0f766e" }
+  ]
+}

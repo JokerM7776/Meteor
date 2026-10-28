@@ -134,6 +134,7 @@ final class AdminController
             $result = (new CommentsController($this->db, $this->i18n, $this->render(...), $this->go(...), $user))->handle($path, $post);
             if ($result !== null) { return $result; }
         }
+        if ($path === '/admin/appearance/themes' && $post) { return $this->themes(); }
         $section = match ($path) { '/admin/languages' => 'languages', '/admin/menus' => 'menus', '/admin/settings' => 'settings', '/admin/strings' => 'strings', '/admin/taxonomy' => 'taxonomy', '/admin/security' => 'security',
             '/admin/home' => 'home', '/admin/author' => 'author', '/admin/appearance' => 'appearance', default => '' };
         if ($section !== '') {
@@ -325,5 +326,41 @@ final class AdminController
         $from = (string) ($_GET['from'] ?? $item['base_locale']);
         return $this->render('editor', $id ? 'Edit ' . ($page ? 'page' : 'post') : 'New ' . ($page ? 'page' : 'post'),
             compact('page', 'id', 'locale', 'item', 'values', 'error', 'target', 'ts', 'from') + ['commentsOn' => (new \App\Repositories\Settings($this->db, $this->i18n))->global('comments_enabled', '0') === '1', 'reference' => $ts[$from] ?? [], 'categories' => $this->db->all('SELECT * FROM categories ORDER BY sort_order, slug')]);
+    }
+    /** Theme actions from Settings → Appearance: activate, deactivate, preview and theme settings. */
+    private function themes(): string
+    {
+        $themes = new \App\Services\Themes($this->db);
+        $slug = is_string($_POST['slug'] ?? null) ? $_POST['slug'] : '';
+        $back = '/admin/appearance#themes';
+        try {
+            switch ($_POST['action'] ?? '') {
+                case 'activate':
+                    $theme = $themes->activate($slug);
+                    if (($_SESSION['theme_preview'] ?? '') === $slug) { unset($_SESSION['theme_preview']); }
+                    return $this->go($back, $theme['name'] . ' is now your theme. Visitors may see the previous look for up to 5 minutes.');
+                case 'deactivate':
+                    $themes->deactivate();
+                    return $this->go($back, 'The built-in look is active again. Visitors may see the previous theme for up to 5 minutes.');
+                case 'preview':
+                    $_SESSION['theme_preview'] = $themes->usable($slug)['slug'];
+                    return $this->go('/' . $this->i18n->defaultLocale() . '/');
+                case 'install_starter':
+                    $theme = $themes->installStarter();
+                    return $this->go($back, $theme['name'] . ' installed. Preview it, or activate it.');
+                case 'stop_preview':
+                    unset($_SESSION['theme_preview']);
+                    return $this->go($back, 'Preview stopped.');
+                case 'settings':
+                    $theme = $themes->usable($slug);
+                    $errors = $themes->saveValues($theme, is_array($_POST['theme'] ?? null) ? $_POST['theme'] : []);
+                    if ($errors) {
+                        $_SESSION['old']['theme_settings'] = ['slug' => $slug, 'values' => $_POST['theme'] ?? [], 'errors' => $errors];
+                        return $this->go('/admin/appearance#theme-settings', 'Check the highlighted theme settings.');
+                    }
+                    return $this->go('/admin/appearance#theme-settings', 'Theme settings saved.');
+            }
+            throw new \InvalidArgumentException('Unknown theme action.');
+        } catch (\InvalidArgumentException $e) { return $this->go($back, $e->getMessage()); }
     }
 }

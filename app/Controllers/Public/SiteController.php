@@ -45,7 +45,7 @@ final class SiteController
             'pages' => $published,
             'path' => (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), 'translate' => fn (string $key) => $this->i18n->translate($key)];
         $themeCss = \App\Services\Appearance::css($this->settings);
-        return $this->view->render('public/' . $template, $data + [
+        $data = $data + [
             'scheme' => \App\Services\Appearance::scheme($this->settings, $_COOKIE['meteor_theme'] ?? null),
             'fontSource' => $this->settings->global('font_source', 'local'),
             'themeSwitch' => $this->settings->global('theme_switch', '1') === '1',
@@ -61,8 +61,21 @@ final class SiteController
             'canonical' => $status === 200 ? '/' . $locale . $suffix : null,
             'title' => $this->settings->label('site_title'), 'description' => '',
             'active' => '', 'is404' => $status === 404, 'noindex' => $preview || $status !== 200,
-        ], 'layouts/public');
+        ];
+        $themes = new \App\Services\Themes($this->db);
+        $theme = $themes->current($this->admin);
+        $this->view->setThemeRoot($theme['path'] ?? null);
+        $api = (new \App\Theme\Builder($this->settings, $this->i18n))->build($template, $data) + ['theme' => $themes->object($theme)];
+        $html = \App\Theme\Context::render($this->view, $api, fn () => $this->view->render('public/' . $template, $api, 'layouts/public'));
+        $previewing = $themes->previewing($this->admin);
+        if ($previewing !== null) {
+            // Meteor's own banner, outside the theme, so a preview can always be stopped.
+            $banner = $this->view->partial('system/theme-preview', ['name' => $previewing['name']]);
+            $html = preg_replace('~<body\b[^>]*>~', '$0' . str_replace(['\\', '$'], ['\\\\', '\\$'], $banner), $html, 1) ?? $html;
+        }
+        return $html;
     }
+    public function themes(): \App\Services\Themes { return new \App\Services\Themes($this->db); }
     private function decorate(array $posts): array
     {
         foreach ($posts as &$post) { $post['translations'] = $this->posts->translations((int) $post['id'], $this->admin); }

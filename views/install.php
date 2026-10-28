@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en" data-theme="auto"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Install Meteor Blog</title>
-<?php require __DIR__ . '/partials/fonts.php' ?>
+<?php require __DIR__ . '/system/fonts.php' ?>
 <link rel="stylesheet" href="<?= e(asset('assets/admin.css')) ?>"></head>
 <body class="admin bg-slate-50 font-display text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 <main class="mx-auto max-w-2xl space-y-6 px-6 py-12">

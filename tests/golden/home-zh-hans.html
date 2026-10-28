@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-hans" dir="ltr" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meteor Blog</title>
+<meta name="description" content="">
+<link rel="canonical" href="https://meteor.example/zh-hans/">
+<meta property="og:url" content="https://meteor.example/zh-hans/"><meta property="og:title" content="Meteor Blog">
+<meta property="og:description" content="">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Meteor Blog">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" hreflang="en" href="https://meteor.example/en/"><link rel="alternate" hreflang="zh-hans" href="https://meteor.example/zh-hans/"><link rel="alternate" hreflang="x-default" href="https://meteor.example/en/"><link rel="alternate" type="application/rss+xml" title="RSS" href="/zh-hans/rss.xml"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/public.css?v={ASSET}">
+</head>
+<body id="top" class="relative flex min-h-screen flex-col bg-slate-50 font-display text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+<a class="sr-only focus:not-sr-only focus:inline-flex focus:self-start focus:min-h-11 focus:items-center" href="#main">跳到正文</a>
+<section aria-label="公告" class="announcements relative bg-slate-900 text-slate-300 dark:border-b dark:border-slate-800 dark:bg-slate-950">
+<input type="radio" name="announcement" id="announcement-1" class="sr-only" aria-label="第 1 条公告，共 2 条" checked><div class="announcement">
+<p class="w-full py-1.5 sm:w-auto sm:min-w-0 sm:flex-1"><strong class="font-semibold text-white">Welcome</strong> A small announcement.</p>
+<a class="inline-flex min-h-11 items-center rounded-lg bg-orange-500 px-4 font-semibold text-slate-950 hover:bg-orange-400 focus-visible:outline-white" href="/zh-hans/about">Read on</a><div class="ms-auto flex items-center" aria-hidden="true">
+<label for="announcement-2" title="上一篇" class="flex size-11 cursor-pointer items-center justify-center rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white"><svg class="rtl:-scale-x-100" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></label>
+<span class="min-w-10 text-center font-mono text-xs text-slate-400">1/2</span>
+<label for="announcement-2" title="下一篇" class="flex size-11 cursor-pointer items-center justify-center rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white"><svg class="rtl:-scale-x-100" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></label>
+</div>
+</div>
+<input type="radio" name="announcement" id="announcement-2" class="sr-only" aria-label="第 2 条公告，共 2 条"><div class="announcement">
+<p class="w-full py-1.5 sm:w-auto sm:min-w-0 sm:flex-1"><strong class="font-semibold text-white">News</strong> Another announcement.</p>
+<div class="ms-auto flex items-center" aria-hidden="true">
+<label for="announcement-1" title="上一篇" class="flex size-11 cursor-pointer items-center justify-center rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white"><svg class="rtl:-scale-x-100" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></label>
+<span class="min-w-10 text-center font-mono text-xs text-slate-400">2/2</span>
+<label for="announcement-1" title="下一篇" class="flex size-11 cursor-pointer items-center justify-center rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white"><svg class="rtl:-scale-x-100" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></label>
+</div>
+</div>
+</section>
+<header class=" border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+<div class="relative mx-auto flex max-w-[1120px] items-center justify-between gap-2 px-4 py-2 md:px-6 md:py-4">
+<a href="/zh-hans/" class="flex min-h-11 items-center gap-2 text-xl font-bold tracking-tight md:text-2xl"><svg class="size-7 shrink-0 text-orange-500 dark:text-orange-400" viewBox="0 0 28 28" aria-hidden="true"><circle cx="8" cy="20" r="5" fill="currentColor"/><path d="M12 16 L25 3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M9 13 L17 5 M15 19 L23 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".45"/></svg>
+<span>Meteor Blog</span></a>
+<div class="flex items-center gap-2 md:gap-6">
+<div class="hidden md:block"><nav aria-label="网站" class="flex flex-wrap gap-1 text-[15px] font-medium">
+<a class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-3 hover:bg-slate-100 dark:hover:bg-slate-800" href="/zh-hans/posts">文章</a>
+<a class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-3 hover:bg-slate-100 dark:hover:bg-slate-800" href="/zh-hans/tags">标签</a>
+<a class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-3 hover:bg-slate-100 dark:hover:bg-slate-800" href="/zh-hans/about">关于 Meteor</a>
+<a class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-3 hover:bg-slate-100 dark:hover:bg-slate-800" href="/zh-hans/rss.xml" target="_blank" rel="noopener">RSS<svg class="ms-1 inline-block shrink-0 opacity-70" width="13" height="13" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.25h4.75V8 M14.75 3.25L8 10 M12.5 10.5v4.25H3.25V5.5H7.5"/></svg><span class="sr-only"> （在新标签页中打开）</span>
+</a>
+</nav>
+</div>
+<nav aria-label="语言" class="hidden gap-0.5 rounded-full border border-slate-200 bg-slate-50 p-0.5 md:flex dark:border-slate-700 dark:bg-slate-950">
+<a href="/en/" lang="en"  class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3.5 text-xs font-semibold whitespace-nowrap text-slate-600 dark:text-slate-300">EN</a>
+<a href="/zh-hans/" lang="zh-hans" aria-current="page" class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3.5 text-xs font-semibold whitespace-nowrap bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">简体中文</a>
+<a href="/ms/" lang="ms"  class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3.5 text-xs font-semibold whitespace-nowrap text-slate-600 dark:text-slate-300">MS</a>
+</nav>
+<details class="md:hidden">
+<summary class="flex size-11 cursor-pointer list-none items-center justify-center gap-2 rounded-lg text-slate-600 hover:bg-slate-100 md:w-auto md:rounded-full md:border md:border-slate-200 md:bg-slate-50 md:px-3 md:text-xs md:font-semibold md:text-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 md:dark:border-slate-700 md:dark:bg-slate-950 md:dark:text-slate-200 [&::-webkit-details-marker]:hidden" title="语言"><svg width="20" height="20" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 4 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.25 5.4 8S6.2 3.65 8 1.75"/></svg><span class="sr-only">语言: </span><span lang="zh-hans" class="sr-only md:not-sr-only md:whitespace-nowrap">简体中文</span><svg class="hidden md:block" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></summary>
+<nav aria-label="语言" class="absolute end-4 top-full z-20 mt-1 max-h-[70vh] w-60 md:end-0 md:top-auto md:mt-2 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+<p class="eyebrow px-3 pt-1 pb-2">语言</p>
+<ul>
+<li><a href="/en/"  class="flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm hover:bg-slate-100 aria-[current=page]:font-semibold dark:hover:bg-slate-800"><span lang="en" dir="ltr">English</span><span class="font-mono text-xs text-slate-600 dark:text-slate-400">en</span></a></li>
+<li><a href="/zh-hans/" aria-current="page" class="flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm hover:bg-slate-100 aria-[current=page]:font-semibold dark:hover:bg-slate-800"><span lang="zh-hans" dir="ltr">简体中文</span><span class="font-mono text-xs text-slate-600 dark:text-slate-400"><span aria-hidden="true">✓</span></span></a></li>
+<li><a href="/ms/"  class="flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm hover:bg-slate-100 aria-[current=page]:font-semibold dark:hover:bg-slate-800"><span lang="ms" dir="ltr">Bahasa Melayu</span><span class="font-mono text-xs text-slate-600 dark:text-slate-400">ms</span></a></li>
+</ul>
+</nav>
+</details>
+<a href="/zh-hans/search" aria-label="搜索" title="搜索"  class="flex size-11 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 aria-[current=page]:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 dark:aria-[current=page]:bg-slate-800"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8.75" cy="8.75" r="5.5"/><path d="m13 13 4 4"/></svg></a>
+<details class="relative"><summary aria-label="配色" title="配色" class="flex size-11 cursor-pointer list-none items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 [&::-webkit-details-marker]:hidden"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.75a7.25 7.25 0 0 1 0 14.5z" fill="currentColor"/></svg></summary>
+<div class="absolute end-0 z-20 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900"><p class="eyebrow px-3 pt-1 pb-2">配色</p>
+<a rel="nofollow" href="/theme?set=auto&amp;back=%2Fzh-hans%2F" aria-current="true" class="flex min-h-11 items-center justify-between rounded-lg px-3 text-sm hover:bg-slate-100 aria-[current=true]:font-semibold dark:hover:bg-slate-800">跟随系统<span aria-hidden="true">✓</span></a><a rel="nofollow" href="/theme?set=light&amp;back=%2Fzh-hans%2F"  class="flex min-h-11 items-center justify-between rounded-lg px-3 text-sm hover:bg-slate-100 aria-[current=true]:font-semibold dark:hover:bg-slate-800">浅色</a><a rel="nofollow" href="/theme?set=dark&amp;back=%2Fzh-hans%2F"  class="flex min-h-11 items-center justify-between rounded-lg px-3 text-sm hover:bg-slate-100 aria-[current=true]:font-semibold dark:hover:bg-slate-800">深色</a></div></details>
+<details class="relative md:hidden"><summary aria-label="菜单" class="flex size-11 cursor-pointer list-none items-center [&::-webkit-details-marker]:hidden justify-center rounded-lg border border-slate-300 dark:border-slate-700"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></summary><div class="absolute end-0 z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900"><nav aria-label="网站" class="flex flex-col text-[15px] font-medium">
+<a class="flex min-h-11 items-center rounded-lg px-3 aria-[current=page]:font-semibold hover:bg-slate-100 dark:hover:bg-slate-800" href="/zh-hans/posts">文章</a>
+<a class="flex min-h-11 items-center rounded-lg px-3 aria-[current=page]:font-semibold hover:bg-slate-100 dark:hover:bg-slate-800" href="/zh-hans/tags">标签</a>
+<a class="flex min-h-11 items-center rounded-lg px-3 aria-[current=page]:font-semibold hover:bg-slate-100 dark:hover:bg-slate-800" href="/zh-hans/about">关于 Meteor</a>
+<a class="flex min-h-11 items-center rounded-lg px-3 aria-[current=page]:font-semibold hover:bg-slate-100 dark:hover:bg-slate-800" href="/zh-hans/rss.xml" target="_blank" rel="noopener">RSS<svg class="ms-1 inline-block shrink-0 opacity-70" width="13" height="13" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.25h4.75V8 M14.75 3.25L8 10 M12.5 10.5v4.25H3.25V5.5H7.5"/></svg><span class="sr-only"> （在新标签页中打开）</span>
+</a>
+</nav>
+</div></details>
+</div></div></header>
+<main id="main" class="flex-1"><section class="relative overflow-hidden border-b border-slate-200 dark:border-slate-800">
+<svg class="absolute -end-10 -top-5 max-w-[60%] text-orange-500 opacity-60 md:opacity-100" width="520" height="360" viewBox="0 0 520 360" aria-hidden="true"><path d="M500 20 L180 300" stroke="currentColor" stroke-width="3"/><path class="text-orange-300" d="M470 10 L260 194" stroke="currentColor" stroke-width="2"/><path class="text-orange-200" d="M515 90 L330 252" stroke="currentColor" stroke-width="2"/><circle cx="176" cy="304" r="9" fill="currentColor"/><g class="text-slate-300 dark:text-slate-600" fill="currentColor"><circle cx="420" cy="230" r="2"/><circle cx="300" cy="80" r="2"/><circle cx="120" cy="140" r="1.5"/></g></svg><div class="relative mx-auto flex max-w-[1120px] flex-col gap-4 px-4 pt-10 pb-8 md:gap-6 md:px-6 md:pt-24 md:pb-[88px]">
+<h1 class="max-w-[16ch] text-[44px] leading-none font-bold tracking-[-.035em] text-balance md:text-[80px]">Meteor Blog</h1>
+<div class="flex flex-wrap gap-3 pt-2"><a class="button-primary" href="/zh-hans/posts">阅读归档 →</a><a class="button-secondary" href="/zh-hans/rss.xml">简体中文 RSS 订阅</a></div></div></section>
+<section aria-labelledby="pinned" class="mx-auto max-w-[1120px] px-4 pt-10 pb-2 md:px-6 md:pt-[72px]">
+<h2 id="pinned" class="eyebrow mb-5 md:mb-6">置顶</h2>
+<div class="grid gap-5 md:grid-cols-2 md:gap-6">
+<article class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 md:p-7 dark:border-slate-800 dark:bg-slate-900">
+<div class="h-[180px] overflow-hidden rounded-[10px]"><img class="h-full w-full object-cover" src="/uploads/golden-cover.webp" alt="" loading="lazy">
+</div><div class="flex flex-wrap items-center gap-2 font-mono text-xs text-slate-600 dark:text-slate-400"><a class="accent inline-flex min-h-11 min-w-11 items-center uppercase" href="/zh-hans/categories/engineering">Engineering</a><span aria-hidden="true">·</span><time datetime="2026-10-12 08:00:00">12 10月 2026</time><span aria-hidden="true">·</span><span>阅读约 1 分钟</span></div>
+<h3 class="text-2xl leading-[1.15] font-bold tracking-tight md:text-[28px]"><a class="-my-2 inline-block py-2" href="/zh-hans/posts/building-a-zero-js-blog">用原生 PHP 打造零 JS 博客</a></h3>
+<p class="font-serif text-lg leading-relaxed text-slate-700 dark:text-slate-300">用简单的工具构建快速、易读的多语言网站。</p><div class="mt-auto"><div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+<a class="button-secondary gap-1.5" href="/zh-hans/posts/building-a-zero-js-blog">阅读<span class="sr-only">: 用原生 PHP 打造零 JS 博客</span><span aria-hidden="true">→</span></a>
+<p class="text-sm text-slate-600 dark:text-slate-400">另有<span lang="en">English</span>版本</p></div>
+</div></article><article class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 md:p-7 dark:border-slate-800 dark:bg-slate-900">
+<div class="flex flex-wrap items-center gap-2 font-mono text-xs text-slate-600 dark:text-slate-400"><a class="accent inline-flex min-h-11 min-w-11 items-center uppercase" href="/zh-hans/categories/seo">SEO</a><span aria-hidden="true">·</span><time datetime="2026-09-28 08:00:00">28 9月 2026</time><span aria-hidden="true">·</span><span>阅读约 1 分钟</span></div>
+<h3 class="text-2xl leading-[1.15] font-bold tracking-tight md:text-[28px]"><a class="-my-2 inline-block py-2" href="/zh-hans/posts/one-url-per-translation">每种翻译都需要独立的网址</a></h3>
+<p class="font-serif text-lg leading-relaxed text-slate-700 dark:text-slate-300">用简单的工具构建快速、易读的多语言网站。</p><div class="mt-auto"><div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+<a class="button-secondary gap-1.5" href="/zh-hans/posts/one-url-per-translation">阅读<span class="sr-only">: 每种翻译都需要独立的网址</span><span aria-hidden="true">→</span></a>
+<p class="text-sm text-slate-600 dark:text-slate-400">另有<span lang="en">English</span>版本</p></div>
+</div></article></div></section>
+<section aria-labelledby="latest" class="mx-auto max-w-[1120px] px-4 pt-10 pb-6 md:px-6 md:pt-14">
+<div class="mb-2 flex items-baseline justify-between gap-4 md:mb-4"><h2 id="latest" class="eyebrow">最新</h2><a class="accent inline-flex min-h-11 items-center font-semibold" href="/zh-hans/posts">查看全部文章 →</a></div>
+<article class="flex flex-wrap gap-x-8 gap-y-1.5 border-t border-slate-200 py-5 md:py-6 dark:border-slate-800">
+<time class="w-full pt-1.5 font-mono text-xs text-slate-600 md:w-30 dark:text-slate-400" datetime="2026-10-08 08:00:00">08 10月 2026</time>
+<div class="min-w-0 flex-[999_1_420px]"><h3 class="text-xl font-semibold tracking-tight md:mb-1.5 md:text-[22px]"><a class="-my-2 inline-block py-2" href="/zh-hans/posts/compile-markdown-on-save">保存时预编译 Markdown</a></h3><p class="font-serif text-[17px] text-slate-600 dark:text-slate-400">用简单的工具构建快速、易读的多语言网站。</p><div class="mt-1"><div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+<a class="accent inline-flex min-h-11 items-center gap-1.5 font-semibold" href="/zh-hans/posts/compile-markdown-on-save">阅读<span class="sr-only">: 保存时预编译 Markdown</span><span aria-hidden="true">→</span></a>
+<p class="text-sm text-slate-600 dark:text-slate-400">另有<span lang="en">English</span>版本</p></div>
+</div></div></article><article class="flex flex-wrap gap-x-8 gap-y-1.5 border-t border-slate-200 py-5 md:py-6 dark:border-slate-800">
+<time class="w-full pt-1.5 font-mono text-xs text-slate-600 md:w-30 dark:text-slate-400" datetime="2026-09-21 08:00:00">21 9月 2026</time>
+<div class="min-w-0 flex-[999_1_420px]"><h3 class="text-xl font-semibold tracking-tight md:mb-1.5 md:text-[22px]"><a class="-my-2 inline-block py-2" href="/zh-hans/posts/dark-mode-one-media-query">一个媒体查询实现深色模式</a></h3><p class="font-serif text-[17px] text-slate-600 dark:text-slate-400">用简单的工具构建快速、易读的多语言网站。</p><div class="mt-1"><div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+<a class="accent inline-flex min-h-11 items-center gap-1.5 font-semibold" href="/zh-hans/posts/dark-mode-one-media-query">阅读<span class="sr-only">: 一个媒体查询实现深色模式</span><span aria-hidden="true">→</span></a>
+<p class="text-sm text-slate-600 dark:text-slate-400">另有<span lang="en">English</span>版本</p></div>
+</div></div></article><article class="flex flex-wrap gap-x-8 gap-y-1.5 border-t border-slate-200 py-5 md:py-6 dark:border-slate-800">
+<time class="w-full pt-1.5 font-mono text-xs text-slate-600 md:w-30 dark:text-slate-400" datetime="2026-09-02 08:00:00">02 9月 2026</time>
+<div class="min-w-0 flex-[999_1_420px]"><h3 class="text-xl font-semibold tracking-tight md:mb-1.5 md:text-[22px]"><a class="-my-2 inline-block py-2" href="/zh-hans/posts/hamburger-menu-no-js">不需要 JavaScript 的菜单</a></h3><p class="font-serif text-[17px] text-slate-600 dark:text-slate-400">用简单的工具构建快速、易读的多语言网站。</p><div class="mt-1"><div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+<a class="accent inline-flex min-h-11 items-center gap-1.5 font-semibold" href="/zh-hans/posts/hamburger-menu-no-js">阅读<span class="sr-only">: 不需要 JavaScript 的菜单</span><span aria-hidden="true">→</span></a>
+<p class="text-sm text-slate-600 dark:text-slate-400">另有<span lang="en">English</span>版本</p></div>
+</div></div></article></section>
+<div class="pb-10 md:pb-20" aria-hidden="true"></div>
+</main>
+<footer class="bg-slate-900 text-slate-300">
+<div class="mx-auto flex max-w-[1120px] flex-wrap justify-between gap-10 px-4 py-12 md:px-6">
+<div class="max-w-sm"><div class="h-card flex items-start gap-4">
+<div class="min-w-0">
+<a class="p-name u-url u-uid inline-flex min-h-11 items-center font-bold text-xl text-white" rel="me" href="https://meteor.example/zh-hans/">Meteor Team</a>
+<p class="p-note text-sm text-slate-400 leading-relaxed">Notes from a quieter web.</p><ul class="mt-2 flex flex-wrap gap-x-4 text-sm">
+<li><a class="u-url inline-flex min-h-11 items-center text-white underline-offset-4 hover:underline" rel="me noopener" href="https://example.org/">Website</a></li></ul>
+</div>
+</div>
+</div>
+<div class="flex flex-wrap gap-8 text-sm md:gap-12">
+<div><h2 class="eyebrow text-slate-400">阅读语言</h2><a class="flex min-h-11 items-center text-white" lang="en" href="/en/">English</a><a class="flex min-h-11 items-center text-white" lang="zh-hans" href="/zh-hans/">简体中文</a></div><div><h2 class="eyebrow text-slate-400">订阅</h2><a class="flex min-h-11 items-center text-white" href="/en/rss.xml">/en/rss.xml</a><a class="flex min-h-11 items-center text-white" href="/zh-hans/rss.xml">/zh-hans/rss.xml</a></div><div><h2 class="eyebrow text-slate-400">网站</h2>
+<a class="flex min-h-11 items-center text-white" href="/zh-hans/about">关于 Meteor</a><a class="flex min-h-11 items-center text-white" href="/sitemap.xml">网站地图</a><a class="flex min-h-11 items-center text-white" href="https://example.org/" target="_blank" rel="noopener">Elsewhere<svg class="ms-1 inline-block shrink-0 opacity-70" width="13" height="13" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.25h4.75V8 M14.75 3.25L8 10 M12.5 10.5v4.25H3.25V5.5H7.5"/></svg><span class="sr-only"> （在新标签页中打开）</span>
+</a></div></div>
+</div>
+<div class="border-t border-slate-800"><p class="mx-auto max-w-[1120px] px-4 py-5 text-sm text-slate-400 md:px-6">© 2026 Meteor Team</p></div></footer>
+<div class="pointer-events-none absolute inset-0 overflow-clip print:hidden"><a href="#top" class="back-to-top" title="回到顶部"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 16V4M4.5 9.5 10 4l5.5 5.5"/></svg><span class="sr-only">回到顶部</span></a></div>
+</body></html>

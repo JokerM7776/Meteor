@@ -400,3 +400,34 @@ Reference links are resolved outside code before HTML conversion and media rewri
 Used definitions are removed; unused definitions and footnotes stay. Same-language slug
 collisions become distinct groups, so skip/rename applies instead of discarding translations.
 Only successfully resolved media-library URLs are stored as covers; unresolved covers become NULL.
+
+## Themes (Theme API 1)
+
+Public templates render from read-only objects only. `SiteController::render()` still gathers the
+data; `App\Theme\Builder` maps it into `Site` and `Page` (plus `Theme` from `App\Services\Themes`), and
+the views receive just `$site`, `$page`, `$theme` (and `$content` in the layout). The objects are the
+public contract documented in `docs/THEMES.md`; a test fails when a public property is missing there.
+
+- **Lookup:** `View` takes an optional theme root. For `layouts/public`, `public/*`, `partials/*` and
+  `slots/*` it tries `storage/themes/<slug>/<template>.php` first (realpath must stay inside the theme
+  folder), then `views/`. Admin templates and `views/system/*` (admin and installer copies of the
+  favicon, fonts and mark partials, and the preview banner) are never themed.
+- **Isolation:** templates run in a static closure with only their data; `partial()` and `slot()` go
+  through `App\Theme\Context`, which passes `$site`, `$page`, `$theme` plus the call's `$data`.
+- **Fallback:** a theme template that throws (`ParseError` and `Error` included) is discarded, logged to
+  `storage/logs/themes.log`, and Meteor's template renders instead.
+- **Golden HTML:** `tests/golden/*.html` hold the built-in pages as rendered before Theme API 1;
+  `ThemeGoldenTest` requires byte-identical output. Regenerate them (`php tests/golden/generate.php`)
+  only for an intended change to the built-in markup.
+- **Settings:** `theme.json` settings are validated by `App\Services\Themes`; values are stored as
+  global settings `theme.<slug>.<key>` (JSON). Color settings are served as CSS variables from
+  `/theme-settings.css` because the public CSP forbids inline styles.
+- **Assets:** `GET /themes/<slug>/<path>` serves css, images and fonts (≤ 5 MB) of the active theme, or
+  of any usable theme for a signed-in admin. No PHP/JSON/HTML/JS, no dotfiles, no symlinks out of the
+  folder; SVG gets its own restrictive CSP; `?v=<sha256>` makes the response immutable.
+- **Preview:** `$_SESSION['theme_preview']` for a signed-in admin; the banner is injected after `<body>`
+  by the controller, outside the theme. Admin responses are already `private, no-store`.
+- **Starter theme:** shipped in `views/examples/starter/` (release zips include `views/`, older updaters
+  too) and copied to `storage/themes/starter` by **Install the starter theme**.
+- **Upgrade safety:** no schema change. The online-update request redirects without rendering public
+  templates, so the old `View` never meets the new templates.

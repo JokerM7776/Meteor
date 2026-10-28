@@ -390,3 +390,16 @@ Remove `--check` to import. Use `--rename` to append a number to conflicting slu
 Themes and plugins are not imported, and old URLs are not redirected. HTML is converted
 to Markdown; unsupported markup and Hexo tags may lose formatting and produce warnings.
 Review the imported drafts before publishing.
+
+## Themes
+
+A theme changes the look of the public site: it can replace any public template, add markup in named
+slots, ship CSS, images and fonts, and offer settings in the admin. Themes live in
+`storage/themes/<name>/`, which updates never touch.
+
+- **Settings → Appearance** lists installed themes. **Install the starter theme** adds an example to
+  try and copy from; **Preview** shows a theme only to you; **Activate** switches it on for visitors.
+- A broken theme template falls back to Meteor's own and is logged in `storage/logs/themes.log`.
+- Public pages stay free of JavaScript with any theme.
+
+Writing a theme: [docs/THEMES.md](docs/THEMES.md) (Theme API 1 and the stability promise).

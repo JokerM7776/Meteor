@@ -6,8 +6,8 @@
 <meta name="csrf-token" content="<?= e(\Core\Csrf::token()) ?>">
 <title>
 <?= e($title) ?> · <?= e($siteTitle) ?> Admin</title>
-<?php require __DIR__ . '/../partials/favicon.php' ?>
-<?php require __DIR__ . '/../partials/fonts.php' ?>
+<?php require __DIR__ . '/../system/favicon.php' ?>
+<?php require __DIR__ . '/../system/fonts.php' ?>
 <link rel="stylesheet" href="<?= e(asset('assets/admin.css')) ?>">
 <script src="<?= e(asset('assets/admin.js')) ?>" defer></script>
 </head>
@@ -15,7 +15,7 @@
 <?php if ($active === 'login'): ?>
 <main class="mx-auto flex min-h-screen max-w-[468px] flex-col justify-center gap-6 px-6 py-12">
 <div class="flex items-center justify-center gap-3 text-2xl font-bold">
-<?php require __DIR__ . '/../partials/mark.php'; ?> <?= e($siteTitle) ?> <span class="rounded-md bg-slate-200 px-2 py-1 font-mono text-[11px] font-medium uppercase tracking-wider text-slate-700">Admin</span>
+<?php require __DIR__ . '/../system/mark.php'; ?> <?= e($siteTitle) ?> <span class="rounded-md bg-slate-200 px-2 py-1 font-mono text-[11px] font-medium uppercase tracking-wider text-slate-700">Admin</span>
 </div>
 <?php if ($flash): ?>
 <p role="status" class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
@@ -39,7 +39,7 @@
 <aside id="admin-sidebar" class="admin-sidebar flex shrink-0 flex-col gap-2 bg-slate-900 px-4 py-3 text-slate-300 md:gap-6 md:py-5">
 <div class="nav-brand flex items-center justify-between gap-2">
 <a href="/admin/posts" class="flex min-h-11 min-w-0 items-center gap-3 px-2 text-xl font-bold text-white" title="<?= e($siteTitle) ?>">
-<?php require __DIR__ . '/../partials/mark.php'; ?><span class="nav-label truncate"><?= e($siteTitle) ?></span></a>
+<?php require __DIR__ . '/../system/mark.php'; ?><span class="nav-label truncate"><?= e($siteTitle) ?></span></a>
 <button type="button" class="nav-toggle hidden size-11 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white focus-visible:outline-2 focus-visible:outline-orange-500 md:inline-flex" data-nav-toggle aria-controls="admin-sidebar" aria-expanded="<?= $navCollapsed ? 'false' : 'true' ?>" aria-label="<?= $navCollapsed ? 'Expand menu' : 'Collapse menu' ?>" title="<?= $navCollapsed ? 'Expand menu' : 'Collapse menu' ?>">
 <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.75 3.25h12.5v11.5H2.75z M7 3.25v11.5 M12 7l-2 2 2 2"/></svg>
 </button>

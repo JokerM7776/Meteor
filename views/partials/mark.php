@@ -1,5 +1,5 @@
-<?php if (!empty($siteIcon)): ?>
-<img src="<?= e($siteIcon) ?>" alt="" width="28" height="28" class="size-7 shrink-0 rounded-md object-contain">
+<?php if ($site->icon !== null): ?>
+<img src="<?= e($site->icon->url) ?>" alt="" width="28" height="28" class="size-7 shrink-0 rounded-md object-contain">
 <?php else: ?>
 <svg class="size-7 shrink-0 text-orange-500 dark:text-orange-400" viewBox="0 0 28 28" aria-hidden="true"><circle cx="8" cy="20" r="5" fill="currentColor"/><path d="M12 16 L25 3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M9 13 L17 5 M15 19 L23 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".45"/></svg>
 <?php endif ?>
