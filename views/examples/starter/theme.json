@@ -1,11 +1,11 @@
 {
   "name": "Starter",
   "slug": "starter",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "api": 1,
   "requires": "0.6.0",
   "author": "Meteor Team",
-  "homepage": "https://github.com/JokerM7776/Meteor",
+  "homepage": "https://github.com/JokerM7776/meteor-theme-starter",
   "license": "MIT",
   "description": "A small example theme: a new home page, a different author card, two slots and four settings.",
   "settings": [

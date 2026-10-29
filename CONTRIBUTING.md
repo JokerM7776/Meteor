@@ -78,7 +78,9 @@ find . -name '*.php' -print0 | xargs -0 -n1 php -l
 ## Publishing a theme
 
 Keep theme code in your own GitHub repository. Meteor holds only the reviewed listing in
-`themes/index.json`; each version pins the exact release zip by SHA-256.
+`themes/index.json`; each version pins the exact release zip by SHA-256. The easiest start is the
+official example, [meteor-theme-starter](https://github.com/JokerM7776/meteor-theme-starter): choose
+**Use this template**, and see how its release and catalog entry are set up.
 
 1. Include `slug`, `version` (`X.Y.Z`), `api`, `requires` (`X.Y` or `X.Y.Z`) and `license`
    in `theme.json`, along with its name, description and author. See [the Theme API guide](docs/THEMES.md).

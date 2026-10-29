@@ -112,7 +112,7 @@ test('Theme API: the starter theme renders every page type, overrides, slots, CS
             $html = publicRequest($app, $path);
             ok(!str_contains($html, '<script'), $path . ' has a script');
             contains('/themes/starter/theme.css?v=', $html); contains('/theme-settings.css?v=', $html);
-            contains('Starter theme 1.1.0', $html);
+            contains('Starter theme 1.1.1', $html);
         }
         $_SERVER['REQUEST_URI'] = '/en/';
         $home = publicRequest($app, '/en/'); contains('starter-hero', $home); contains('starter-grid--sidebar', $home); ok(!str_contains($home, 'max-w-[16ch]'), 'Theme home replaces the built-in one');

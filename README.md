@@ -402,7 +402,9 @@ slots, ship CSS, images and fonts, and offer settings in the admin. Themes live 
 - A broken theme template falls back to Meteor's own and is logged in `storage/logs/themes.log`.
 - Public pages stay free of JavaScript with any theme.
 
-Writing a theme: [docs/THEMES.md](docs/THEMES.md) (Theme API 1 and the stability promise).
+Writing a theme: [docs/THEMES.md](docs/THEMES.md) (Theme API 1 and the stability promise). The official example,
+[meteor-theme-starter](https://github.com/JokerM7776/meteor-theme-starter), is a GitHub template: choose
+**Use this template** to start your own.
 
 Theme authoring: **Settings → Themes** installs, updates, creates, copies and downloads themes.
 Run `php bin/theme.php check <folder|zip>` before sharing; see [the theme guide](docs/THEMES.md).

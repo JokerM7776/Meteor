@@ -21,6 +21,8 @@ final class Themes
 
     /** The example theme shipped with Meteor; "Install the starter theme" copies it to storage/themes/starter. */
     public const STARTER = 'views/examples/starter';
+    /** The starter's own repository; the theme catalog lists it from there. */
+    public const STARTER_REPO = 'JokerM7776/meteor-theme-starter';
     /** Tests point this at a temporary folder. */
     public static ?string $directory = null;
 
@@ -39,7 +41,10 @@ final class Themes
             if (!is_dir(dirname($target . '/' . $relative)) && !@mkdir(dirname($target . '/' . $relative), 0755, true)) { throw new \InvalidArgumentException('Cannot copy the starter theme.'); }
             if (!copy($file->getPathname(), $target . '/' . $relative)) { throw new \InvalidArgumentException('Cannot copy the starter theme.'); }
         }
-        return $this->find('starter') ?? throw new \InvalidArgumentException('Cannot copy the starter theme.');
+        $theme = $this->find('starter') ?? throw new \InvalidArgumentException('Cannot copy the starter theme.');
+        // The bundled copy is the official catalog theme, so the catalog shows it as installed and offers its updates.
+        ThemeDownloads::remember($this->root, 'starter', $theme['version'], hash_file('sha256', $target . '/theme.json'), self::STARTER_REPO);
+        return $theme;
     }
 
     public function root(): string { return $this->root; }

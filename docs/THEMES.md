@@ -14,7 +14,9 @@ This guide is for **Theme API 1** (Meteor 0.5 and newer).
    at the top links back to the admin to stop the preview.
 3. Choose **Activate** to switch it on for everyone. Visitors may see the previous look for up to
    5 minutes (the public cache).
-4. Copy `storage/themes/starter/` to `storage/themes/<your-theme>/`, change `slug` and `name` in its
+4. Start your own theme from it: choose **Use this template** on
+   [meteor-theme-starter](https://github.com/JokerM7776/meteor-theme-starter), or copy
+   `storage/themes/starter/` to `storage/themes/<your-theme>/`. Change `slug` and `name` in its
    `theme.json`, and start editing.
 
 Themes live in `storage/themes/`, which updates never touch.

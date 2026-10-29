@@ -42,7 +42,11 @@ test('Theme catalog: strict fields, URLs, limits and sorted forward-compatible r
     }
     authorError(fn () => ThemeCatalog::parse(ThemeCatalog::encode(['BAD' => $entry])), 'BAD: invalid slug');
     foreach (['{}', '[]', '{"meteor_theme_index":1,"themes":[]}', '{"meteor_theme_index":2,"themes":{}}', str_repeat(' ', ThemeCatalog::MAX_BYTES + 1), ThemeCatalog::encode(array_fill_keys(range(1, 501), $entry))] as $bad) { throws(fn () => ThemeCatalog::parse($bad)); }
-    same([], ThemeCatalog::parse(file_get_contents(dirname(__DIR__) . '/themes/index.json')));
+    // The shipped catalog lists the official starter at the same version Meteor bundles.
+    $shipped = ThemeCatalog::parse(file_get_contents(dirname(__DIR__) . '/themes/index.json'));
+    $bundled = json_decode(file_get_contents(dirname(__DIR__) . '/' . App\Services\Themes::STARTER . '/theme.json'), true);
+    same(App\Services\Themes::STARTER_REPO, $shipped['starter']['repo']); same($bundled['version'], $shipped['starter']['version']);
+    same($bundled['requires'], $shipped['starter']['requires']);
     same(false, Core\ReleasePackage::managed('themes/index.json'));
 });
 
@@ -158,4 +162,19 @@ FAKE);
         [, $html] = $c->request('/admin/themes'); same(2, substr_count($html, 'Update available')); contains('Update<span class="sr-only"> Night Owl', $html);
         $post('catalog_install'); [, $html] = $c->request('/admin/themes'); contains('Updated Night Owl to 2.0.0. Your settings are kept.', $html);
     } finally { $c->close(); }
+});
+
+test('Theme catalog: the bundled starter counts as the official catalog theme', function () {
+    themeSandbox(function ($root, $write) {
+        $db = database(); $themes = new App\Services\Themes($db); $themes->installStarter();
+        $version = $themes->find('starter')['version'];
+        $starter = themeEntry(['name' => 'Starter', 'repo' => App\Services\Themes::STARTER_REPO, 'version' => $version,
+            'zip' => 'https://github.com/' . App\Services\Themes::STARTER_REPO . '/releases/download/v' . $version . '/starter.zip']);
+        $http = new FakeUpdateHttp([themeIndexUrl() => rawResponse(ThemeCatalog::encode(['starter' => $starter]))]);
+        $downloads = new ThemeDownloads($db, new GitHubUpdates($http)); $downloads->check();
+        same('current', $downloads->rows()['starter']['state']);
+        $http->responses[themeIndexUrl()] = rawResponse(ThemeCatalog::encode(['starter' => ['version' => '9.9.9'] + $starter])); $downloads->check();
+        same('update', $downloads->rows()['starter']['state']);
+        $themes->deactivate(); $themes->delete('starter'); same([], $downloads->installed());
+    });
 });

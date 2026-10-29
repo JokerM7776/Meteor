@@ -76,13 +76,19 @@ final class ThemeDownloads
             ReleasePackage::write($file, $bytes);
             ThemeCatalogPackage::inspect($file, $this->db, $slug, $entry);
             $this->themes->installZip($file, $entry['state'] === 'update');
-            $installed = $this->installed();
-            $installed[$slug] = ['version' => $entry['version'], 'sha256' => $entry['sha256'], 'repo' => $entry['repo'], 'installed_at' => gmdate('Y-m-d\TH:i:s\Z')];
-            self::write($this->root . '/.installed.json', (object) $installed);
+            self::remember($this->root, $slug, $entry['version'], $entry['sha256'], $entry['repo']);
             return $entry['state'] === 'update'
                 ? 'Updated ' . $entry['name'] . ' to ' . $entry['version'] . '. Your settings are kept.'
                 : 'Installed ' . $entry['name'] . ' ' . $entry['version'] . '. Preview it, or activate it.';
         } finally { unlink($file); }
+    }
+
+    /** Records that a theme came from the catalog (or is the bundled official starter). */
+    public static function remember(string $root, string $slug, string $version, string $sha256, string $repo): void
+    {
+        $installed = self::readInstalled($root);
+        $installed[$slug] = ['version' => $version, 'sha256' => $sha256, 'repo' => $repo, 'installed_at' => gmdate('Y-m-d\TH:i:s\Z')];
+        self::write($root . '/.installed.json', (object) $installed);
     }
 
     public static function forget(string $root, string $slug): void

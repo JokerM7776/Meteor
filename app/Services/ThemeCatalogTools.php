@@ -23,7 +23,7 @@ final class ThemeCatalogTools
     public static function check(string $index, array $arguments): int
     {
         $entries = ThemeCatalog::parse((string) file_get_contents($index));
-        if (!$arguments) { echo 'Theme catalog valid: ' . count($entries) . " themes.\n"; return 0; }
+        if (!$arguments) { echo "Theme catalog valid: " . count($entries) . (count($entries) === 1 ? " theme.\n" : " themes.\n"); return 0; }
         if (array_shift($arguments) !== '--download') { throw new \InvalidArgumentException('Use catalog check [--download [slug ...]].'); }
         foreach ($arguments as $slug) { if (!isset($entries[$slug])) { throw new \InvalidArgumentException('Theme ' . $slug . ' is not in the catalog.'); } }
         $failed = false;

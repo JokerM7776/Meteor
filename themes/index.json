@@ -1,4 +1,19 @@
 {
     "meteor_theme_index": 1,
-    "themes": {}
+    "themes": {
+        "starter": {
+            "name": "Starter",
+            "description": "A small example theme: a new home page, a different author card, two slots and four settings.",
+            "author": "Meteor Team",
+            "license": "MIT",
+            "repo": "JokerM7776/meteor-theme-starter",
+            "version": "1.1.1",
+            "api": 1,
+            "requires": "0.6.0",
+            "zip": "https://github.com/JokerM7776/meteor-theme-starter/releases/download/v1.1.1/starter-1.1.1.zip",
+            "sha256": "c27e59ddeca4882ffbc529c44f548c39e80e2b4b8a2a006650e8a272d59776f6",
+            "size": 6719,
+            "updated": "2026-10-29T02:02:17Z"
+        }
+    }
 }

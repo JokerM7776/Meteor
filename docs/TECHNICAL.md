@@ -428,7 +428,11 @@ public contract documented in `docs/THEMES.md`; a test fails when a public prope
 - **Preview:** `$_SESSION['theme_preview']` for a signed-in admin; the banner is injected after `<body>`
   by the controller, outside the theme. Admin responses are already `private, no-store`.
 - **Starter theme:** shipped in `views/examples/starter/` (release zips include `views/`, older updaters
-  too) and copied to `storage/themes/starter` by **Install the starter theme**.
+  too) and copied to `storage/themes/starter` by **Install the starter theme**. Its home is
+  `JokerM7776/meteor-theme-starter` (`Themes::STARTER_REPO`), which the catalog lists; the bundled copy
+  is recorded in `.installed.json` as that catalog theme, so the catalog offers its updates. A test keeps
+  the bundled version equal to the catalog's. To release a new starter: bump `version` in both copies,
+  publish the zip there, then update its entry with `php bin/theme.php entry`.
 - **Upgrade safety:** no schema change. The online-update request redirects without rendering public
   templates, so the old `View` never meets the new templates.
 
