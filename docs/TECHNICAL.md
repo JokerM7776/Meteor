@@ -447,3 +447,15 @@ Public controllers apply it before constructing translated titles/links. The adm
 `ThemeCheck` creates its own SQLite database, seeds `DemoSeeder`, captures template/deprecation
 reports and checks rendered HTML. It requires no test files and restores request globals after
 checking. It executes trusted PHP, not sandboxed code. The golden HTML fixtures remain unchanged.
+
+### Theme catalog (0.7)
+
+`Core\ThemeCatalog` strictly validates the reviewed `themes/index.json`; this directory is excluded
+from release packages. `GitHubUpdates` fetches the main-branch index and author release assets through
+its existing HTTPS allow-list. `ThemeDownloads` stores the last check in `storage/themes/.catalog.json`
+and provenance in `.installed.json`, using atomic writes. Installs use only that check, verify exact
+size/SHA-256 and manifest identity, then use the existing staged zip installer. No schema changes.
+Local folders are never overwritten; updates preserve settings and never downgrade. Hand replacement
+and deletion clear provenance. Admin catalog actions use the existing CSRF-protected themes handler.
+`bin/theme.php entry` performs static upload checks; `catalog check --download` also executes
+`ThemeCheck` fixtures. Theme API 1 objects and public rendering are unchanged.

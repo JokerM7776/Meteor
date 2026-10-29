@@ -53,6 +53,7 @@ trait ThemeAuthoring
                 if ($exists && !$this->moveFolder($old, $target)) { throw new \RuntimeException('Could not restore the old theme; it is kept at ' . $old, 0, $e); }
                 throw $e;
             }
+            ThemeDownloads::forget($this->root, $slug);
             if ($exists) { \Core\ReleasePackage::removeTree($old); }
             return $this->find($slug) + ['replaced' => $exists];
         } finally { \Core\ReleasePackage::removeTree($temp); }
@@ -64,6 +65,7 @@ trait ThemeAuthoring
         if (!$theme) { throw new \InvalidArgumentException('This theme is not installed.'); }
         if ($this->activeSlug() === $slug) { throw new \InvalidArgumentException('Switch to another theme before deleting it.'); }
         \Core\ReleasePackage::removeTree($theme['path']);
+        ThemeDownloads::forget($this->root, $slug);
         $this->db->query('DELETE FROM settings WHERE `key` LIKE ?', ['theme.' . $slug . '.%']);
         if (($_SESSION['theme_preview'] ?? '') === $slug) { unset($_SESSION['theme_preview']); }
     }

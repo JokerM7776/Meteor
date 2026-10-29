@@ -49,6 +49,15 @@ final class GitHubUpdates
         if (!preg_match('~^[a-z0-9-]{2,40}\.json$~D', $file)) { throw new \InvalidArgumentException('Invalid language file name.'); }
         return $this->fetch('https://raw.githubusercontent.com/' . self::REPOSITORY . '/' . self::BRANCH . '/lang/' . $file, $limit, true);
     }
+    public function themeIndex(int $limit): string
+    {
+        return $this->fetch('https://raw.githubusercontent.com/' . self::REPOSITORY . '/' . self::BRANCH . '/themes/index.json', $limit, true);
+    }
+    public function themeZip(string $url, int $limit): string
+    {
+        if (!ThemeCatalog::zipUrl($url)) { throw new \InvalidArgumentException('Invalid GitHub theme release URL.'); }
+        return $this->fetch($url, $limit, true);
+    }
     public function download(array $release, string $destination): string
     {
         $name = 'meteor-' . $release['version'] . '.zip'; $assets = array_column($release['assets'], null, 'name');

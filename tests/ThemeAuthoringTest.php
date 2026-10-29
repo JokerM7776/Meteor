@@ -64,7 +64,7 @@ test('Theme authoring: rejects malicious archives, PHP syntax and invalid manife
 test('Theme authoring: create, copy, download and delete enforce folder boundaries', function () {
     themeSandbox(function ($root) {
         $db = database(); locale($db); $themes = new Themes($db);
-        $theme = $themes->create('My Nice Theme!'); same('my-nice-theme', $theme['slug']); same('0.6.0', $theme['requires']);
+        $theme = $themes->create('My Nice Theme!'); same('my-nice-theme', $theme['slug']); same(implode('.', array_slice(explode('.', Core\Version::current()), 0, 2)) . '.0', $theme['requires']);
         same('1.0.0', $theme['version']); ok(str_starts_with($themes->create('中文')['slug'], 'theme-'));
         authorError(fn () => $themes->create('Duplicate', 'my-nice-theme'), 'already exists');
         authorError(fn () => $themes->create('', 'empty'), '1 to 100');

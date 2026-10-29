@@ -128,7 +128,7 @@ final class AdminController
                     $message = 'Language catalog checked: ' . ($states['new'] ?? 0) . ' to add, ' . ($states['update'] ?? 0) . ' with newer text.';
                 }
             } catch (\InvalidArgumentException | \RuntimeException $e) { $message = $e->getMessage(); }
-            return $this->go('/admin/languages#catalog', $message);
+            return $this->go('/admin/languages', $message);
         }
         if ($path === '/admin/announcements' || str_starts_with($path, '/admin/announcements/')) { return $this->announcements($path, $post); }
         if ($path === '/admin/comments' || str_starts_with($path, '/admin/comments/')) {
@@ -354,6 +354,15 @@ final class AdminController
         $themes = new \App\Services\Themes($this->db);
         $slug = is_string($_POST['slug'] ?? null) ? $_POST['slug'] : '';
         $back = '/admin/themes';
+        if (in_array($_POST['action'] ?? '', ['catalog', 'catalog_install'], true)) {
+            try {
+                $downloads = new \App\Services\ThemeDownloads($this->db, new \Core\GitHubUpdates(new \Core\CurlHttpClient()));
+                if ($_POST['action'] === 'catalog_install') { return $this->go($back, $downloads->install($slug)); }
+                $downloads->check();
+                $states = array_count_values(array_column($downloads->rows(), 'state'));
+                return $this->go($back, 'Theme catalog checked: ' . ($states['new'] ?? 0) . ' to install, ' . ($states['update'] ?? 0) . ' with updates.');
+            } catch (\InvalidArgumentException | \RuntimeException $e) { return $this->go($back, $e->getMessage()); }
+        }
         try {
             switch ($_POST['action'] ?? '') {
                 case 'upload':

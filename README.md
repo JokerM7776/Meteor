@@ -406,3 +406,8 @@ Writing a theme: [docs/THEMES.md](docs/THEMES.md) (Theme API 1 and the stability
 
 Theme authoring: **Settings → Themes** installs, updates, creates, copies and downloads themes.
 Run `php bin/theme.php check <folder|zip>` before sharing; see [the theme guide](docs/THEMES.md).
+
+**Get themes** in Settings → Themes installs reviewed GitHub release assets and offers updates
+that keep settings. Each catalog version is pinned by checksum; install only PHP themes you trust.
+See [getting themes](docs/THEMES.md#getting-themes-from-the-catalog) and
+[publishing a theme](CONTRIBUTING.md#publishing-a-theme).

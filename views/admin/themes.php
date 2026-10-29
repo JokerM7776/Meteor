@@ -2,6 +2,8 @@
 // Settings → Themes: installed themes and the active theme's settings. Expects $db and $i18n.
 $themeService = new \App\Services\Themes($db);
 $installed = $themeService->all();
+$downloads = new \App\Services\ThemeDownloads($db, new \Core\GitHubUpdates(new \Core\CurlHttpClient()));
+$checked = $downloads->catalog(); $available = $downloads->rows(); $provenance = $downloads->installed();
 $activeSlug = $themeService->activeSlug();
 $previewSlug = (string) ($_SESSION['theme_preview'] ?? '');
 $activeTheme = null;
@@ -41,7 +43,9 @@ $themeLabel = fn (mixed $text): string => \App\Services\Themes::label($text, $i1
 <?php foreach ($installed as $row): $isActive = $activeTheme !== null && $activeTheme['slug'] === $row['slug']; $isPreview = $previewSlug === $row['slug'] && $row['problem'] === ''; ?>
 <tr>
 <th scope="row" class="sheet-key"><span class="block font-semibold"><?= e($row['name']) ?></span><span class="block font-mono text-xs font-normal text-slate-500 dark:text-slate-400"><?= e($row['slug']) ?></span><span class="block font-mono text-xs font-normal text-slate-500 dark:text-slate-400"><?= e(implode(' · ', \App\Services\Themes::files($row))) ?></span><?php if ($row['description'] !== ''): ?><span class="mt-1 block text-xs font-normal text-slate-600 dark:text-slate-400"><?= e($row['description']) ?></span><?php endif ?></th>
-<td class="font-mono text-xs"><?= e($row['version']) ?></td>
+<td class="font-mono text-xs"><?= e($row['version']) ?>
+<?php if (($available[$row['slug']]['state'] ?? '') === 'update'): ?><span class="<?= e($chip) ?> bg-amber-100 text-amber-950">Update available</span><?php endif ?>
+<?php if (isset($provenance[$row['slug']])): ?><span class="block font-display text-xs text-slate-500 dark:text-slate-400">From the catalog</span><?php endif ?></td>
 <td class="text-sm"><?php if ($row['homepage'] !== ''): ?><a class="text-orange-700 underline dark:text-orange-400" href="<?= e($row['homepage']) ?>" rel="noopener"><?= e($row['author'] ?: $row['homepage']) ?></a><?php else: ?><?= e($row['author']) ?><?php endif ?></td>
 <td class="font-mono text-xs"><?= e($row['api'] ?: '–') ?></td>
 <td><?php if ($row['problem'] !== ''): ?><span class="<?= $chip ?> bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-200">Problem</span><span class="mt-1 block text-xs text-red-900 dark:text-red-300"><?= e($row['problem']) ?></span>
@@ -90,6 +94,7 @@ $invalid = $error !== '' ? ' aria-invalid="true" aria-describedby="' . e($id) . 
 </section>
 <?php endif ?>
 
+<?php require __DIR__ . '/theme-catalog.php'; ?>
 <div class="grid items-start gap-6 xl:grid-cols-3">
 <section class="panel space-y-4" aria-labelledby="upload-heading">
 <h2 id="upload-heading" class="text-xl font-bold">Upload a theme zip</h2>

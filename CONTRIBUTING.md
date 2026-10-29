@@ -74,3 +74,33 @@ Before opening a pull request, run:
 php tests/run.php
 find . -name '*.php' -print0 | xargs -0 -n1 php -l
 ```
+
+## Publishing a theme
+
+Keep theme code in your own GitHub repository. Meteor holds only the reviewed listing in
+`themes/index.json`; each version pins the exact release zip by SHA-256.
+
+1. Include `slug`, `version` (`X.Y.Z`), `api`, `requires` (`X.Y` or `X.Y.Z`) and `license`
+   in `theme.json`, along with its name, description and author. See [the Theme API guide](docs/THEMES.md).
+2. Run `php bin/theme.php check <folder>` and fix every finding: the result must be zero findings.
+3. Build a zip with `theme.json` at the top or inside one folder. Include no dot files.
+4. Attach the zip to a GitHub release in your repository, using the version as its tag.
+5. Generate the entry:
+   ```sh
+   php bin/theme.php entry owner/repo https://github.com/owner/repo/releases/download/1.0.0/my-theme.zip
+   ```
+   An optional final `local.zip` argument computes the entry from that local file without downloading.
+   Upload those exact bytes as the release asset. Paste the resulting slug and entry into the index's
+   `themes` object.
+6. Open a PR adding or updating **only `themes/index.json`**. Run `php bin/theme.php catalog check`
+   to validate it. CI runs `php bin/theme.php catalog check --download`, verifying the pinned bytes,
+   matching manifest and theme checks. Maintainers can limit downloads with `--download slug ...`.
+
+Reviewers check escaping with `e()`, use of only the documented Theme API, a present license,
+no network calls, no file writes, and no direct `$_GET`, `$_POST` or `$_SERVER` access.
+Themes execute PHP; passing the checker is not a security guarantee. The download check executes
+untrusted theme PHP in the PR runner with read-only permissions and no secrets.
+
+For an update, publish a new release and submit a new PR with the new version and SHA-256.
+Do not replace an approved asset's bytes. Maintainers may delist a theme; sites keep their installed
+copy, but no longer see it in subsequent catalog checks.

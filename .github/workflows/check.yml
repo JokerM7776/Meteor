@@ -16,6 +16,19 @@ jobs:
           coverage: none
       - name: Check language files
         run: php bin/lang.php check
+  themes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: zip, curl, pdo_sqlite, mbstring
+          tools: none
+          coverage: none
+      # Untrusted theme PHP runs in the PR's sandboxed runner with a read-only token and no secrets.
+      - name: Check theme catalog
+        run: php bin/theme.php catalog check --download
   tests:
     runs-on: ubuntu-latest
     steps:

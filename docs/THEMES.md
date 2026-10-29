@@ -36,6 +36,30 @@ separate theme so an update does not replace them. Preview and activate work as 
 and stops its preview. Switch away from an active theme before deleting it. The built-in look
 cannot be deleted. Site interface-text edits are kept separately.
 
+## Getting themes from the catalog
+
+In **Settings → Themes → Get themes**, choose **Check for themes**, then **Install**.
+The catalog is a reviewed index on GitHub; theme zips stay in their authors' repositories.
+Every version is pinned by SHA-256 and size. Themes run PHP on your server, so install only
+code you trust. Preview the installed theme, or activate it when ready.
+
+**Update available** appears in both tables when a catalog theme has a newer version. Choose
+**Update** to replace its files while keeping settings. Older catalog versions never downgrade
+an installed theme. **Name in use** means a local folder already has that slug; the catalog
+will not overwrite it. Incompatible themes show **Needs Meteor** and have no install button.
+
+Meteor records catalog provenance (version, checksum, repository and installation time) in
+`storage/themes/.installed.json`; the last check lives in `.catalog.json`. No index is fetched
+implicitly during installation. **From the catalog** marks installed catalog themes, even if
+later delisted. A hand upload with **Replace** clears provenance and makes the theme local;
+deleting a theme also clears its record. Keep file edits in a separate local theme, since a
+catalog update replaces theme files.
+
+## Publishing
+
+See [Publishing a theme](../CONTRIBUTING.md#publishing-a-theme) for the own-repository release
+workflow, `php bin/theme.php entry`, catalog PRs and review requirements.
+
 ## Creating and sharing
 
 **Create a theme** takes a name and an optional ASCII folder name. Meteor derives a folder name
